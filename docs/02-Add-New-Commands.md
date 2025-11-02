@@ -31,7 +31,7 @@ src/commands/info/ping.ts
 ### Step 2: Define the Command
 
 ```typescript
-import TXSlashCommand from "../../../structures/TXCommand";
+import TXSlashCommand from "../../../structures/TXSlashCommand";
 
 export default new TXSlashCommand({
   name: "ping",
@@ -100,7 +100,7 @@ The `execute` function receives an object with:
 
 ```typescript
 import { ApplicationCommandOptionType, MessageFlags } from "discord.js";
-import TXSlashCommand from "../../../structures/TXCommand";
+import TXSlashCommand from "../../../structures/TXSlashCommand";
 
 export default new TXSlashCommand({
   name: "echo",
@@ -128,7 +128,7 @@ export default new TXSlashCommand({
 
 ```typescript
 import { PermissionFlagsBits } from "discord.js";
-import TXSlashCommand from "../../../structures/TXCommand";
+import TXSlashCommand from "../../../structures/TXSlashCommand";
 
 export default new TXSlashCommand({
   name: "kick",
@@ -164,7 +164,7 @@ export default new TXSlashCommand({
 ### Command with Cooldown
 
 ```typescript
-import TXSlashCommand from "../../../structures/TXCommand";
+import TXSlashCommand from "../../../structures/TXSlashCommand";
 
 export default new TXSlashCommand({
   name: "daily",
@@ -183,7 +183,7 @@ export default new TXSlashCommand({
 
 ```typescript
 import { ApplicationCommandOptionType } from "discord.js";
-import TXSlashCommand from "../../../structures/TXCommand";
+import TXSlashCommand from "../../../structures/TXSlashCommand";
 
 export default new TXSlashCommand({
   name: "userinfo",

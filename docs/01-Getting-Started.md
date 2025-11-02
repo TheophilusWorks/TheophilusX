@@ -184,7 +184,7 @@ theophilusx/
 ├── src/
 │   ├── commands/          # Command files organized by category
 │   │   └── slash-commands/
-    │       └── info/
+│   │       └── info/
 │   │           └── ping.ts
 │   ├── events/            # Event handler files
 │   │   ├── 01-deleteDuplicatedCommands.ts
