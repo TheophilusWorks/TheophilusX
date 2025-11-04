@@ -10,6 +10,7 @@ import {
   CommandInteraction,
   CommandInteractionOptionResolver,
   GuildMember,
+  Message,
   PermissionResolvable,
 } from "discord.js";
 import TheophilusX from "../structures/TheophilusX";
@@ -25,10 +26,33 @@ interface ExecuteOptions {
 
 type ExecuteFunction = (options: ExecuteOptions) => any;
 
-export type CommandType = {
+export interface GuildMessage extends Message<boolean> {
+  member: GuildMember;
+}
+interface TXExecuteOptions {
+  client: TheophilusX;
+  message: GuildMessage;
+  args: string[];
+}
+
+type ExecuteTXFunction = (options: TXExecuteOptions) => any;
+
+type CommandType = {
   userPermissions?: PermissionResolvable[] | bigint[];
   botPermissions?: PermissionResolvable[] | bigint[]
   cooldown?: number;
   private?: boolean;
   execute: ExecuteFunction;
-} & ChatInputApplicationCommandData;
+}
+
+export type SlashCommandType = CommandType & ChatInputApplicationCommandData
+
+export type TXCommandType = {
+  name: string,
+  description: string,
+  userPermissions?: PermissionResolvable[] | bigint[];
+  botPermissions?: PermissionResolvable[] | bigint[];
+  cooldown?: number;
+  private?: boolean;
+  execute: ExecuteTXFunction;
+}

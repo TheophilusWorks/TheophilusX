@@ -10,8 +10,9 @@ import {
   Client,
   ClientEvents,
   Collection,
+  GatewayIntentBits
 } from "discord.js";
-import { CommandType } from "../typings/Command";
+import { SlashCommandType, TXCommandType } from "../typings/Command";
 import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
 import { glob } from "glob";
 import { RegisterCommandOptions } from "../typings/Client";
@@ -19,10 +20,19 @@ import { TXEvent } from "./TXEvent";
 import path = require("path");
 
 export default class TheophilusX extends Client {
-  public commands: Collection<string, CommandType> = new Collection();
+  public commands: Collection<string, SlashCommandType> = new Collection();
+  public slashCommands: ApplicationCommandDataResolvable[]
+  public txCommands: TXCommandType[]
 
   constructor() {
-    super({ intents: 32767 });
+    super({
+      intents: Object.values(GatewayIntentBits).filter(
+          (v) => typeof v === "number"
+      ) as GatewayIntentBits[],
+    });
+
+    this.slashCommands = [];
+    this.txCommands = [];
   }
 
   public async instantiate() {
@@ -275,21 +285,49 @@ export default class TheophilusX extends Client {
   }
 
   private async registerModules() {
-    const slashCommands: ApplicationCommandDataResolvable[] = [];
-    const commandFiles = await glob(`${__dirname}/../commands/slash-commands/*/*{.ts,.js}`);
+    // slash-commands
+    //
+    const slashCommandFiles = await glob(`${__dirname}/../commands/slash-commands/*/*{.ts,.js}`);
 
     log.info({
-      message: `Loading ${commandFiles.length} slash-command file(s)...`,
+      message: `Loading ${slashCommandFiles.length} slash-command file(s)...`,
       tag: LogTag.COMMANDS,
     });
 
-    for (const commandFile of commandFiles) {
-      const command: CommandType = await this.importFile(commandFile);
+    for (const commandFile of slashCommandFiles) {
+      const command: SlashCommandType = await this.importFile(commandFile);
       if (!command?.name) continue;
 
       this.commands.set(command.name, command);
-      slashCommands.push(command);
+      this.slashCommands.push(command);
     }
+
+    // tx-commands
+    const txCommandFiles = await glob(`${__dirname}/../commands/tx-commands/*/*{.ts,.js}`)
+
+    log.info({
+      message: `Loading ${txCommandFiles.length} TX-command file(s)...`,
+      tag: LogTag.COMMANDS
+    })
+
+    for(const commandFile of txCommandFiles) {
+      const command: TXCommandType = await this.importFile(commandFile)
+      if(!command?.name) continue
+
+      const commandExist = this.txCommands.find((cmd) => cmd?.name === command.name)
+      if(commandExist){
+        log.warn({
+          message: `Found a duplicated command "${command.name}", ignoring...`,
+          tag: LogTag.COMMANDS
+        })
+
+        continue
+      }
+
+      this.txCommands.push(command)
+    }
+
+    // events
 
     const eventFiles = (await glob(`${__dirname}/../events/*{.ts,.js}`)).sort();
 

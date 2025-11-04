@@ -5,10 +5,10 @@
  * See LICENSE file for details.
  */
 
-import { SlashCommandType } from "../typings/Command";
+import { TXCommandType } from "../typings/Command";
 
-export default class TXSlashCommand {
-  constructor(commandOptions: SlashCommandType) {
+export default class TXCommand {
+  constructor(commandOptions: TXCommandType) {
     Object.assign(this, commandOptions);
   }
 }
