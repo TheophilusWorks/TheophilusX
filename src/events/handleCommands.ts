@@ -81,6 +81,8 @@ export default new TXEvent("interactionCreate", async (interaction) => {
     });
   }
 
+  if(command.serverOnly && !interaction.guild) return
+
   if(command.userPermissions?.length && !member.permissions.has(command.userPermissions)){
     const permissionsEmbed = new EmbedBuilder().setColor("Red").setTitle(`Cannot execute the command "${command.name}"`).setDescription("You don't have enough permission to execute this command")
     return interaction.reply({

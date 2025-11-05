@@ -13,6 +13,7 @@ export default new TXSlashCommand({
   description: "Ban a member from the server",
   userPermissions: [PermissionFlagsBits.BanMembers],
   botPermissions: [PermissionFlagsBits.BanMembers],
+  serverOnly: true,
   options: [
     {
       name: "user",

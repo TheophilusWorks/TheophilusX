@@ -42,6 +42,7 @@ type CommandType = {
   botPermissions?: PermissionResolvable[] | bigint[]
   cooldown?: number;
   private?: boolean;
+  serverOnly?: boolean;
   execute: ExecuteFunction;
 }
 
@@ -54,5 +55,7 @@ export type TXCommandType = {
   botPermissions?: PermissionResolvable[] | bigint[];
   cooldown?: number;
   private?: boolean;
+  serverOnly?: boolean
+  syntax: string;
   execute: ExecuteTXFunction;
 }

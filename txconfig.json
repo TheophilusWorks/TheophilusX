@@ -1,3 +1,4 @@
 {
-  "secondaryPrefix": "tx>"
+  "secondaryPrefix": "tx>",
+  "commandFlagPrefix": "--"
 }

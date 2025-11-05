@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "npx tsx watch ./src/main.ts",
+    "clean:unix": "rm -rf ./dist/",
+    "clean:windows": "rmdir /s /q dist",
     "start": "node ."
   },
   "keywords": [],
