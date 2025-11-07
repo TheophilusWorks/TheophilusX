@@ -19,14 +19,13 @@ import {
 import TXSlashCommand from "../../../structures/TXSlashCommand";
 import ms = require("ms");
 import prettyMilliseconds from "pretty-ms";
-import { AccessLevel, GuildInteraction } from "../../../typings/Command";
+import { GuildInteraction } from "../../../typings/Command";
 
 export default new TXSlashCommand({
   name: "timeout",
   description: "Timeout a member",
   userPermissions: [PermissionFlagsBits.MuteMembers],
   botPermissions: [PermissionFlagsBits.MuteMembers],
-  accessLevel: AccessLevel.VERIFIED,
   serverOnly: true,
   options: [
     {

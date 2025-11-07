@@ -4,9 +4,35 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
+  TextChannel,
+  NewsChannel,
+  ThreadChannel,
 } from "discord.js";
 import TXCommand from "../../../structures/TXCommand";
 import { GuildMessage } from "../../../typings/Command";
+
+type SendableChannel = TextChannel | NewsChannel | ThreadChannel;
+
+interface JokeResponse {
+  error: boolean;
+  category: string;
+  type: "single" | "twopart";
+  joke?: string;
+  setup?: string;
+  delivery?: string;
+  flags: {
+    nsfw: boolean;
+    religious: boolean;
+    political: boolean;
+    racist: boolean;
+    sexist: boolean;
+    explicit: boolean;
+  };
+  id: number;
+  safe: boolean;
+  lang: string;
+  additionalInfo?: string;
+}
 
 export default new TXCommand({
   name: "joke",
@@ -15,182 +41,207 @@ export default new TXCommand({
   cooldown: 5000,
   execute: async ({ message }: { message: GuildMessage }) => {
     try {
-      const response = await fetch("https://v2.jokeapi.dev/joke/Any");
-      if (!response.ok)
-        throw new Error(`Non-200 response: ${response.status}`);
+      const joke = await fetchJoke();
 
-      const json = await response.json();
-
-      if (json?.error) throw new Error(json?.additionalInfo);
-
-      // Check for unsafe jokes
-      if (!json.safe) {
-        const proceed = await notifyUser(message, json);
-        if (!proceed) return; // user exited
+      if (!joke.safe) {
+        const proceed = await promptUserForUnsafeContent(message, joke);
+        if (!proceed) return;
       }
 
-      // Build the base embed
-      const jokeEmbed = new EmbedBuilder()
-        .setColor("Blurple")
-        .setFooter({
-          text: `Requested by ${message.author.displayName}`,
-          iconURL: message.author.displayAvatarURL(),
-        });
+      const baseEmbed = createBaseEmbed(message);
 
-      if (json.type === "twopart") {
-        await handleTwoPart(message, json, jokeEmbed);
-      } else {
-        jokeEmbed
-          .setTitle(`Category: ${json.category}`)
-          .setDescription(json.joke);
-        await message.reply({ embeds: [jokeEmbed] });
+      if (joke.type === "twopart" && joke.setup && joke.delivery) {
+        await handleTwoPartJoke(message, joke, baseEmbed);
+      } else if (joke.type === "single" && joke.joke) {
+        baseEmbed
+          .setTitle(`Category: ${joke.category}`)
+          .setDescription(joke.joke);
+        await message.reply({ embeds: [baseEmbed] });
       }
-    } catch (err: any) {
-      const errorEmbed = new EmbedBuilder()
-        .setColor("White")
-        .setTitle("Oops...")
-        .setDescription(`\`\`\`${err.message}\`\`\``);
-      await message.reply({ embeds: [errorEmbed] });
+    } catch (err) {
+      await handleError(message, err);
     }
   },
 });
 
-function getAllFlags(jsonFlags: Record<string, boolean>): string[] {
-  const flags: string[] = [];
-  for (const [flag, used] of Object.entries(jsonFlags)) {
-    if (used) flags.push(flag);
+async function fetchJoke(): Promise<JokeResponse> {
+  const response = await fetch("https://v2.jokeapi.dev/joke/Any");
+  
+  if (!response.ok) {
+    throw new Error(`API returned status ${response.status}`);
   }
-  return flags;
+
+  const data: JokeResponse = await response.json();
+
+  if (data.error) {
+    throw new Error(data.additionalInfo || "Unknown API error");
+  }
+
+  return data;
 }
 
-async function notifyUser(message: GuildMessage, json: any): Promise<boolean> {
-  return new Promise(async (resolve) => {
-    const flags = getAllFlags(json.flags);
-
-    const description =
-      flags.length > 0
-        ? `⚠️ This joke is flagged as **[${flags.join(", ")}]**.\nDo you wish to continue?`
-        : `⚠️ This joke has **no specific flags**, but is still marked as **unsafe**.\nDo you wish to continue?`;
-
-    const embed = new EmbedBuilder()
-      .setColor("DarkButNotBlack")
-      .setTitle("⚠️ Warning")
-      .setDescription(description);
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId("joke-exit")
-        .setLabel("Exit")
-        .setStyle(ButtonStyle.Danger),
-      new ButtonBuilder()
-        .setCustomId("joke-continue")
-        .setLabel("Continue")
-        .setStyle(ButtonStyle.Primary)
-    );
-
-    const reply = await message.reply({
-      embeds: [embed],
-      components: [row],
+function createBaseEmbed(message: GuildMessage): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor("Blurple")
+    .setFooter({
+      text: `Requested by ${message.author.displayName}`,
+      iconURL: message.author.displayAvatarURL(),
     });
+}
 
+function getFlagsList(flags: JokeResponse["flags"]): string[] {
+  return Object.entries(flags)
+    .filter(([_, isActive]) => isActive)
+    .map(([flag]) => flag);
+}
+
+async function promptUserForUnsafeContent(
+  message: GuildMessage,
+  joke: JokeResponse
+): Promise<boolean> {
+  const flags = getFlagsList(joke.flags);
+
+  const description = flags.length > 0
+    ? `This joke is flagged as **[${flags.join(", ")}]**.\nDo you wish to continue?`
+    : `This joke has **no specific flags**, but is still marked as **unsafe**.\nDo you wish to continue?`;
+
+  const embed = new EmbedBuilder()
+    .setColor("DarkButNotBlack")
+    .setTitle("⚠️ Content Warning")
+    .setDescription(description);
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId("joke-exit")
+      .setLabel("Cancel")
+      .setStyle(ButtonStyle.Danger),
+    new ButtonBuilder()
+      .setCustomId("joke-continue")
+      .setLabel("Show Joke")
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  const reply = await message.reply({
+    embeds: [embed],
+    components: [row],
+  });
+
+  return new Promise((resolve) => {
     const collector = reply.createMessageComponentCollector({
       componentType: ComponentType.Button,
-      time: 300_000,
+      time: 60_000,
+      max: 1,
     });
 
     collector.on("collect", async (interaction) => {
       if (interaction.user.id !== message.author.id) {
-        return interaction.reply({
-          embeds: [
-            new EmbedBuilder()
-              .setColor("Red")
-              .setDescription("This is not your joke session."),
-          ],
-          ephemeral: true,
-        });
-      }
-
-      if (interaction.customId === "joke-exit") {
-        collector.stop("exit");
         await interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setColor("Red")
-              .setDescription("❌ You cancelled the joke."),
+              .setDescription("This prompt is not for you."),
           ],
           ephemeral: true,
         });
+        return;
       }
 
-      if (interaction.customId === "joke-continue") {
-        collector.stop("continue");
-        await interaction.deferUpdate();
-        resolve(true);
-      }
+      const continued = interaction.customId === "joke-continue";
+
+      await interaction.update({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(continued ? "Green" : "Red")
+            .setDescription(
+              continued
+                ? "Loading joke..."
+                : "Joke cancelled."
+            ),
+        ],
+        components: [],
+      });
+
+      resolve(continued);
     });
 
-    collector.on("end", (_, reason) => {
-      if (reason === "exit" || reason === "time") return resolve(false);
-      if (reason === "continue") return resolve(true);
+    collector.on("end", (collected) => {
+      if (collected.size === 0) {
+        reply.edit({ components: [] }).catch(() => {});
+        resolve(false);
+      }
     });
   });
 }
 
-async function handleTwoPart(
+async function handleTwoPartJoke(
   message: GuildMessage,
-  json: any,
+  joke: JokeResponse,
   baseEmbed: EmbedBuilder
-) {
-  const setup = json.setup;
-  const delivery = json.delivery;
+): Promise<void> {
+  if (!joke.setup || !joke.delivery) return;
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
-      .setCustomId("joke-next")
-      .setLabel("Show punchline")
+      .setCustomId("joke-reveal")
+      .setLabel("Show Punchline")
       .setStyle(ButtonStyle.Primary)
   );
 
   const setupEmbed = new EmbedBuilder(baseEmbed.toJSON())
-    .setTitle(`Category: ${json.category}`)
-    .setDescription(setup);
+    .setTitle(`Category: ${joke.category}`)
+    .setDescription(joke.setup);
 
-  const reply = await message.reply({ embeds: [setupEmbed], components: [row] });
+  const reply = await message.reply({
+    embeds: [setupEmbed],
+    components: [row],
+  });
 
   const collector = reply.createMessageComponentCollector({
     componentType: ComponentType.Button,
     time: 120_000,
+    max: 1,
   });
 
   collector.on("collect", async (interaction) => {
-    // prevent others from clicking your button
     if (interaction.user.id !== message.author.id) {
-      return interaction.reply({
+      await interaction.reply({
         embeds: [
           new EmbedBuilder()
             .setColor("Red")
-            .setDescription("This is not your joke session."),
+            .setDescription("This joke is not for you."),
         ],
         ephemeral: true,
       });
+      return;
     }
-
-    const punchlineEmbed = new EmbedBuilder(baseEmbed.toJSON())
-      .setDescription(delivery)
-      .setTitle(null);
 
     await interaction.deferUpdate();
-    await reply.edit({ components: [] });
 
-    if (!message.channel || !message.channel.isTextBased()) return;
-   
+    const punchlineEmbed = new EmbedBuilder(baseEmbed.toJSON())
+      .setDescription(`||${joke.delivery}||`)
+      .setTitle("🎭 Punchline");
 
-    await message.channel?.send({ embeds: [punchlineEmbed] });
+    await reply.edit({
+      embeds: [setupEmbed, punchlineEmbed],
+      components: [],
+    });
   });
 
-  collector.on("end", (_, reason) => {
-    if (reason === "time") {
-      console.warn("Joke session expired — no punchline shown.");
+  collector.on("end", (collected) => {
+    if (collected.size === 0) {
+      reply.edit({ components: [] }).catch(() => {});
     }
   });
+}
+
+async function handleError(message: GuildMessage, err: unknown): Promise<void> {
+  const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+
+  const errorEmbed = new EmbedBuilder()
+    .setColor("Red")
+    .setTitle("Error")
+    .setDescription(`\`\`\`${errorMessage}\`\`\``)
+    .setFooter({ text: "Please try again later" });
+
+  await message.reply({ embeds: [errorEmbed] }).catch(() => {});
 }

@@ -12,12 +12,10 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 import TXSlashCommand from "../../../structures/TXSlashCommand";
-import { AccessLevel } from "../../../typings/Command";
 
 export default new TXSlashCommand({
   name: "kick",
   description: "Kick a member from the server",
-  accessLevel: AccessLevel.VERIFIED,
   userPermissions: [PermissionFlagsBits.KickMembers],
   botPermissions: [PermissionFlagsBits.KickMembers],
   serverOnly: true,
