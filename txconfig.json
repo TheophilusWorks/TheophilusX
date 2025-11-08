@@ -1,4 +1,10 @@
 {
-  "secondaryPrefix": "tx>",
-  "commandFlagPrefix": "--"
+  "command": {
+    "secondaryPrefix": "tx>",
+    "flagPrefix": "--"
+  },
+  "botStatus": {
+    "type": "CUSTOM",
+    "message": "tx> help"
+  }
 }

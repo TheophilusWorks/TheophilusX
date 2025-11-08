@@ -122,11 +122,11 @@ async function setVerify(
 
   verifyEmbed
     .setDescription(
-      `${message}\n\nEnter \`${config.secondaryPrefix} verify\` to verify yourself...`,
+      `${message}\n\nEnter \`${config.command.secondaryPrefix} verify\` to verify yourself...`,
     )
     .addFields({
       name: "How to verify?",
-      value: `Enter the command \`${config.secondaryPrefix} verify\` to verify`,
+      value: `Enter the command \`${config.command.secondaryPrefix} verify\` to verify`,
     });
 
   await channel.send({

@@ -9,7 +9,7 @@ export default new TXCommand({
   execute: async ({ message, args }) => {
     if (args.length <= 0)
       return message.reply(
-        `No message specified, type \`${config.secondaryPrefix}help echo\` for more info...`,
+        `No message specified, type \`${config.command.secondaryPrefix}help echo\` for more info...`,
       );
 
     const msg = args.join(" ");

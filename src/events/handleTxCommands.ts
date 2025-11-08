@@ -18,10 +18,10 @@ import VerifyTemplateSchema from "../database/models/VerifyTemplateSchema";
 
 export default new TXEvent("messageCreate", async (message) => {
   if (message.author.bot) return;
-  if (!message.content.startsWith(config.secondaryPrefix)) return;
+  if (!message.content.startsWith(config.command.secondaryPrefix)) return;
   if (!message.guild || !message.member) return;
 
-  const prefix = config.secondaryPrefix;
+  const prefix = config.command.secondaryPrefix;
   const msg = message.content.slice(prefix.length);
   const tokens: string[] = msg.trim().split(/ +/);
   const usedFlags: string[] = [];
@@ -43,7 +43,7 @@ export default new TXEvent("messageCreate", async (message) => {
   }
 
   for (const arg of args) {
-    const flagPrefix = config.commandFlagPrefix;
+    const flagPrefix = config.command.flagPrefix;
     if (!arg.startsWith(flagPrefix)) continue;
 
     const argument = arg.slice(flagPrefix.length);
@@ -80,7 +80,7 @@ export default new TXEvent("messageCreate", async (message) => {
   }
 
   try {
-    commandObject.execute({
+    await commandObject.execute({
       message: message as GuildMessage,
       client,
       args,
