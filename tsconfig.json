@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "resolveJsonModule": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src"
   },
   "include": ["src", "environment.d.ts"],
   "exclude": ["node_modules"]
