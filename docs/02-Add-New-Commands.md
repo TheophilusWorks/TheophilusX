@@ -210,6 +210,12 @@ export default new TXCommand({
 - **`syntax`** (string): How to use the command (e.g., `"ping"`, `"balance [user]"`)
 - **`execute`** (function): The function that runs when the command is invoked
 
+#### Command argument flags
+
+- `<required>` An argument flag that uses `<>` is considered a required argument (e.g., `tx> echo <message>`)
+- `[optional]` The argument with a flag of `[]` is considered as an optional argument. This can be `undefined` or empty (e.g., `tx> userinfo [user]` (defaults to message author if `user` argument is `undefined`))
+- `(note)` An argument that is automatically passed by the `tx> help` command inspector. This indicates that the command doesn't accept any argument (e.g., `tx> ping (no arguments used)`, `tx> daily (no arguments used)`)
+
 #### Optional Properties
 
 - **`userPermissions`** (PermissionResolvable[] | bigint[]): Required user permissions

@@ -15,6 +15,7 @@ import { client } from "../main";
 import { TXEvent } from "../structures/TXEvent";
 import { GuildInteraction } from "../typings/Command";
 import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
+import setEphemeral from "../utils/setEphemeral";
 
 const cooldowns = new Map<string, number>();
 
@@ -46,7 +47,7 @@ export default new TXEvent("interactionCreate", async (interaction) => {
 
   const commandName = interaction.commandName;
   const command = client.commands.get(commandName);
-  const member = interaction.member as GuildMember
+  const member = interaction.member as GuildMember;
   const key = getKey(
     commandName,
     interaction.user.id,
@@ -68,7 +69,7 @@ export default new TXEvent("interactionCreate", async (interaction) => {
       )
       .setColor("Blurple");
 
-    return interaction.reply({
+    const reply = await interaction.reply({
       embeds: [cooldownEmbed],
       flags: MessageFlags.Ephemeral,
     });
@@ -81,20 +82,34 @@ export default new TXEvent("interactionCreate", async (interaction) => {
     });
   }
 
-  if(command.serverOnly && !interaction.guild) return
+  if (command.serverOnly && !interaction.guild) return;
 
-  if(command.userPermissions?.length && !member.permissions.has(command.userPermissions)){
-    const permissionsEmbed = new EmbedBuilder().setColor("Red").setTitle(`Cannot execute the command "${command.name}"`).setDescription("You don't have enough permission to execute this command")
+  if (
+    command.userPermissions?.length &&
+    !member.permissions.has(command.userPermissions)
+  ) {
+    const permissionsEmbed = new EmbedBuilder()
+      .setColor("Red")
+      .setTitle(`Cannot execute the command "${command.name}"`)
+      .setDescription(
+        "You don't have enough permission to execute this command",
+      );
     return interaction.reply({
-      embeds: [permissionsEmbed]
-    })
+      embeds: [permissionsEmbed],
+    });
   }
 
-  if(command.botPermissions?.length && !interaction.guild?.members.me?.permissions.has(command.botPermissions)){
-    const permissionsEmbed = new EmbedBuilder().setColor("Red").setTitle(`Cannot execute the command "${command.name}"`).setDescription("I don't have enough permission to execute this command")
+  if (
+    command.botPermissions?.length &&
+    !interaction.guild?.members.me?.permissions.has(command.botPermissions)
+  ) {
+    const permissionsEmbed = new EmbedBuilder()
+      .setColor("Red")
+      .setTitle(`Cannot execute the command "${command.name}"`)
+      .setDescription("I don't have enough permission to execute this command");
     return interaction.reply({
-      embeds: [permissionsEmbed]
-    })
+      embeds: [permissionsEmbed],
+    });
   }
 
   try {

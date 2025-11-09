@@ -1,3 +1,10 @@
+/**
+ * TheophilusX
+ * Copyright (C) 2025 caelondev
+ * Licensed under the GNU Affero General Public License v3.0
+ * See LICENSE file for details.
+ */
+
 import TXCommand from "../../../structures/TXCommand";
 import VerifyTemplateSchema from "../../../database/models/VerifyTemplateSchema";
 import { GuildMember } from "discord.js";

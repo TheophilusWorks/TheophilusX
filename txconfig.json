@@ -5,6 +5,6 @@
   },
   "botStatus": {
     "type": "CUSTOM",
-    "message": "tx> help"
+    "message": "`tx> help` for more info!"
   }
 }

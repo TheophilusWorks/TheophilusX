@@ -126,7 +126,7 @@ export default new TXSlashCommand({
         const title = parseMessage(guildConfig.welcomeTitle, mentionable);
         const message = parseMessage(guildConfig.welcomeMessage, mentionable);
         const testEmbed = new EmbedBuilder()
-          .setTitle(title)
+          .setTitle(title || null)
           .setDescription(message)
           .setColor("Blurple");
 

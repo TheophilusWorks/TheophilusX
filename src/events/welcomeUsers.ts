@@ -26,7 +26,7 @@ export default new TXEvent("guildMemberAdd", async (member) => {
   const message = parseMessage(guildConfig.welcomeMessage, mentionables);
   const title = parseMessage(guildConfig.welcomeTitle, mentionables);
 
-  const embed = new EmbedBuilder().setColor("Blurple").setTitle(title).setDescription(message)
+  const embed = new EmbedBuilder().setColor("Blurple").setTitle(title || null).setDescription(message)
 
   const channel = member.guild.channels.cache.get(guildConfig.welcomeChannel) || member.guild.systemChannel;
   if (channel?.isTextBased()) await channel.send({ embeds: [embed] });

@@ -16,6 +16,30 @@ import { EmbedBuilder, GuildMember } from "discord.js";
 import setEphemeral from "../utils/setEphemeral";
 import VerifyTemplateSchema from "../database/models/VerifyTemplateSchema";
 
+const cooldowns = new Map<string, number>();
+
+const getKey = (commandName: string, id: string, guildId: string) =>
+  `${commandName}-${id}-${guildId}`;
+
+const isOnCooldown = (key: string) => {
+  const expiry = cooldowns.get(key);
+  if (!expiry) return false;
+  if (Date.now() > expiry) {
+    cooldowns.delete(key);
+    return false;
+  }
+  return true;
+};
+
+const setCooldown = (key: string, durationMs: number) => {
+  cooldowns.set(key, Date.now() + durationMs);
+};
+
+const getRemainingCooldown = (key: string) => {
+  const expiry = cooldowns.get(key);
+  if (!expiry) return 0;
+  return Math.max(0, (expiry - Date.now()) / 1000).toFixed(2);
+};
 export default new TXEvent("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(config.command.secondaryPrefix)) return;
@@ -32,6 +56,13 @@ export default new TXEvent("messageCreate", async (message) => {
   const args = tokens.slice(1);
 
   if (!commandName) return;
+
+  const key = getKey(
+    commandName,
+    message.author.id,
+    message.guild?.id || "",
+  );
+
 
   if(verifyTemplateSchema && verifyTemplateSchema.verificationEnabled && !member.roles.cache.has(verifyTemplateSchema.verifiedRole)){
     if(!["verify", "help"].includes(commandName)){
@@ -52,6 +83,27 @@ export default new TXEvent("messageCreate", async (message) => {
 
   const commandObject = client.txCommands.find((cmd) => cmd.name === commandName);
   if (!commandObject) return;
+
+  if (isOnCooldown(key)) {
+    const remaining = getRemainingCooldown(key);
+    const cooldownEmbed = new EmbedBuilder()
+      .setTitle("Command on cooldown")
+      .setDescription(`You cannot use the **${commandName}** command yet.`)
+      .addFields(
+        {
+          name: "Command's Cooldown",
+          value: `${(commandObject?.cooldown || 0) / 1000}s`,
+          inline: true,
+        },
+        { name: "Time Remaining", value: `${remaining}s`, inline: true },
+      )
+      .setColor("Blurple");
+
+    const reply = await message.reply({
+      embeds: [cooldownEmbed],
+    });
+    return setEphemeral(reply)
+  }
 
   if(commandObject.serverOnly && !message.guild) return
   
@@ -85,6 +137,8 @@ export default new TXEvent("messageCreate", async (message) => {
       client,
       args,
     });
+
+    setCooldown(key, commandObject.cooldown || 0)
   } catch (error) {
     log.error({
       message: `An error occurred whilst executing the TX-comand "${commandName}"`,

@@ -23,7 +23,8 @@ export enum LogTag {
   NETWORK = "NETWORK",
   LOGIN = "LOGIN",
   OTHER = "OTHER",
-  READY = "READY"
+  READY = "READY",
+  WEB = "WEB"
 }
 
 interface LogOptions {

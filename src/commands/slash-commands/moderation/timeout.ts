@@ -84,6 +84,14 @@ export default new TXSlashCommand({
     const timeoutUntil = member.communicationDisabledUntilTimestamp || 0;
     const durationInMs = ms(duration as ms.StringValue);
 
+    if(!durationInMs) return interaction.editReply("Invalid duration, valid time units are **ms, s, m, h, d,**")
+
+    if (durationInMs > ms("28d" as ms.StringValue)) 
+      return interaction.editReply({
+        content: "Timeout duration cannot be higher than 28 days",
+      });
+    
+
     if (Date.now() < timeoutUntil) {
       try {
         await notifyTimeoutStatus(
@@ -99,7 +107,7 @@ export default new TXSlashCommand({
 
     await member.timeout(durationInMs, reason);
     timeoutEmbed.setDescription(
-      `Timed out ${member.user.displayName} for ${prettyMilliseconds(durationInMs)}\nReason: ${reason}`,
+      `Timed out ${member.user} for **${prettyMilliseconds(durationInMs)}**\nReason: **${reason}**`,
     );
     interaction.editReply({
       embeds: [timeoutEmbed],
