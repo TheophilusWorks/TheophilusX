@@ -343,11 +343,27 @@ export default class TheophilusX extends Client {
     }
 
     // events
-    const eventFiles = (await glob(`${__dirname}/../events/*{.ts,.js}`)).sort();
+    const eventFiles = (
+      await glob(`${__dirname}/../events/*/*{.ts,.js}`)
+    ).sort();
 
     log.info({
       message: `Loading ${eventFiles.length} event file(s)...`,
       tag: LogTag.EVENTS,
+    });
+
+    eventFiles.sort((a, b) => {
+      const nameA = path.basename(a);
+      const nameB = path.basename(b);
+
+      const numA = parseInt(nameA.split("-")[0], 10);
+      const numB = parseInt(nameB.split("-")[0], 10);
+
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return numA - numB; // numeric comparison
+      }
+
+      return nameA.localeCompare(nameB); // fallback for non-numbered files
     });
 
     for (const eventFile of eventFiles) {

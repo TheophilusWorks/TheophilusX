@@ -5,11 +5,12 @@
  * See LICENSE file for details.
  */
 
-import { client } from "../main";
-import { TXEvent } from "../structures/TXEvent";
-import GuildConfigs from "../database/models/GuildConfigs";
-import { getMentionablesMap, parseMessage } from "../constants/mentionableMap";
+import { client } from "../../main";
+import { TXEvent } from "../../structures/TXEvent";
+import GuildConfigs from "../../database/models/GuildConfigs";
 import { EmbedBuilder } from "discord.js";
+import TXVariable from "../../structures/TXVariables";
+import { TXVariableParserContext } from "../../typings/Variables";
 
 export default new TXEvent("guildMemberAdd", async (member) => {
   if (member.id === client.user?.id) return;
@@ -22,9 +23,14 @@ export default new TXEvent("guildMemberAdd", async (member) => {
 
   if(!guildConfig.welcomeMessageToggle) return
 
-  const mentionables = getMentionablesMap(member);
-  const message = parseMessage(guildConfig.welcomeMessage, mentionables);
-  const title = parseMessage(guildConfig.welcomeTitle, mentionables);
+  const context: TXVariableParserContext = {
+    user: member.user,
+    member,
+    guild: member.guild,
+  }
+
+  const title = await new TXVariable().parse(guildConfig.welcomeTitle, context)
+  const message = await new TXVariable().parse(guildConfig.welcomeMessage, context)
 
   const embed = new EmbedBuilder().setColor("Blurple").setTitle(title || null).setDescription(message)
 

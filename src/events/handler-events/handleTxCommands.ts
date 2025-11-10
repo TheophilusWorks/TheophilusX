@@ -5,16 +5,16 @@
  * See LICENSE file for details.
  */
 
-import { client } from "../main";
-import { TXEvent } from "../structures/TXEvent";
-import config from "../../txconfig.json";
-import { GuildMessage } from "../typings/Command";
-import capitalizeFirstLetter from "../utils/capitalizeFirstLetter";
-import globalFlags from "../constants/globalFlags";
-import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
+import { client } from "../../main";
+import { TXEvent } from "../../structures/TXEvent";
+import config from "../../../txconfig.json";
+import { GuildMessage } from "../../typings/Command";
+import capitalizeFirstLetter from "../../utils/capitalizeFirstLetter";
+import globalFlags from "../../constants/globalFlags";
+import { PrettyLogger as log, LogTag } from "../../utils/PrettyLogger";
 import { EmbedBuilder, GuildMember } from "discord.js";
-import setEphemeral from "../utils/setEphemeral";
-import VerifyTemplateSchema from "../database/models/VerifyTemplateSchema";
+import setEphemeral from "../../utils/setEphemeral";
+import VerifyTemplateSchema from "../../database/models/VerifyTemplateSchema";
 
 const cooldowns = new Map<string, number>();
 

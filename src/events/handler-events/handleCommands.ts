@@ -11,11 +11,10 @@ import {
   EmbedBuilder,
   GuildMember,
 } from "discord.js";
-import { client } from "../main";
-import { TXEvent } from "../structures/TXEvent";
-import { GuildInteraction } from "../typings/Command";
-import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
-import setEphemeral from "../utils/setEphemeral";
+import { client } from "../../main";
+import { TXEvent } from "../../structures/TXEvent";
+import { GuildInteraction } from "../../typings/Command";
+import { PrettyLogger as log, LogTag } from "../../utils/PrettyLogger";
 
 const cooldowns = new Map<string, number>();
 

@@ -15,35 +15,35 @@ import GuildConfigs from "../../../database/models/GuildConfigs";
 import TXVariable from "../../../structures/TXVariables";
 
 export default new TXSlashCommand({
-  name: "welcome-embed",
-  description: "Configure welcome message (variables supported)",
+  name: "goodbye-embed",
+  description: "Configure goodbye message (variables supported)",
   cooldown: 2000,
   serverOnly: true,
   options: [
     {
       name: "toggle",
-      description: "Toggles welcome message (on | off)",
+      description: "Toggles goodbye message (on | off)",
       type: ApplicationCommandOptionType.Subcommand,
     },
     {
       name: "test",
-      description: "Sends an embed of how your welcome embed will look like",
+      description: "Sends an embed of how your goodbye embed will look like",
       type: ApplicationCommandOptionType.Subcommand,
     },
     {
       name: "set",
-      description: "Sets the welcome message for this server",
+      description: "Sets the goodbye message for this server",
       type: ApplicationCommandOptionType.Subcommand,
       options: [
         {
           name: "new-message",
-          description: "The new welcome message",
+          description: "The new goodbye message",
           type: ApplicationCommandOptionType.String,
           required: true,
         },
         {
           name: "new-title",
-          description: "The new welcome title",
+          description: "The new goodbye title",
           type: ApplicationCommandOptionType.String,
         },
       ],
@@ -72,40 +72,40 @@ export default new TXSlashCommand({
         const newMessage = args.getString("new-message")!;
         const newTitle = args.getString("new-title") ?? "";
 
-        guildConfig.welcomeMessage = newMessage;
-        guildConfig.welcomeTitle = newTitle;
+        guildConfig.goodbyeMessage = newMessage;
+        guildConfig.goodbyeTitle = newTitle;
         await guildConfig.save();
 
         const setEmbed = new EmbedBuilder()
-          .setColor("Blurple")
+          .setColor("Red")
           .setDescription(
-            `Successfully changed welcome message to\n\nTitle: ${guildConfig.welcomeTitle}\n\`\`\`${guildConfig.welcomeMessage}\`\`\``
+            `Successfully changed goodbye message to\n\nTitle: ${guildConfig.goodbyeTitle}\n\`\`\`${guildConfig.goodbyeMessage}\`\`\``
           );
 
         interaction.reply({ embeds: [setEmbed] });
         break;
 
       case "toggle":
-        guildConfig.welcomeMessageToggle = !guildConfig.welcomeMessageToggle;
+        guildConfig.goodbyeMessageToggle = !guildConfig.goodbyeMessageToggle;
         await guildConfig.save();
 
         const toggleEmbed = new EmbedBuilder()
-          .setColor("Blurple")
+          .setColor("Red")
           .setDescription(
-            `Toggled welcome messages "${guildConfig.welcomeMessageToggle ? "On" : "Off"}"`
+            `Toggled goodbye messages "${guildConfig.goodbyeMessageToggle ? "On" : "Off"}"`
           );
 
         interaction.reply({ embeds: [toggleEmbed] });
         break;
 
       case "test":
-        const parsedTitle = await variables.parse(guildConfig.welcomeTitle, context);
-        const parsedMessage = await variables.parse(guildConfig.welcomeMessage, context);
+        const parsedTitle = await variables.parse(guildConfig.goodbyeTitle, context);
+        const parsedMessage = await variables.parse(guildConfig.goodbyeMessage, context);
 
         const testEmbed = new EmbedBuilder()
           .setTitle(parsedTitle || null)
           .setDescription(parsedMessage)
-          .setColor("Blurple");
+          .setColor("Red");
 
         interaction.reply({ embeds: [testEmbed] });
         break;

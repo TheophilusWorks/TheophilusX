@@ -6,9 +6,9 @@
  */
 
 import { EmbedBuilder, TextChannel, ChannelType } from "discord.js"
-import { client } from "../main"
-import { TXEvent } from "../structures/TXEvent"
-import config from '../../txconfig.json'
+import { client } from "../../main"
+import { TXEvent } from "../../structures/TXEvent"
+import config from '../../../txconfig.json'
 
 const INTRODUCTION = `
 👋 Hello, @everyone! Thanks for inviting me!

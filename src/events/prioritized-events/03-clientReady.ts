@@ -5,9 +5,9 @@
  * See LICENSE file for details.
  */
 
-import { client } from "../main";
-import { TXEvent } from "../structures/TXEvent";
-import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
+import { client } from "../../main";
+import { TXEvent } from "../../structures/TXEvent";
+import { PrettyLogger as log, LogTag } from "../../utils/PrettyLogger";
 
 export default new TXEvent("clientReady", () => {
   log.success({
