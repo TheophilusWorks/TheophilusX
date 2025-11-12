@@ -7,8 +7,8 @@
 
 import { client } from "../../main";
 import { TXEvent } from "../../structures/TXEvent";
-import config from "../../.../../../txconfig.json"
 import { ActivityType } from "discord.js";
+import config from "../../../txconfig.json"
 
 const TYPE_MAP: Record<string, ActivityType> = {
   PLAYING: ActivityType.Playing,

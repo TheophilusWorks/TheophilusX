@@ -31,7 +31,7 @@ const guildConfigsSchema = new Schema({
   guildId: { type: String, required: true },
   welcomeChannel: { type: String, default: null },
   welcomeToggle: { type: Boolean, default: true },
-  welcomeMessageEmbed: embedSchema,
+  welcomeEmbed: embedSchema,
   goodbyeChannel: { type: String, default: null },
   goodbyeToggle: { type: Boolean, default: true },
   goodbyeEmbed: embedSchema,
