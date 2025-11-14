@@ -8,6 +8,7 @@ export default async function buildEmbed(
   embedConfig: any,
   context: TXVariableParserContext
 ): Promise<EmbedBuilder> {
+
   // Convert Mongoose document to plain object first
   const plainConfig = embedConfig.toObject ? embedConfig.toObject() : embedConfig;
 

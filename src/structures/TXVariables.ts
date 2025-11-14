@@ -32,7 +32,9 @@ export default class TXVariable {
     this.placeholders.set(template, options);
   }
 
-  public async parse(message: string, context: TXVariableParserContext) {
+  public async parse(message: (string | null), context: TXVariableParserContext) {
+    if(!message) return null
+
     const tokens = message.split(/(\\?\{.*?\})/g);
     let parsed = "";
 

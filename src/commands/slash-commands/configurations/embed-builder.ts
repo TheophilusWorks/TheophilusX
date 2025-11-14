@@ -225,11 +225,18 @@ export default new TXSlashCommand({
       ],
     },
   ],
-  execute: async ({ interaction, args, client }) => {
+  execute: async ({ interaction, args }) => {
     const subcommand = args.getSubcommand();
     const guildId = interaction.guildId!;
 
     let guildConfig = await GuildConfigs.findOne({ guildId });
+    
+    if (!subcommand) {
+      return interaction.editReply({ 
+        content: "Invalid subcommand!"
+      });
+    }
+
     if (!guildConfig) {
       guildConfig = await GuildConfigs.create({ guildId, embeds: [] });
     }
@@ -255,52 +262,51 @@ export default new TXSlashCommand({
       if (parsedTitle) embed.setTitle(parsedTitle);
       if (parsedDescription) embed.setDescription(parsedDescription);
       
-      // Parse URL before setting
       if (embedData.url) {
         const parsedUrl = await variableParser.parse(embedData.url, context);
-        embed.setURL(parsedUrl);
+        if (parsedUrl) embed.setURL(parsedUrl);
       }
       
-      // Parse image URL before setting
       if (embedData.image) {
         const parsedImage = await variableParser.parse(embedData.image, context);
-        embed.setImage(parsedImage);
+        if (parsedImage) embed.setImage(parsedImage);
       }
       
-      // Parse thumbnail URL before setting
       if (embedData.thumbnail) {
         const parsedThumbnail = await variableParser.parse(embedData.thumbnail, context);
-        embed.setThumbnail(parsedThumbnail);
+        if (parsedThumbnail) embed.setThumbnail(parsedThumbnail);
       }
       
       if (embedData.timestamp) embed.setTimestamp();
 
-      // Parse author URLs before setting
       if (embedData.author?.name) {
-        const authorData: any = {
-          name: await variableParser.parse(embedData.author.name, context),
-        };
+        const parsedAuthorName = await variableParser.parse(embedData.author.name, context);
         
-        if (embedData.author.iconURL) {
-          const parsedIconURL = await variableParser.parse(embedData.author.iconURL, context);
-          authorData.iconURL = parsedIconURL;
+        if (parsedAuthorName) {
+          const authorData: any = {
+            name: parsedAuthorName,
+          };
+          
+          if (embedData.author.iconURL) {
+            const parsedIconURL = await variableParser.parse(embedData.author.iconURL, context);
+            if (parsedIconURL) authorData.iconURL = parsedIconURL;
+          }
+          
+          if (embedData.author.url) {
+            const parsedAuthorUrl = await variableParser.parse(embedData.author.url, context);
+            if (parsedAuthorUrl) authorData.url = parsedAuthorUrl;
+          }
+          
+          embed.setAuthor(authorData);
         }
-        
-        if (embedData.author.url) {
-          const parsedAuthorUrl = await variableParser.parse(embedData.author.url, context);
-          authorData.url = parsedAuthorUrl;
-        }
-        
-        embed.setAuthor(authorData);
       }
 
-      // Parse footer icon URL before setting
       if (parsedFooter) {
         const footerData: any = { text: parsedFooter };
         
         if (embedData.footerIconURL) {
           const parsedFooterIcon = await variableParser.parse(embedData.footerIconURL, context);
-          footerData.iconURL = parsedFooterIcon;
+          if (parsedFooterIcon) footerData.iconURL = parsedFooterIcon;
         }
         
         embed.setFooter(footerData);
@@ -310,11 +316,14 @@ export default new TXSlashCommand({
         for (const field of embedData.fields) {
           const parsedName = await variableParser.parse(field.name, context);
           const parsedValue = await variableParser.parse(field.value, context);
-          embed.addFields({
-            name: parsedName,
-            value: parsedValue,
-            inline: field.inline,
-          });
+          
+          if (parsedName && parsedValue) {
+            embed.addFields({
+              name: parsedName,
+              value: parsedValue,
+              inline: field.inline ?? false,
+            });
+          }
         }
       }
 
@@ -331,8 +340,8 @@ export default new TXSlashCommand({
     switch (subcommand) {
       case "add": {
         const embedName = args.getString("embed-name", true);
-        const title = args.getString("title")!;
-        const description = args.getString("description")!;
+        const title = args.getString("title");
+        const description = args.getString("description");
         const color = args.getString("color") || "#5865F2";
         const titleUrl = args.getString("title-url");
         const authorName = args.getString("author-name");
@@ -359,12 +368,11 @@ export default new TXSlashCommand({
         ) {
           return interaction.reply({
             content:
-              "❌ You must provide at least one embed property (e.g. title, description, etc.) — all fields cannot be empty.",
+              "You must provide at least one embed property (e.g. title, description, etc.) — all fields cannot be empty.",
             flags: MessageFlags.Ephemeral,
           });
         }
 
-        // Check if embed name already exists
         const existingEmbed = guildConfig.embeds.find(
           (e: any) => e.name === embedName,
         );
@@ -375,7 +383,6 @@ export default new TXSlashCommand({
           });
         }
 
-        // Validate hex color
         if (!/^#[0-9A-F]{6}$/i.test(color)) {
           return interaction.reply({
             content: `Invalid color format. Please use hex format like \`#5865F2\`.`,
@@ -383,7 +390,6 @@ export default new TXSlashCommand({
           });
         }
 
-        // Validate URLs (after parsing variables)
         const urlRegex = /^https?:\/\/\S+$/i;
         const variableParser = new TXVariable();
 
@@ -399,10 +405,9 @@ export default new TXSlashCommand({
         for (const urlData of urlsToValidate) {
           if (!urlData.value) continue;
 
-          // parse variable placeholders first
-          const parsedUrl = (await variableParser.parse(urlData.value, context))?.trim();
+          const parsedUrl = await variableParser.parse(urlData.value, context);
 
-          if (parsedUrl && !urlRegex.test(parsedUrl)) {
+          if (parsedUrl && !urlRegex.test(parsedUrl.trim())) {
             return interaction.reply({
               content: `Invalid ${urlData.name} URL. Must start with http:// or https://, ${urlData.value}`,
               flags: MessageFlags.Ephemeral,
@@ -410,40 +415,36 @@ export default new TXSlashCommand({
           }
         }
 
-        // Create author object if any author data is provided
         let author = null;
         if (authorName) {
           author = {
             name: authorName,
-            iconURL: authorIcon,
-            url: authorUrl,
+            iconURL: authorIcon || null,
+            url: authorUrl || null,
           };
         }
 
-        // Create new embed object
         const newEmbed = {
           name: embedName,
-          title,
-          description,
+          title: title || null,
+          description: description || null,
           color,
-          url: titleUrl,
-          image,
-          thumbnail,
-          footer,
-          footerIconURL: footerIcon,
+          url: titleUrl || null,
+          image: image || null,
+          thumbnail: thumbnail || null,
+          footer: footer || null,
+          footerIconURL: footerIcon || null,
           timestamp,
           author,
-          fields: [],
         };
 
         guildConfig.embeds.push(newEmbed);
         await guildConfig.save();
 
-        // Create preview embed
         const previewEmbed = await buildEmbed(newEmbed, context);
 
         return interaction.reply({
-          content: `✅ Successfully created embed template \`${embedName}\`!\n\n**Preview:**`,
+          content: `Successfully created embed template \`${embedName}\`!\n\n**Preview:**`,
           embeds: [previewEmbed],
         });
       }
@@ -451,7 +452,6 @@ export default new TXSlashCommand({
       case "view": {
         const embedName = args.getString("embed-name", true);
 
-        // Find embed
         const embedData = guildConfig.embeds.find(
           (e: any) => e.name === embedName,
         );
@@ -462,7 +462,6 @@ export default new TXSlashCommand({
           });
         }
 
-        // Create preview embed
         const previewEmbed = await buildEmbed(embedData, context);
 
         return interaction.reply({
@@ -512,21 +511,22 @@ export default new TXSlashCommand({
         const timestamp = args.getBoolean("timestamp");
 
         if (
-          !title &&
-          !description &&
-          !titleUrl &&
-          !authorName &&
-          !authorIcon &&
-          !authorUrl &&
-          !image &&
-          !thumbnail &&
-          !footer &&
-          !footerIcon &&
-          !timestamp
+          title === null &&
+          description === null &&
+          color === null &&
+          titleUrl === null &&
+          authorName === null &&
+          authorIcon === null &&
+          authorUrl === null &&
+          image === null &&
+          thumbnail === null &&
+          footer === null &&
+          footerIcon === null &&
+          timestamp === null
         ) {
           return interaction.reply({
             content:
-              "❌ You must provide at least one embed property (e.g. title, description, etc.) — all fields cannot be empty.",
+              "You must provide at least one embed property to update.",
             flags: MessageFlags.Ephemeral,
           });
         }
@@ -548,7 +548,6 @@ export default new TXSlashCommand({
           });
         }
 
-        // Validate URLs (after parsing variables)
         const urlRegex = /^https?:\/\/\S+$/i;
         const variableParser = new TXVariable();
 
@@ -564,10 +563,9 @@ export default new TXSlashCommand({
         for (const urlData of urlsToValidate) {
           if (!urlData.value) continue;
 
-          // parse variable placeholders first
-          const parsedUrl = (await variableParser.parse(urlData.value, context))?.trim();
+          const parsedUrl = await variableParser.parse(urlData.value, context);
 
-          if (parsedUrl && !urlRegex.test(parsedUrl)) {
+          if (parsedUrl && !urlRegex.test(parsedUrl.trim())) {
             return interaction.reply({
               content: `Invalid ${urlData.name} URL. Must start with http:// or https://, ${urlData.value}`,
               flags: MessageFlags.Ephemeral,
@@ -576,21 +574,27 @@ export default new TXSlashCommand({
         }
 
         const embed = guildConfig.embeds[embedIndex];
-        if (title) embed.title = title;
-        if (description) embed.description = description;
+        if (title !== null) embed.title = title;
+        if (description !== null) embed.description = description;
         if (color) embed.color = color;
-        if (titleUrl) embed.url = titleUrl;
-        if (image) embed.image = image;
-        if (thumbnail) embed.thumbnail = thumbnail;
-        if (footer) embed.footer = footer;
-        if (footerIcon) embed.footerIconURL = footerIcon;
-        if (timestamp) embed.timestamp = timestamp;
+        if (titleUrl !== null) embed.url = titleUrl;
+        if (image !== null) embed.image = image;
+        if (thumbnail !== null) embed.thumbnail = thumbnail;
+        if (footer !== null) embed.footer = footer;
+        if (footerIcon !== null) embed.footerIconURL = footerIcon;
+        if (timestamp !== null) embed.timestamp = timestamp;
 
         if (authorName || authorIcon || authorUrl) {
-          if (!embed.author) embed.author = { name: "", iconURL: "", url: "" };
+          if (!embed.author) {
+            embed.author = {
+              name: "",
+              iconURL: null,
+              url: null,
+            };
+          }
           if (authorName) embed.author.name = authorName;
-          if (authorIcon) embed.author.iconURL = authorIcon;
-          if (authorUrl) embed.author.url = authorUrl;
+          if (authorIcon !== null) embed.author.iconURL = authorIcon;
+          if (authorUrl !== null) embed.author.url = authorUrl;
         }
 
         await guildConfig.save();
@@ -606,7 +610,6 @@ export default new TXSlashCommand({
       case "delete": {
         const embedName = args.getString("embed-name", true);
 
-        // Find and remove embed
         const embedIndex = guildConfig.embeds.findIndex(
           (e: any) => e.name === embedName,
         );
