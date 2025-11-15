@@ -11,14 +11,9 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ComponentType,
-  TextChannel,
-  NewsChannel,
-  ThreadChannel,
 } from "discord.js";
 import TXCommand from "../../../structures/TXCommand";
 import { GuildMessage } from "../../../typings/Command";
-
-type SendableChannel = TextChannel | NewsChannel | ThreadChannel;
 
 interface JokeResponse {
   error: boolean;
@@ -73,7 +68,7 @@ export default new TXCommand({
 
 async function fetchJoke(): Promise<JokeResponse> {
   const response = await fetch("https://v2.jokeapi.dev/joke/Any");
-  
+
   if (!response.ok) {
     throw new Error(`API returned status ${response.status}`);
   }
@@ -88,12 +83,10 @@ async function fetchJoke(): Promise<JokeResponse> {
 }
 
 function createBaseEmbed(message: GuildMessage): EmbedBuilder {
-  return new EmbedBuilder()
-    .setColor("Blurple")
-    .setFooter({
-      text: `Requested by ${message.author.displayName}`,
-      iconURL: message.author.displayAvatarURL(),
-    });
+  return new EmbedBuilder().setColor("Blurple").setFooter({
+    text: `Requested by ${message.author.displayName}`,
+    iconURL: message.author.displayAvatarURL(),
+  });
 }
 
 function getFlagsList(flags: JokeResponse["flags"]): string[] {
@@ -104,13 +97,14 @@ function getFlagsList(flags: JokeResponse["flags"]): string[] {
 
 async function promptUserForUnsafeContent(
   message: GuildMessage,
-  joke: JokeResponse
+  joke: JokeResponse,
 ): Promise<boolean> {
   const flags = getFlagsList(joke.flags);
 
-  const description = flags.length > 0
-    ? `This joke is flagged as **[${flags.join(", ")}]**.\nDo you wish to continue?`
-    : `This joke has **no specific flags**, but is still marked as **unsafe**.\nDo you wish to continue?`;
+  const description =
+    flags.length > 0
+      ? `This joke is flagged as **[${flags.join(", ")}]**.\nDo you wish to continue?`
+      : `This joke has **no specific flags**, but is still marked as **unsafe**.\nDo you wish to continue?`;
 
   const embed = new EmbedBuilder()
     .setColor("DarkButNotBlack")
@@ -125,7 +119,7 @@ async function promptUserForUnsafeContent(
     new ButtonBuilder()
       .setCustomId("joke-continue")
       .setLabel("Show Joke")
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
   );
 
   const reply = await message.reply({
@@ -159,11 +153,7 @@ async function promptUserForUnsafeContent(
         embeds: [
           new EmbedBuilder()
             .setColor(continued ? "Green" : "Red")
-            .setDescription(
-              continued
-                ? "Loading joke..."
-                : "Joke cancelled."
-            ),
+            .setDescription(continued ? "Loading joke..." : "Joke cancelled."),
         ],
         components: [],
       });
@@ -183,7 +173,7 @@ async function promptUserForUnsafeContent(
 async function handleTwoPartJoke(
   message: GuildMessage,
   joke: JokeResponse,
-  baseEmbed: EmbedBuilder
+  baseEmbed: EmbedBuilder,
 ): Promise<void> {
   if (!joke.setup || !joke.delivery) return;
 
@@ -191,7 +181,7 @@ async function handleTwoPartJoke(
     new ButtonBuilder()
       .setCustomId("joke-reveal")
       .setLabel("Show Punchline")
-      .setStyle(ButtonStyle.Primary)
+      .setStyle(ButtonStyle.Primary),
   );
 
   const setupEmbed = new EmbedBuilder(baseEmbed.toJSON())
@@ -242,7 +232,8 @@ async function handleTwoPartJoke(
 }
 
 async function handleError(message: GuildMessage, err: unknown): Promise<void> {
-  const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+  const errorMessage =
+    err instanceof Error ? err.message : "An unknown error occurred";
 
   const errorEmbed = new EmbedBuilder()
     .setColor("Red")

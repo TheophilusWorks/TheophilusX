@@ -1,10 +1,13 @@
 {
   "command": {
-    "secondaryPrefix": "tx>",
+    "secondaryPrefix": "tx!",
     "flagPrefix": "--"
   },
   "botStatus": {
     "type": "CUSTOM",
     "message": "`tx> help` for more info!"
+  },
+  "misc": {
+    "ephemeralEmoji": "🗑️"
   }
 }

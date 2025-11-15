@@ -1,3 +1,4 @@
+// setEphemeral.ts
 /**
  * TheophilusX
  * Copyright (C) 2025 caelondev
@@ -6,21 +7,10 @@
  */
 
 import { Message } from "discord.js"
+import config from "../../txconfig.json"
 
 export default async function setEphemeral(message: Message): Promise<void> {
-  await message.react("🗑️")
-  
-  const originalAuthorId = message.reference?.messageId 
-    ? (await message.channel.messages.fetch(message.reference.messageId)).author.id
-    : message.author.id
-  
-  const filter = (reaction: any, user: any) => {
-    return reaction.emoji.name === "🗑️" && user.id === originalAuthorId && !user.bot
-  }
-  
-  const collector = message.createReactionCollector({ filter, max: 1 })
-  
-  collector.on("collect", async () => {
-    await message.delete().catch(() => null)
-  })
+  await message.react(config.misc.ephemeralEmoji)
 }
+
+// messageReactionAdd.ts

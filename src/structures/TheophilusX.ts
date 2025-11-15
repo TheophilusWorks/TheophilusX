@@ -11,6 +11,7 @@ import {
   ClientEvents,
   Collection,
   GatewayIntentBits,
+  Partials,
 } from "discord.js";
 import { SlashCommandType, TXCommandType } from "../typings/Command";
 import { PrettyLogger as log, LogTag } from "../utils/PrettyLogger";
@@ -29,6 +30,14 @@ export default class TheophilusX extends Client {
       intents: Object.values(GatewayIntentBits).filter(
         (v) => typeof v === "number",
       ) as GatewayIntentBits[],
+      partials: Object.values(Partials).filter(
+        (v) => typeof v === "number",
+      ) as Partials[],
+      allowedMentions: {
+        parse: ["users", "roles", "everyone"],
+        repliedUser: true,
+      },
+      failIfNotExists: false,
     });
 
     this.slashCommands = [];

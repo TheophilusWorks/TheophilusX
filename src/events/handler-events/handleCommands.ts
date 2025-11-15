@@ -68,7 +68,7 @@ export default new TXEvent("interactionCreate", async (interaction) => {
       )
       .setColor("Blurple");
 
-    const reply = await interaction.reply({
+    return interaction.reply({
       embeds: [cooldownEmbed],
       flags: MessageFlags.Ephemeral,
     });
