@@ -1,1 +1,1 @@
-export type TXPlatform = "discord" | "facebook" | "telegram";
+export type TXPlatform = "discord" | "facebook" | "telegram" | "cli";

@@ -4,7 +4,6 @@ import {
   Partials,
   Options,
   Message,
-  TextBasedChannel,
 } from "discord.js";
 import TXEventBus from "../core/TXEventBus";
 import TXAdapter from "./TXAdapter";
@@ -56,7 +55,7 @@ export default class TXDiscordAdapter extends TXAdapter {
     return this.client;
   }
 
-  public connect() {
+  public async connect() {
     this.client.on("messageCreate", (msg) => {
       if (msg.author.bot) return;
 

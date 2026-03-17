@@ -8,7 +8,7 @@ export default class TXAdapter {
     this.eventBus = eventBus;
   }
 
-  public connect() {
+  public async connect() {
     throw new Error("connect() must be implemented by subclass");
   }
 
