@@ -16,6 +16,27 @@ export default class TXContext {
     this.context = context;
   }
 
+  public changePlatform(newPlatform: TXPlatform): this {
+    this.context.platform = newPlatform;
+    return this;
+  }
+  public changeUserId(newUserId: string): this {
+    this.context.userId = newUserId;
+    return this;
+  }
+  public changeChannelId(newChannelId: string): this {
+    this.context.channelId = newChannelId;
+    return this;
+  }
+  public changeContent(newContent: string): this {
+    this.context.content = newContent;
+    return this;
+  }
+  public changeRaw(newRaw: any): this {
+    this.context.raw = newRaw;
+    return this;
+  }
+
   // getters for easy access
   get platform() {
     return this.context.platform;

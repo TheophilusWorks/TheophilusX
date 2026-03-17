@@ -1,9 +1,8 @@
 import TXEventBus from "../core/TXEventBus";
 import { ask } from "../utils/prompt";
 import TXAdapter from "./TXAdapter";
-import { TXSendMessageOptions } from "./types";
 import config from "../../config.json";
-import TXContext from "../core/TXContext";
+import TXContext, { TXIContext } from "../core/TXContext";
 
 export default class TXCLIAdapter extends TXAdapter {
   constructor(eventBus: TXEventBus) {
@@ -25,7 +24,7 @@ export default class TXCLIAdapter extends TXAdapter {
     }
   }
 
-  public async sendMessage({ content }: TXSendMessageOptions): Promise<void> {
+  public async sendMessage({ content }: TXIContext): Promise<void> {
     console.log(content);
   }
 

@@ -1,5 +1,5 @@
+import { TXIContext } from "../core/TXContext";
 import TXEventBus from "../core/TXEventBus";
-import { TXSendMessageOptions } from "./types";
 
 export default class TXAdapter {
   protected eventBus: TXEventBus;
@@ -12,7 +12,7 @@ export default class TXAdapter {
     throw new Error("connect() must be implemented by subclass");
   }
 
-  public async sendMessage(option: TXSendMessageOptions): Promise<void> {
+  public async sendMessage(option: TXIContext): Promise<void> {
     throw new Error("sendMessage() must be implemented by subclass");
   }
 

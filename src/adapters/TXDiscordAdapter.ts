@@ -7,8 +7,7 @@ import {
 } from "discord.js";
 import TXEventBus from "../core/TXEventBus";
 import TXAdapter from "./TXAdapter";
-import TXContext from "../core/TXContext";
-import { TXSendMessageOptions } from "./types";
+import TXContext, { TXIContext } from "../core/TXContext";
 
 export default class TXDiscordAdapter extends TXAdapter {
   private client: Client;
@@ -16,7 +15,6 @@ export default class TXDiscordAdapter extends TXAdapter {
   constructor(eventBus: TXEventBus, token: string) {
     super(eventBus);
 
-    this.eventBus = eventBus;
     this.client = new Client({
       // enable every intent
       intents: Object.values(GatewayIntentBits).filter(
@@ -65,10 +63,7 @@ export default class TXDiscordAdapter extends TXAdapter {
     });
   }
 
-  public async sendMessage({
-    channelId,
-    content,
-  }: TXSendMessageOptions): Promise<void> {
+  public async sendMessage({ channelId, content }: TXIContext): Promise<void> {
     const channel = await this.client.channels.fetch(channelId);
 
     if (!channel) return;
