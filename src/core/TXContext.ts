@@ -6,6 +6,7 @@ export interface TXIContext {
   channelId: string;
   content: string;
   raw: any;
+  isSelf: boolean;
   reply?: (message: string) => Promise<void>;
 }
 
@@ -40,6 +41,10 @@ export default class TXContext {
   // getters for easy access
   get platform() {
     return this.context.platform;
+  }
+
+  get isSelf() {
+    return this.context.isSelf;
   }
 
   get userId() {

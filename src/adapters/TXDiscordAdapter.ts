@@ -1,10 +1,4 @@
-import {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  Options,
-  Message,
-} from "discord.js";
+import { Client, Message } from "discord.js";
 import TXEventBus from "../core/TXEventBus";
 import TXAdapter from "./TXAdapter";
 import TXContext, { TXIContext } from "../core/TXContext";
@@ -12,41 +6,9 @@ import TXContext, { TXIContext } from "../core/TXContext";
 export default class TXDiscordAdapter extends TXAdapter {
   private client: Client;
 
-  constructor(eventBus: TXEventBus, token: string) {
+  constructor(eventBus: TXEventBus, token: string, client: Client) {
     super(eventBus);
-
-    this.client = new Client({
-      // enable every intent
-      intents: Object.values(GatewayIntentBits).filter(
-        (v) => typeof v === "number",
-      ) as GatewayIntentBits[],
-
-      // enable every partial
-      partials: Object.values(Partials).filter(
-        (v) => typeof v === "number",
-      ) as Partials[],
-
-      allowedMentions: {
-        parse: ["users", "roles", "everyone"],
-        repliedUser: true,
-      },
-
-      failIfNotExists: false,
-
-      // cache limits
-      makeCache: Options.cacheWithLimits({
-        GuildMemberManager: 200,
-        UserManager: 200,
-        MessageManager: 500,
-      }),
-
-      // sweepers for memory cleanup
-      sweepers: {
-        messages: { interval: 3600, lifetime: 1800 },
-      },
-    });
-
-    this.client.login(token);
+    this.client = client;
   }
 
   public getClient(): Client {
@@ -80,6 +42,7 @@ export default class TXDiscordAdapter extends TXAdapter {
       channelId: msg.channelId,
       content: msg.content,
       raw: msg,
+      isSelf: msg.author.id == this.client.user?.id,
       async reply(message: string) {
         await msg.reply(message);
       },

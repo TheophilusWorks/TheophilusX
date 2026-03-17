@@ -16,10 +16,6 @@ export default class TXAdapter {
     throw new Error("sendMessage() must be implemented by subclass");
   }
 
-  public getClient() {
-    throw new Error("getClient() must be implemented by subclass");
-  }
-
   public normalizeEvent(msg: any) {
     throw new Error("normalizeEvent() must be implemented by subclass");
   }

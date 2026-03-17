@@ -5,8 +5,14 @@ import config from "../../config.json";
 import TXContext, { TXIContext } from "../core/TXContext";
 
 export default class TXCLIAdapter extends TXAdapter {
-  constructor(eventBus: TXEventBus) {
+  private client;
+
+  constructor(
+    eventBus: TXEventBus,
+    client: { send: (...data: any[]) => void },
+  ) {
     super(eventBus);
+    this.client = client;
   }
 
   public async connect() {
@@ -25,7 +31,7 @@ export default class TXCLIAdapter extends TXAdapter {
   }
 
   public async sendMessage({ content }: TXIContext): Promise<void> {
-    console.log(content);
+    this.client.send(content);
   }
 
   public getClient() {
@@ -39,6 +45,7 @@ export default class TXCLIAdapter extends TXAdapter {
       channelId: "0",
       content: msg,
       raw: msg,
+      isSelf: false,
       async reply(message: string) {
         console.log(message);
       },
