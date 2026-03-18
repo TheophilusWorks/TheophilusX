@@ -14,3 +14,20 @@ export async function ask(question: string): Promise<string> {
 
   return ans;
 }
+
+export async function continue_prompt(
+  message = "Press Enter to continue...",
+): Promise<void> {
+  const rl = readline.createInterface({
+    input: stdin,
+    output: stdout,
+  });
+
+  let input = "not_enter";
+
+  while (input !== "") {
+    input = await rl.question(message);
+  }
+
+  rl.close();
+}

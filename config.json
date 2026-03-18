@@ -1,6 +1,6 @@
 {
-  "cliExit": ".exit"
+  "cliExit": ".exit",
   "prefix": {
-    "default": ">",
+    "default": ">"
   }
 }

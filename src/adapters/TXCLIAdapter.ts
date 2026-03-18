@@ -1,54 +1,47 @@
-import TXEventBus from "../core/TXEventBus";
-import { ask } from "../utils/prompt";
-import TXAdapter from "./TXAdapter";
-import config from "../../config.json";
 import TXContext, { TXIContext } from "../core/TXContext";
+import TXEventBus from "../core/TXEventBus";
+import { ask, continue_prompt } from "../utils/prompt";
+import TXAdapterBuilder from "./TXAdapterBuilder";
+import config from "../../config.json";
 
-export default class TXCLIAdapter extends TXAdapter {
-  private client;
+export default function createCLIAdapter(eventBus: TXEventBus) {
+  return new TXAdapterBuilder()
+    .setEventBus(eventBus)
+    .setMessageSender(cliMessageSender)
+    .setNormalizer(cliNormalizer)
+    .setConnector(() => cliConnector(eventBus))
+    .build();
+}
 
-  constructor(
-    eventBus: TXEventBus,
-    client: { send: (...data: any[]) => void },
-  ) {
-    super(eventBus);
-    this.client = client;
-  }
+async function cliConnector(eventBus: TXEventBus) {
+  while (true) {
+    console.clear();
+    let input = await ask("Input > ");
 
-  public async connect() {
-    while (true) {
-      console.log(`Enter a command: ('${config.cliExit}') to exit`);
-      let msg = await ask(">> ");
-
-      if (msg == config.cliExit) {
-        console.log("Exiting...");
-        process.exit(0);
-      }
-
-      let context = this.normalizeEvent(msg);
-      this.eventBus.emit("message", context);
+    if (input == config.cliExit) {
+      process.exit(0);
     }
-  }
 
-  public async sendMessage({ content }: TXIContext): Promise<void> {
-    this.client.send(content);
+    eventBus.emit("message", cliNormalizer(input));
+    await continue_prompt();
   }
+}
 
-  public getClient() {
-    throw new Error("getClient() must be implemented by subclass");
-  }
+async function cliMessageSender(ctx: TXIContext) {
+  console.log(ctx.content);
+}
 
-  public normalizeEvent(msg: string) {
-    return new TXContext({
-      platform: "cli",
-      userId: "0",
-      channelId: "0",
-      content: msg,
-      raw: msg,
-      isSelf: false,
-      async reply(message: string) {
-        console.log(message);
-      },
-    });
-  }
+function cliNormalizer(raw: unknown) {
+  let msg = raw as string;
+  return new TXContext({
+    platform: "cli",
+    userId: "0",
+    channelId: "0",
+    content: msg,
+    raw: msg,
+    isSelf: false,
+    async reply(message: string) {
+      console.log(message);
+    },
+  });
 }

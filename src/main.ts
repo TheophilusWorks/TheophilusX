@@ -1,14 +1,13 @@
-import TXCLIAdapter from "./adapters/TXCLIAdapter";
-import TXClient from "./core/TXClient";
+import createCLIAdapter from "./adapters/TXCLIAdapter";
 import TXEventBus from "./core/TXEventBus";
 
 function main() {
   let eventBus = new TXEventBus();
-  let cliAdapter = new TXCLIAdapter(eventBus, TXClient.createCLI());
+  let cliAdapter = createCLIAdapter(eventBus);
   cliAdapter.connect();
 
   eventBus.on("message", (ctx) => {
-    cliAdapter.sendMessage(ctx.changeContent(`Content: ${ctx.content}`));
+    console.log(`Found context: ${JSON.stringify(ctx, null, 2)}`);
   });
 }
 
