@@ -1,6 +1,14 @@
 {
   "cliExit": ".exit",
   "prefix": {
-    "default": ">"
+    "default": "%"
+  },
+  "command": {
+    "flags": {
+      "boolValueFlags": {
+        "falsy": ["n", "false", "f"],
+        "truthy": ["y", "true", "t"]
+      }
+    }
   }
 }

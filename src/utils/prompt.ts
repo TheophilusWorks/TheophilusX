@@ -12,6 +12,7 @@ export async function ask(question: string): Promise<string> {
     ans = await rl.question(question);
   }
 
+  rl.close();
   return ans;
 }
 

@@ -1,12 +1,11 @@
 import { EventEmitter } from "events";
 import TXContext from "./TXContext";
+import { TXICommandContext } from "./TXCommandContext";
 
-// You can type the events your bot will emit
 export type TXEvents = {
   message: (ctx: TXContext) => void;
-  command: (ctx: TXContext, command: string, args: string[]) => void;
+  command: (ctx: TXContext, commandContext: TXICommandContext) => void;
   userJoin: (ctx: TXContext) => void;
-  // add more events as needed
 };
 
 export default class TXEventBus extends EventEmitter {
@@ -23,10 +22,7 @@ export default class TXEventBus extends EventEmitter {
   }
 
   // Listen for typed event
-  public on<K extends keyof TXEvents>(
-    event: K,
-    listener: TXEvents[K]
-  ): this {
+  public on<K extends keyof TXEvents>(event: K, listener: TXEvents[K]): this {
     return super.on(event, listener);
   }
 }

@@ -3,6 +3,7 @@ import TXEventBus from "../core/TXEventBus";
 import { ask, continue_prompt } from "../utils/prompt";
 import TXAdapterBuilder from "./TXAdapterBuilder";
 import config from "../../config.json";
+import TXCommandParser from "../core/TXCommandParser";
 
 export default function createCLIAdapter(eventBus: TXEventBus) {
   return new TXAdapterBuilder()
@@ -22,7 +23,12 @@ async function cliConnector(eventBus: TXEventBus) {
       process.exit(0);
     }
 
-    eventBus.emit("message", cliNormalizer(input));
+    if (input.startsWith(config.prefix.default)) {
+      let cmd = new TXCommandParser(input).parseCommandString();
+      eventBus.emit("command", cliNormalizer(input), cmd);
+    } else {
+      eventBus.emit("message", cliNormalizer(input));
+    }
     await continue_prompt();
   }
 }
