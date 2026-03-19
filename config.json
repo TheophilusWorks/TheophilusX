@@ -3,12 +3,19 @@
   "prefix": {
     "default": "%"
   },
+
   "command": {
+    "path": "./dist/features/commands",
+    "defaultCooldownInMs": 3000,
     "flags": {
       "boolValueFlags": {
         "falsy": ["n", "false", "f"],
         "truthy": ["y", "true", "t"]
       }
     }
+  },
+
+  "event": {
+    "path": "./dist/features/events"
   }
 }

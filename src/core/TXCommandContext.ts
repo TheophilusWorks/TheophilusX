@@ -41,7 +41,7 @@ export default class TXCommandContextBuilder {
   }
 
   public addArgs(args: string) {
-    this.commandContext.args.push(args)
+    this.commandContext.args.push(args);
     return this;
   }
 
