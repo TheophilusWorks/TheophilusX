@@ -1,7 +1,7 @@
-import TXContextBuilder, { TXContext } from "../core/TXContextBuilder";
+import TXContextBuilder from "../core/TXContextBuilder";
 import TXEventBus from "../core/TXEventBus";
 
-export type TXAdapterSendMessageFn = (ctx: TXContext) => Promise<void>;
+export type TXAdapterSendMessageFn = (ctx: TXContextBuilder) => Promise<void>;
 export type TXAdapterNormalizeFn = (raw: unknown) => TXContextBuilder;
 export type TXAdapterConnectFn = () => Promise<void> | void;
 

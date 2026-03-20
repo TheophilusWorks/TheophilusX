@@ -82,7 +82,7 @@ function discordConnector(client: Client, eventBus: TXEventBus) {
   });
 }
 
-const discordMessageSender = (client: Client) => async (ctx: TXContext) => {
+const discordMessageSender = (client: Client) => async (ctx: TXContextBuilder) => {
   const channel = await client.channels.fetch(ctx.channelId);
   if (channel?.isTextBased() && channel.isSendable()) {
     await (channel as TextChannel).send(ctx.content);

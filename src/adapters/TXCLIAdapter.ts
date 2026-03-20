@@ -44,7 +44,7 @@ async function cliConnector(eventBus: TXEventBus) {
   }
 }
 
-async function cliMessageSender(ctx: TXContext) {
+async function cliMessageSender(ctx: TXContextBuilder) {
   console.log(ctx.content);
 }
 

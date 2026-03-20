@@ -5,6 +5,7 @@ export default new TXCommandBuilder({
   description: "Pong!",
   usage: "ping",
   availableFlags: [],
+  minimumRequiredArguments: 0,
   async execute({ ctx }) {
     let start = Date.now();
     let msg = await ctx.reply("Pinging...");

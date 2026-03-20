@@ -5,6 +5,7 @@ export interface TXCommand {
   description: string;
   usage: string;
   availableFlags: string[];
+  minimumRequiredArguments: number;
   execute: (args: TXCommandArgument) => void;
 }
 
