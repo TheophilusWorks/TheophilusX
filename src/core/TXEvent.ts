@@ -1,10 +1,11 @@
+import { TXAdapter } from "../adapters/TXAdapterBuilder";
 import { TXICommandContext } from "./TXCommandContext";
-import TXContext from "./TXContext";
+import TXContextBuilder from "./TXContextBuilder";
 
 export type TXIEvent = {
-  message: (ctx: TXContext) => void;
-  command: (ctx: TXContext, commandContext: TXICommandContext) => void;
-  userJoin: (ctx: TXContext) => void;
+  message: (ctx: TXContextBuilder, adapter: TXAdapter) => void;
+  command: (ctx: TXContextBuilder, commandContext: TXICommandContext, adapter: TXAdapter) => void;
+  userJoin: (ctx: TXContextBuilder, adapter: TXAdapter) => void;
 };
 
 export default class TXEvent<K extends keyof TXIEvent> {

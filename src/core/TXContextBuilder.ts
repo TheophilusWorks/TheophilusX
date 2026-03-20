@@ -1,19 +1,22 @@
+import TXMessageHandle from "./TXMessageHandle";
 import { TXPlatform } from "./TXPlatform";
 
-export interface TXIContext {
+export interface TXContext {
   platform: TXPlatform;
   userId: string;
   channelId: string;
   content: string;
   raw: any;
   isSelf: boolean;
-  reply?: (message: string) => Promise<void>;
+  replySent: boolean;
+  reply?: (message: string) => Promise<TXMessageHandle>;
+  editMsg?: (message: string) => Promise<void>;
 }
 
-export default class TXContext {
-  private context: TXIContext;
+export default class TXContextBuilder {
+  private context: TXContext;
 
-  constructor(context: TXIContext) {
+  constructor(context: TXContext) {
     this.context = context;
   }
 
@@ -64,10 +67,19 @@ export default class TXContext {
   }
 
   // reply function, delegated to adapter
-  public async reply(message: string) {
+  public async reply(message: string): Promise<TXMessageHandle> {
     if (!this.context.reply) {
       throw new Error("Reply function not attached for this context");
     }
-    await this.context.reply(message);
+    return await this.context.reply(message);
+  }
+
+  public async editMsg(newContent: string) {
+    if (!this.context.editMsg) {
+      throw new Error(
+        "Message editing is not supported on the current platform",
+      );
+    }
+    await this.context.editMsg(newContent);
   }
 }

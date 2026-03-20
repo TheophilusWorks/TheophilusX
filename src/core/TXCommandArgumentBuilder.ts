@@ -1,8 +1,10 @@
-import TXContext from "./TXContext";
+import { TXAdapter } from "../adapters/TXAdapterBuilder";
+import TXContextBuilder from "./TXContextBuilder";
 
 export interface TXCommandArgument {
   args: string[];
-  ctx: TXContext;
+  ctx: TXContextBuilder;
+  adapter: TXAdapter;
 
   stringValueFlags: Record<string, string>;
   boolValueFlags: Record<string, boolean>;
@@ -13,10 +15,11 @@ export interface TXCommandArgument {
 
 export default class TXCommandArgumentBuilder {
   private cmdArgs: TXCommandArgument;
-  constructor(ctx: TXContext) {
+  constructor(ctx: TXContextBuilder, adapter: TXAdapter) {
     this.cmdArgs = {
       args: [],
       ctx: ctx,
+      adapter,
 
       stringValueFlags: {},
       boolValueFlags: {},

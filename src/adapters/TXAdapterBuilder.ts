@@ -1,11 +1,11 @@
-import TXContext, { TXIContext } from "../core/TXContext";
+import TXContextBuilder, { TXContext } from "../core/TXContextBuilder";
 import TXEventBus from "../core/TXEventBus";
 
-export type TXAdapterSendMessageFn = (ctx: TXIContext) => Promise<void>;
-export type TXAdapterNormalizeFn = (raw: unknown) => TXContext;
+export type TXAdapterSendMessageFn = (ctx: TXContext) => Promise<void>;
+export type TXAdapterNormalizeFn = (raw: unknown) => TXContextBuilder;
 export type TXAdapterConnectFn = () => Promise<void> | void;
 
-interface TXAdapter {
+export interface TXAdapter {
   eventBus: TXEventBus | null;
   connect: TXAdapterConnectFn;
   sendMessage: TXAdapterSendMessageFn;

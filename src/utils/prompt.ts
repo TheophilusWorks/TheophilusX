@@ -28,6 +28,7 @@ export async function continue_prompt(
 
   while (input !== "") {
     input = await rl.question(message);
+    console.log() //empty new line
   }
 
   rl.close();

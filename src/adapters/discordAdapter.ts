@@ -1,10 +1,11 @@
-import { Client, GuildMember, Message, TextChannel } from "discord.js";
+import { Client, EmbedBuilder, GuildMember, Message, TextChannel } from "discord.js";
 import TXEventBus from "../core/TXEventBus";
-import TXAdapterBuilder, { TXAdapterNormalizeFn } from "./TXAdapterBuilder";
-import TXContext, { TXIContext } from "../core/TXContext";
+import TXAdapterBuilder from "./TXAdapterBuilder";
 import config from "../../config.json";
 import TXCommandParser from "../core/TXCommandParser";
-import { before } from "node:test";
+import TXContextBuilder, { TXContext } from "../core/TXContextBuilder";
+import TXMessageHandle from "../core/TXMessageHandle";
+import { instance } from "../main";
 
 export default function createDiscordAdapter(
   client: Client,
@@ -18,25 +19,39 @@ export default function createDiscordAdapter(
     .build();
 }
 
-function discordNormalizer(raw: unknown): TXContext {
+function discordNormalizer(raw: unknown): TXContextBuilder {
   switch (true) {
     case raw instanceof Message:
+      const embed = new EmbedBuilder().setColor("Blurple")
       const msg = raw as Message;
-      return new TXContext({
+      return new TXContextBuilder({
         platform: "discord",
         userId: msg.author.id,
         channelId: msg.channelId,
         content: msg.content,
         raw: msg,
+        replySent: false,
         isSelf: msg.author.id === msg.client.user?.id,
-        async reply(message: string) {
-          await msg.reply(message);
+        async reply(message: string): Promise<TXMessageHandle> {
+          if (this.replySent) throw new Error("Double reply error");
+
+          embed.setDescription(message)
+          const sent = await msg.reply({ embeds: [embed] });
+          this.replySent = true;
+
+          return {
+            async editMsg(newContent) {
+              embed.setDescription(newContent)
+              await sent.edit({ embeds: [embed] })
+            },
+          }
         },
       });
     case raw instanceof GuildMember:
       const member = raw as GuildMember;
-      return new TXContext({
+      return new TXContextBuilder({
         platform: "discord",
+        replySent: false,
         userId: member.id,
         channelId: "0",
         content: "0",
@@ -55,19 +70,19 @@ function discordConnector(client: Client, eventBus: TXEventBus) {
     const context = discordNormalizer(msg);
     if (msg.content.startsWith(config.prefix.default)) {
       let command = new TXCommandParser(msg.content).parseCommandString();
-      eventBus.emit("command", context, command);
+      eventBus.dispatch("command", context, command, instance.getAdapter("discord"));
     } else {
-      eventBus.emit("message", context);
+      eventBus.dispatch("message", context, instance.getAdapter("discord"));
     }
   });
 
   client.on("guildMemberAdd", (member) => {
     const ctx = discordNormalizer(member);
-    eventBus.emit("userJoin", ctx);
+    eventBus.emit("userJoin", ctx, instance.getAdapter("discord"));
   });
 }
 
-const discordMessageSender = (client: Client) => async (ctx: TXIContext) => {
+const discordMessageSender = (client: Client) => async (ctx: TXContext) => {
   const channel = await client.channels.fetch(ctx.channelId);
   if (channel?.isTextBased() && channel.isSendable()) {
     await (channel as TextChannel).send(ctx.content);

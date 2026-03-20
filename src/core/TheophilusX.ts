@@ -7,16 +7,21 @@ import config from "../../config.json";
 import fs from "fs/promises";
 import path from "path";
 import TXEvent, { TXIEvent } from "./TXEvent";
+import createCLIAdapter from "../adapters/TXCLIAdapter";
+import TXAdapterBuilder, { TXAdapter } from "../adapters/TXAdapterBuilder";
+import { TXPlatform } from "./TXPlatform";
 
 export default class TheophilusX {
   private tokens: TXToken;
   private eventBus: TXEventBus;
   private commands: Record<string, TXCommand>;
+  private adapters: Partial<Record<TXPlatform, TXAdapter>>
 
   constructor(tokens: TXToken, eventBus: TXEventBus) {
     this.tokens = tokens;
     this.eventBus = eventBus;
     this.commands = {};
+    this.adapters = {};
   }
   public async run() {
     await this.enrollCommands();
@@ -26,6 +31,10 @@ export default class TheophilusX {
 
   public getCommand(name: string) {
     return this.commands[name];
+  }
+
+  public getAdapter(platform: TXPlatform) {
+    return this.adapters[platform] || new TXAdapterBuilder().build()
   }
 
   private async enrollCommands() {
@@ -58,7 +67,14 @@ export default class TheophilusX {
     if (discord) {
       let discordClient = await TXClient.createDiscord(discord);
       let discordAdapter = createDiscordAdapter(discordClient, this.eventBus);
-      discordAdapter.connect();
+      await discordAdapter.connect();
+      this.adapters["discord"] = discordAdapter
+    }
+
+    if (config.cli.enableCliMode) {
+      let cliAdapter = createCLIAdapter(this.eventBus);
+      cliAdapter.connect();
+      this.adapters["cli"] = cliAdapter
     }
   }
 

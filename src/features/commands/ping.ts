@@ -9,5 +9,6 @@ export default new TXCommandBuilder({
     let start = Date.now();
     let msg = await ctx.reply("Pinging...");
     let end = Date.now();
+    msg.editMsg(`Pong! ${end - start}ms | Current platform: '${ctx.platform}'`);
   },
 });

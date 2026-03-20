@@ -6,15 +6,16 @@ export default class TXEventBus extends EventEmitter {
     super();
   }
 
-  // Emit typed event
-  public emit<K extends keyof TXIEvent>(
+  public async dispatch<K extends keyof TXIEvent>(
     event: K,
     ...args: Parameters<TXIEvent[K]>
-  ): boolean {
-    return super.emit(event, ...args);
+  ): Promise<void> {
+    const listeners = this.rawListeners(event) as ((...args: any[]) => any)[];
+    for (const listener of listeners) {
+      await listener(...args);
+    }
   }
 
-  // Listen for typed event
   public on<K extends keyof TXIEvent>(event: K, listener: TXIEvent[K]): this {
     return super.on(event, listener);
   }

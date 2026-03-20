@@ -1,7 +1,11 @@
 {
-  "cliExit": ".exit",
   "prefix": {
     "default": "%"
+  },
+
+  "cli": {
+    "exitCode": "$exit",
+    "enableCliMode": true
   },
 
   "command": {

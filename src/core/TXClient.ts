@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Options, Partials } from "discord.js";
 
 export default class TXClient {
   static async createDiscord(token: string): Promise<Client> {
-    console.log("Instantiating discord client")
+    console.log("Instantiating discord client");
     let client = new Client({
       // enable every intent
       intents: Object.values(GatewayIntentBits).filter(
@@ -34,9 +34,9 @@ export default class TXClient {
       },
     });
 
-    console.log("Logging discord client in")
+    console.log("Logging discord client in");
     await client.login(token);
-    console.log("Discord client logged in")
+    console.log("Discord client logged in");
     return client;
   }
 
