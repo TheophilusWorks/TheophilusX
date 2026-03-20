@@ -1,11 +1,19 @@
-import { Client, EmbedBuilder, GuildMember, Message, TextChannel } from "discord.js";
+import {
+  Client,
+  EmbedBuilder,
+  GuildMember,
+  Message,
+  TextChannel,
+} from "discord.js";
 import TXEventBus from "../core/TXEventBus";
 import TXAdapterBuilder from "./TXAdapterBuilder";
 import config from "../../config.json";
 import TXCommandParser from "../core/TXCommandParser";
 import TXContextBuilder, { TXContext } from "../core/TXContextBuilder";
+import { TXCooldownContext } from "../core/TXCooldownHandler";
 import TXMessageHandle from "../core/TXMessageHandle";
 import { instance } from "../main";
+import prettyMilliseconds from "pretty-ms";
 
 export default function createDiscordAdapter(
   client: Client,
@@ -22,11 +30,12 @@ export default function createDiscordAdapter(
 function discordNormalizer(raw: unknown): TXContextBuilder {
   switch (true) {
     case raw instanceof Message:
-      const embed = new EmbedBuilder().setColor("Blurple")
+      const embed = new EmbedBuilder().setColor("Blurple");
       const msg = raw as Message;
       return new TXContextBuilder({
         platform: "discord",
         userId: msg.author.id,
+        serverId: msg.guild?.id || "0",
         channelId: msg.channelId,
         content: msg.content,
         raw: msg,
@@ -35,16 +44,40 @@ function discordNormalizer(raw: unknown): TXContextBuilder {
         async reply(message: string): Promise<TXMessageHandle> {
           if (this.replySent) throw new Error("Double reply error");
 
-          embed.setDescription(message)
+          embed.setDescription(message);
           const sent = await msg.reply({ embeds: [embed] });
           this.replySent = true;
 
           return {
             async editMsg(newContent) {
-              embed.setDescription(newContent)
-              await sent.edit({ embeds: [embed] })
+              embed.setDescription(newContent);
+              await sent.edit({ embeds: [embed] });
             },
-          }
+          };
+        },
+
+        async replyCooldown(ctx: TXCooldownContext) {
+          if (this.replySent) throw new Error("Double reply error"); // unreachable unless used wrongly
+
+          let cdEmbed = new EmbedBuilder()
+            .setColor("Red")
+            .setTitle(
+              `\`${config.prefix.default}${ctx.commandNameOnCooldown}\` on CD`,
+            )
+            .addFields([
+              {
+                name: "Cooldown",
+                value: `${prettyMilliseconds(ctx.cooldown, { verbose: true })}`,
+                inline: true,
+              },
+              {
+                name: "Ends at:",
+                value: `${prettyMilliseconds(ctx.expiresAt - Date.now(), { verbose: true })}`,
+                inline: true,
+              },
+            ])
+            .setFooter({ text: `${msg.author} is on cooldown` });
+          msg.reply({ embeds: [cdEmbed] });
         },
       });
     case raw instanceof GuildMember:
@@ -52,6 +85,7 @@ function discordNormalizer(raw: unknown): TXContextBuilder {
       return new TXContextBuilder({
         platform: "discord",
         replySent: false,
+        serverId: member.guild?.id || "0",
         userId: member.id,
         channelId: "0",
         content: "0",
@@ -70,7 +104,12 @@ function discordConnector(client: Client, eventBus: TXEventBus) {
     const context = discordNormalizer(msg);
     if (msg.content.startsWith(config.prefix.default)) {
       let command = new TXCommandParser(msg.content).parseCommandString();
-      eventBus.dispatch("command", context, command, instance.getAdapter("discord"));
+      eventBus.dispatch(
+        "command",
+        context,
+        command,
+        instance.getAdapter("discord"),
+      );
     } else {
       eventBus.dispatch("message", context, instance.getAdapter("discord"));
     }
@@ -82,9 +121,10 @@ function discordConnector(client: Client, eventBus: TXEventBus) {
   });
 }
 
-const discordMessageSender = (client: Client) => async (ctx: TXContextBuilder) => {
-  const channel = await client.channels.fetch(ctx.channelId);
-  if (channel?.isTextBased() && channel.isSendable()) {
-    await (channel as TextChannel).send(ctx.content);
-  }
-};
+const discordMessageSender =
+  (client: Client) => async (ctx: TXContextBuilder) => {
+    const channel = await client.channels.fetch(ctx.channelId);
+    if (channel?.isTextBased() && channel.isSendable()) {
+      await (channel as TextChannel).send(ctx.content);
+    }
+  };

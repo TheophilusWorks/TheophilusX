@@ -5,7 +5,9 @@ import config from "../../config.json";
 import TXCommandParser from "../core/TXCommandParser";
 import TXMessageHandle from "../core/TXMessageHandle";
 import TXContextBuilder, { TXContext } from "../core/TXContextBuilder";
+import { TXCooldownContext } from "../core/TXCooldownHandler";
 import { instance } from "../main";
+import prettyMilliseconds from "pretty-ms";
 
 export default function createCLIAdapter(eventBus: TXEventBus) {
   return new TXAdapterBuilder()
@@ -53,6 +55,7 @@ function cliNormalizer(raw: unknown) {
   return new TXContextBuilder({
     platform: "cli",
     userId: "0",
+    serverId: "0",
     channelId: "0",
     content: msg,
     raw: msg,
@@ -72,8 +75,19 @@ function cliNormalizer(raw: unknown) {
         },
       };
     },
-    async editMsg(msg: string) {
-      console.log(`Edited message: ${msg}`);
+
+    async replyCooldown(ctx: TXCooldownContext) {
+      if (this.replySent) {
+        throw new Error("Double reply not allowed");
+      }
+
+      console.log(`${config.prefix.default}${ctx.commandNameOnCooldown} on CD`);
+      console.log(`Cooldown:`);
+      console.log(`  ${prettyMilliseconds(ctx.cooldown, { verbose: true })}`);
+      console.log(`Expires at:`);
+      console.log(`  ${prettyMilliseconds(ctx.expiresAt - Date.now(), { verbose: true })}`);
+
+      this.replySent = true;
     },
   });
 }

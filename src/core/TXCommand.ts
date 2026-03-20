@@ -6,7 +6,8 @@ export interface TXCommand {
   usage: string;
   availableFlags: string[];
   minimumRequiredArguments: number;
-  execute: (args: TXCommandArgument) => void;
+  cooldown: number,
+  execute: (args: TXCommandArgument) => Promise<void>;
 }
 
 export default class TXCommandBuilder {
@@ -15,11 +16,26 @@ export default class TXCommandBuilder {
     this.txcommand = txcommand;
   }
 
-  public execute(args: TXCommandArgument) {
-    this.txcommand.execute(args);
+  public async execute(args: TXCommandArgument) {
+    await this.txcommand.execute(args);
   }
 
   get name() {
     return this.txcommand.name;
+  }
+  get description() {
+    return this.txcommand.description;
+  }
+  get usage() {
+    return this.txcommand.usage;
+  }
+  get availableFlags() {
+    return this.txcommand.availableFlags;
+  }
+  get minimumRequiredArguments() {
+    return this.txcommand.minimumRequiredArguments;
+  }
+  get cooldown() {
+    return this.txcommand.cooldown;
   }
 }
