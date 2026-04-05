@@ -9,6 +9,7 @@ import path from "node:path";
 import TXCommand from "./command/TXCommand";
 import { DebugLevel } from "../types/TXDebugLevel";
 import TXAdapterBuilder from "./adapter/TXAdapterBuilder";
+import { pathToFileURL } from "node:url";
 
 export default class TheophilusX {
   private eventBus: EventEmitter;
@@ -38,8 +39,11 @@ export default class TheophilusX {
     this.debug("Starting TheophilusX...", DebugLevel.Info);
 
     try {
-      this.checkForTokens();
-      this.debug("No empty token found.", DebugLevel.Ok);
+      this.checkForAdapters();
+      this.debug(
+        `Found ${this.adapterBuilders.length} adapters`,
+        DebugLevel.Ok,
+      );
       await this.loadEvents();
       await this.loadCommands();
       await this.loginBot();
@@ -63,15 +67,13 @@ export default class TheophilusX {
     }
   }
 
-  private checkForTokens(): void {
-    this.debug("Checking for empty tokens.", DebugLevel.Info);
-    for (const tokenValue of Object.values(this.config.token)) {
-      if (tokenValue) return;
+  private checkForAdapters(): void {
+    this.debug("Checking for adapters", DebugLevel.Info);
+    if (this.adapterBuilders.length === 0) {
+      throw new Error(
+        "Missing at least one adapter in configuration. Please provide an adapter to start TheophilusX.",
+      );
     }
-
-    throw new Error(
-      "Missing at least one token in configuration. Please provide valid tokens to start TheophilusX.",
-    );
   }
 
   private async loadEvents() {
@@ -85,15 +87,18 @@ export default class TheophilusX {
       `Loading all events in "${this.config.eventsPath}"`,
       DebugLevel.Info,
     );
+
     const files = (await fs.readdir(this.config.eventsPath)).filter(
       (f) => f.endsWith(".ts") || f.endsWith(".js"),
     );
 
     this.debug(`Found ${files.length} events`, DebugLevel.Info);
+
     for (const file of files) {
-      const fullPath = path.join(this.config.eventsPath, file);
+      const fullPath = path.resolve(this.config.eventsPath, file);
       const event =
         await this.importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
+      console.log(event);
 
       this.on(event.event, event.callback);
       this.debug(
@@ -114,6 +119,7 @@ export default class TheophilusX {
       `Loading all commands in "${this.config.commandsPath}"`,
       DebugLevel.Info,
     );
+
     const categoryDirs = await fs.readdir(this.config.commandsPath);
     this.debug(
       `Found ${categoryDirs.length} command categories`,
@@ -121,7 +127,11 @@ export default class TheophilusX {
     );
 
     for (const category of categoryDirs) {
-      const categoryPath = path.join(this.config.commandsPath, category);
+      const categoryPath = path.resolve(this.config.commandsPath, category);
+
+      const stat = await fs.stat(categoryPath);
+      if (!stat.isDirectory()) continue;
+
       const commandFiles = (await fs.readdir(categoryPath)).filter(
         (f) => f.endsWith(".ts") || f.endsWith(".js"),
       );
@@ -129,7 +139,7 @@ export default class TheophilusX {
       const commands: TXCommand[] = [];
 
       for (const commandFile of commandFiles) {
-        const fullPath = path.join(categoryPath, commandFile);
+        const fullPath = path.resolve(categoryPath, commandFile);
         const cmd = await this.importDefault<TXCommand>(fullPath);
         commands.push(cmd);
         this.debug(
@@ -149,6 +159,7 @@ export default class TheophilusX {
   }
 
   private async importDefault<T>(filePath: string): Promise<T> {
-    return (await import(filePath)).default;
+    const mod = await import(pathToFileURL(filePath).href);
+    return (mod.default?.default ?? mod.default) as T;
   }
 }

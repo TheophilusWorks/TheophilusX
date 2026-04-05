@@ -3,8 +3,8 @@ import TheophilusX from "./core/TheophilusX";
 
 async function main() {
   let instance = new TheophilusX({
-    commandsPath: "./feature/commands",
-    eventsPath: "./feature/events",
+    commandsPath: "./dist/feature/commands/",
+    eventsPath: "./dist/feature/events/",
     debugLogs: true,
 
     prefix: ["!", "%", "$", "/", "="],
@@ -23,7 +23,7 @@ async function main() {
 
   let cliAdapter = buildCliAdapter(instance);
   instance.addAdapter(cliAdapter);
-  await instance.start()
+  await instance.start();
 }
 
 main();
