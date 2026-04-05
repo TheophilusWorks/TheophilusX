@@ -1,3 +1,4 @@
+import buildCliAdapter from "./adapters/cliAdapter";
 import TheophilusX from "./core/TheophilusX";
 
 async function main() {
@@ -19,6 +20,10 @@ async function main() {
       facebookAppstate: "",
     },
   });
+
+  let cliAdapter = buildCliAdapter(instance);
+  instance.addAdapter(cliAdapter);
+  await instance.start()
 }
 
 main();

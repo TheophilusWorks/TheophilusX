@@ -8,7 +8,7 @@ import TXEventBuilder from "./event/TXEventBuilder";
 import path from "node:path";
 import TXCommand from "./command/TXCommand";
 import { DebugLevel } from "../types/TXDebugLevel";
-import TXAdapterBuilder from "./adapter/TXAdapter";
+import TXAdapterBuilder from "./adapter/TXAdapterBuilder";
 
 export default class TheophilusX {
   private eventBus: EventEmitter;
