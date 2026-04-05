@@ -1,3 +1,6 @@
+import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
+import { TXIContext } from "../core/context/TXContext";
+
 export default interface TXICommand {
   name: string;
   description: string;
@@ -10,5 +13,5 @@ export default interface TXICommand {
   usedStringFlags?: string[];
   usedBooleanFlags?: string[];
 
-  run: () => Promise<void>;
+  run: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
 }

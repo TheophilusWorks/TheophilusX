@@ -98,7 +98,6 @@ export default class TheophilusX {
       const fullPath = path.resolve(this.config.eventsPath, file);
       const event =
         await this.importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
-      console.log(event);
 
       this.on(event.event, event.callback);
       this.debug(

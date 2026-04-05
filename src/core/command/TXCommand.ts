@@ -1,4 +1,6 @@
 import TXICommand from "../../types/TXICommand";
+import TXAdapterBuilder from "../adapter/TXAdapterBuilder";
+import { TXIContext } from "../context/TXContext";
 
 export default class TXCommand {
   public name: string;
@@ -12,7 +14,7 @@ export default class TXCommand {
   public usedStringFlags?: string[];
   public usedBooleanFlags?: string[];
 
-  public run: () => Promise<void>;
+  public run: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
 
   constructor(context: TXICommand) {
     this.name = context.name;
