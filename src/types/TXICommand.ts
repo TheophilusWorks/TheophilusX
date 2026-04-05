@@ -15,3 +15,4 @@ export default interface TXICommand {
 
   run: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
 }
+
