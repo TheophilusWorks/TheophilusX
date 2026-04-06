@@ -1,6 +1,14 @@
+import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
+import { TXIContext } from "../core/context/TXContext";
+
 export default interface TXICommandArgument {
-  command: string;
+  command: string; // cant think of something better bc this could be an alias
   arguments: string[];
+  groupedArguments: TXICommandArgument[];
+
+  adapter: TXAdapterBuilder;
+  context: TXIContext;
+
   stringFlags?: Record<string, string>;
   booleanFlags?: Record<string, boolean>;
 }

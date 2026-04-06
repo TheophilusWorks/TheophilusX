@@ -3,7 +3,6 @@ import TXEvents from "../types/TXEvents";
 import TXConfig from "../types/TXConfig";
 import toError from "../utils/toError";
 import fs from "fs/promises";
-import TXCommandCategory from "./command/TXCommandCategory";
 import TXEventBuilder from "./event/TXEventBuilder";
 import path from "node:path";
 import TXCommand from "./command/TXCommand";
@@ -12,16 +11,20 @@ import TXAdapterBuilder from "./adapter/TXAdapterBuilder";
 import { pathToFileURL } from "node:url";
 
 export default class TheophilusX {
+  public prefixes: string[];
   private eventBus: EventEmitter;
   private adapterBuilders: TXAdapterBuilder[];
   private config: TXConfig;
-  private commandCategories: TXCommandCategory[];
+  private commands: Map<string, TXCommand>;
 
   constructor(config: TXConfig) {
     this.eventBus = new EventEmitter();
     this.config = config;
-    this.commandCategories = new Array();
+    this.commands = new Map();
     this.adapterBuilders = new Array();
+    this.prefixes = Array.isArray(config.prefix)
+      ? config.prefix
+      : [config.prefix];
   }
 
   public on<K extends keyof TXEvents>(event: K, callback: TXEvents[K]) {
@@ -33,6 +36,10 @@ export default class TheophilusX {
     ...args: Parameters<TXEvents[K]>
   ) {
     this.eventBus.emit(event, ...args);
+  }
+
+  public getCommands(cmdName: string): TXCommand | undefined {
+    return this.commands.get(cmdName);
   }
 
   public async start() {
@@ -135,19 +142,20 @@ export default class TheophilusX {
         (f) => f.endsWith(".ts") || f.endsWith(".js"),
       );
 
-      const commands: TXCommand[] = [];
-
       for (const commandFile of commandFiles) {
         const fullPath = path.resolve(categoryPath, commandFile);
         const cmd = await this.importDefault<TXCommand>(fullPath);
-        commands.push(cmd);
+
+        if (!cmd.category) {
+          cmd.category = category;
+        }
+
+        this.commands.set(cmd.name, cmd);
         this.debug(
           `Loaded command "${cmd.name}" from category "${category}"`,
           DebugLevel.Ok,
         );
       }
-
-      this.commandCategories.push({ category, commands });
     }
   }
 

@@ -1,5 +1,4 @@
-import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
-import { TXIContext } from "../core/context/TXContext";
+import TXICommandArgument from "./TXICommandArgument";
 
 export default interface TXICommand {
   name: string;
@@ -10,9 +9,9 @@ export default interface TXICommand {
   cooldown?: number;
 
   minimumArguments: number;
+  minimumGroupedArguments: number;
   usedStringFlags?: string[];
   usedBooleanFlags?: string[];
 
-  run: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
+  execute: (args: TXICommandArgument) => Promise<void>;
 }
-

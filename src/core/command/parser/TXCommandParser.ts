@@ -1,96 +1,181 @@
 import TXICommandArgument from "../../../types/TXICommandArgument";
+import TXAdapterBuilder from "../../adapter/TXAdapterBuilder";
 
 const TRUTHY = new Set(["true", "t", "y", "yes"]);
 const FALSY = new Set(["false", "f", "n", "no"]);
 
 export default class TXCommandArgumentParser {
-  private commandString: string;
+  private static readonly MAX_DEPTH = 5;
 
-  constructor(commandString: string) {
-    this.commandString = commandString;
+  private commandString: string;
+  private tokens: Array<string>;
+  private currentTokenIdx: number = 0;
+  private depth: number;
+
+  private name: string = "";
+  private args: Array<string> = new Array();
+  private groupedArgs: Array<TXICommandArgument> = new Array();
+  private stringFlags: Record<string, string> = {};
+  private adapter: TXAdapterBuilder;
+  private booleanFlags: Record<string, boolean> = {};
+
+  constructor(
+    prefixUsed: string,
+    commandString: string,
+    adapter: TXAdapterBuilder,
+    depth: number = 0,
+  ) {
+    this.commandString = commandString.slice(prefixUsed.length).trim();
+    this.adapter = adapter;
+    this.tokens = this.tokenize();
+    this.depth = depth;
   }
 
   public parse(): TXICommandArgument {
-    const stripped = this.stripPrefix(this.commandString);
-    const tokens = this.tokenize(stripped);
+    while (this.currentTokenIdx < this.tokens.length) {
+      let token = this.currentToken();
 
-    if (tokens.length === 0) {
-      return { command: "", arguments: [], booleanFlags: {}, stringFlags: {} };
-    }
+      if (this.currentTokenIdx == 0) {
+        this.name = this.advance();
+        continue;
+      }
 
-    const command = tokens[0];
-    const args: string[] = [];
-    const booleanFlags: Record<string, boolean> = {};
-    const stringFlags: Record<string, string> = {};
-
-    for (let i = 1; i < tokens.length; i++) {
-      const token = tokens[i];
+      if (token === "[") {
+        this.parseGroupedArgs();
+        continue;
+      }
 
       if (token.startsWith("--")) {
-        const inner = token.slice(2);
-
-        // bare "--" is invalid
-        if (inner.length === 0) {
-          throw new Error(`Invalid flag: "--" alone is not allowed`);
-        }
-
-        const eqIndex = inner.indexOf("=");
-
-        if (eqIndex === -1) {
-          // --silent = implicit true
-          if (!/^[a-zA-Z][a-zA-Z0-9-_]*$/.test(inner)) {
-            throw new Error(`Invalid flag name: "--${inner}"`);
-          }
-          booleanFlags[inner] = true;
-        } else {
-          const key = inner.slice(0, eqIndex);
-          const value = inner.slice(eqIndex + 1);
-
-          // --=value is invalid
-          if (key.length === 0) {
-            throw new Error(`Invalid flag syntax: "--${inner}" has no key`);
-          }
-
-          // --key= with no value is invalid
-          if (value.length === 0) {
-            throw new Error(`Invalid flag syntax: "--${key}=" has no value`);
-          }
-
-          if (!/^[a-zA-Z][a-zA-Z0-9-_]*$/.test(key)) {
-            throw new Error(`Invalid flag name: "--${key}"`);
-          }
-
-          if (TRUTHY.has(value.toLowerCase())) {
-            booleanFlags[key] = true;
-          } else if (FALSY.has(value.toLowerCase())) {
-            booleanFlags[key] = false;
-          } else {
-            stringFlags[key] = value;
-          }
-        }
+        this.parseFlags(token);
       } else {
-        args.push(token);
+        this.args.push(token);
       }
+
+      this.advance();
     }
 
-    return { command, arguments: args, booleanFlags, stringFlags };
+    return {
+      command: this.name,
+      arguments: this.args,
+      groupedArguments: this.groupedArgs,
+      adapter: this.adapter,
+      stringFlags: this.stringFlags,
+      booleanFlags: this.booleanFlags,
+    };
   }
 
-  private tokenize(input: string): string[] {
+  private parseGroupedArgs() {
+    this.advance(); // consume "["
+    let current = "";
+    let depth = 1;
+
+    while (this.currentTokenIdx < this.tokens.length) {
+      const token = this.currentToken();
+
+      if (token === "[") {
+        depth++;
+        current += (current.length > 0 ? " " : "") + token;
+        this.advance();
+        continue;
+      }
+
+      if (token === "]") {
+        depth--;
+        if (depth === 0) {
+          if (current.trim().length > 0) {
+            this.pushGroupedArg(current.trim());
+          }
+          this.advance(); // consume closing "]"
+          return;
+        }
+        current += (current.length > 0 ? " " : "") + token;
+        this.advance();
+        continue;
+      }
+
+      if (token === "," && depth === 1) {
+        if (current.trim().length > 0) {
+          this.pushGroupedArg(current.trim());
+          current = "";
+        }
+        this.advance();
+        continue;
+      }
+
+      if (token === "[" || token === "]" || token === ",") {
+        current += token;
+      } else {
+        current += (current.length > 0 ? " " : "") + token;
+      }
+
+      this.advance();
+    }
+
+    // unterminated bracket
+    if (current.trim().length > 0) {
+      this.pushGroupedArg(current.trim());
+    }
+  }
+
+  private pushGroupedArg(raw: string) {
+    if (this.depth >= TXCommandArgumentParser.MAX_DEPTH) return;
+    this.groupedArgs.push(
+      new TXCommandArgumentParser(
+        "",
+        raw,
+        this.adapter,
+        this.depth + 1,
+      ).parse(),
+    );
+  }
+
+  private parseFlags(token: string) {
+    token = token.slice(2); // remove leading --
+
+    // non-valued flag (e.g. --silent)
+    if (!token.includes("=")) {
+      this.booleanFlags[token] = true;
+      return;
+    }
+
+    // double "=" or missing key/value (e.g. --=foo, --key=, --a=b=c)
+    if (token.split("=").length - 1 !== 1) {
+      this.recover();
+      return;
+    }
+
+    let [key, value] = token.split("=");
+
+    // empty key or empty value
+    if (key.length === 0 || value.length === 0) {
+      this.recover();
+      return;
+    }
+
+    if (TRUTHY.has(value.toLowerCase())) {
+      this.booleanFlags[key] = true;
+    } else if (FALSY.has(value.toLowerCase())) {
+      this.booleanFlags[key] = false;
+    } else {
+      this.stringFlags[key] = value;
+    }
+  }
+
+  private tokenize(): string[] {
     const tokens: string[] = [];
     let current = "";
     let inQuote = false;
     let quoteChar = "";
 
-    for (let i = 0; i < input.length; i++) {
-      const char = input[i];
+    for (let i = 0; i < this.commandString.length; i++) {
+      const char = this.commandString[i];
 
-      // handle escape sequences inside quotes
-      if (inQuote && char === "\\" && i + 1 < input.length) {
-        const next = input[i + 1];
+      // escape sequences inside quotes
+      if (inQuote && char === "\\" && i + 1 < this.commandString.length) {
+        const next = this.commandString[i + 1];
         if (next === quoteChar || next === "\\") {
           current += next;
-          i++; // skip next char
+          i++;
           continue;
         }
       }
@@ -118,22 +203,34 @@ export default class TXCommandArgumentParser {
         continue;
       }
 
+      // bracket and comma delimiters
+      if (!inQuote && (char === "[" || char === "]" || char === ",")) {
+        if (current.length > 0) {
+          tokens.push(current);
+          current = "";
+        }
+        tokens.push(char);
+        continue;
+      }
+
       current += char;
     }
 
-    // unterminated quote
-    if (inQuote) {
-      throw new Error(`Unterminated quote in command string`);
-    }
-
-    if (current.length > 0) {
-      tokens.push(current);
-    }
+    // unterminated quote, treat remainder as token
+    if (current.length > 0) tokens.push(current);
 
     return tokens;
   }
 
-  private stripPrefix(input: string): string {
-    return input.replace(/^[^a-zA-Z0-9]+/, "");
+  private advance() {
+    return this.tokens[this.currentTokenIdx++];
+  }
+
+  private currentToken() {
+    return this.tokens[this.currentTokenIdx];
+  }
+
+  private recover() {
+    this.advance();
   }
 }

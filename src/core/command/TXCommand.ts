@@ -1,4 +1,5 @@
 import TXICommand from "../../types/TXICommand";
+import TXICommandArgument from "../../types/TXICommandArgument";
 import TXAdapterBuilder from "../adapter/TXAdapterBuilder";
 import { TXIContext } from "../context/TXContext";
 
@@ -9,12 +10,14 @@ export default class TXCommand {
 
   public aliases?: string[];
   public cooldown?: number;
+  public category?: string; // injected by the main loader
 
   public minimumArguments: number;
+  public minimumGroupedArguments: number;
   public usedStringFlags?: string[];
   public usedBooleanFlags?: string[];
 
-  public run: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
+  public execute: (ctx: TXICommandArgument) => Promise<void>;
 
   constructor(context: TXICommand) {
     this.name = context.name;
@@ -25,9 +28,10 @@ export default class TXCommand {
     this.cooldown = context.cooldown;
 
     this.minimumArguments = context.minimumArguments;
+    this.minimumGroupedArguments = context.minimumGroupedArguments;
     this.usedStringFlags = context.usedStringFlags;
     this.usedBooleanFlags = context.usedBooleanFlags;
 
-    this.run = context.run;
+    this.execute = context.execute;
   }
 }
