@@ -1,24 +1,5 @@
 import buildCliAdapter from "./adapters/cliAdapter";
-import TheophilusX from "./core/TheophilusX";
-
-export let instance = new TheophilusX({
-  commandsPath: "./dist/feature/commands/",
-  eventsPath: "./dist/feature/events/",
-  debugLogs: true,
-
-  prefix: ["!", "%", "$", "/", "="],
-  adminIds: [
-    {
-      discordId: "",
-      facebookId: "",
-    },
-  ],
-
-  token: {
-    discordToken: "",
-    facebookAppstate: "",
-  },
-});
+import instance from "./instance";
 
 async function main() {
   let cliAdapter = buildCliAdapter(instance);

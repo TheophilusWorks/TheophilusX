@@ -1,5 +1,5 @@
 import TXEventBuilder from "../../core/event/TXEventBuilder";
-import { instance } from "../../main";
+import instance from "../../instance";
 
 export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   let ctx = cmdQuery.context;

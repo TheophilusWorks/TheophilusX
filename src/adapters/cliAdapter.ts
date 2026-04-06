@@ -2,7 +2,7 @@ import readline from "readline/promises";
 import TheophilusX from "../core/TheophilusX";
 import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
 import { TXIContext } from "../core/context/TXContext";
-import { instance } from "../main";
+import instance from "../instance";
 import TXCommandArgumentParser from "../core/command/parser/TXCommandParser";
 
 export default function buildCliAdapter(bot: TheophilusX) {
