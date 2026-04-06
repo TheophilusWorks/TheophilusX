@@ -3,8 +3,8 @@ import { TXIContext } from "../core/context/TXContext";
 
 export default interface TXICommandArgument {
   command: string; // cant think of something better bc this could be an alias
-  arguments: string[];
-  groupedArguments: TXICommandArgument[];
+  args: string[];
+  groupedArgs: TXICommandArgument[];
 
   adapter: TXAdapterBuilder;
   context: TXIContext;

@@ -4,6 +4,7 @@
   "description": "",
   "main": "./dist/main.js",
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.97",
     "@types/ms": "^2.1.0",
     "@types/node": "^25.5.2",
     "axios": "^1.14.0",

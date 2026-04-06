@@ -61,8 +61,8 @@ export default class TXCommandArgumentParser {
 
     return {
       command: this.name,
-      arguments: this.args,
-      groupedArguments: this.groupedArgs,
+      args: this.args,
+      groupedArgs: this.groupedArgs,
       adapter: this.adapter,
       stringFlags: this.stringFlags,
       booleanFlags: this.booleanFlags,
