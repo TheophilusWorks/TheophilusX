@@ -1,7 +1,5 @@
 import TXICommand from "../../types/TXICommand";
 import TXICommandArgument from "../../types/TXICommandArgument";
-import TXAdapterBuilder from "../adapter/TXAdapterBuilder";
-import { TXIContext } from "../context/TXContext";
 
 export default class TXCommand {
   public name: string;

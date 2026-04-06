@@ -1,7 +1,7 @@
 import readline from "readline/promises";
 import TheophilusX from "../core/TheophilusX";
 import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
-import { TXIContext } from "../core/context/TXContext";
+import { TXIContext, TXPlatform } from "../core/context/TXContext";
 import instance from "../instance";
 import TXCommandArgumentParser from "../core/command/parser/TXCommandParser";
 
@@ -48,7 +48,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
 function buildCLIContext(raw: string): TXIContext {
   let trimmed = raw.trim();
   return {
-    platform: "CLI",
+    platform: TXPlatform.Cli,
     content: trimmed,
     channelId: undefined,
     serverId: undefined,

@@ -1,11 +1,31 @@
 import TheophilusX from "./core/TheophilusX";
 
 const instance = new TheophilusX({
+  // Where commands and events are located.
+  // TheophilusX will automatically load all .js files in these
+  // directories.
   commandsPath: "./dist/feature/commands/",
   eventsPath: "./dist/feature/events/",
   debugLogs: true,
 
+  // The prefix(es) that will trigger commands.
+  // Can be a string or an array of strings.
   prefix: ["!", "%", "$", "/", "="],
+
+  // Platforms to enable.
+  // Set to false to disable a platform.
+  // NOTE: you need to provide the appropriate tokens for each platform you enable
+  // inside the .env file for the bot to work.
+  // if you enable a platform but do not provide the necessary tokens,
+  // the bot will not work on that platform.
+  platforms: {
+    cli: true,
+    discord: false,
+    facebookMessenger: false,
+  },
+
+  // Admin IDs for each platform.
+  // these users will have access to admin-only commands.
   adminIds: [
     {
       discordId: "",
@@ -13,6 +33,9 @@ const instance = new TheophilusX({
     },
   ],
 
+  // WARN: DO NOT TOUCH THIS PART! dotenv already injects your tokens
+  // as long as you have a .env file with the appropriate variables,
+  // If you change this, your tokens will not be loaded and your bot will not work.
   token: {
     discordToken: "",
     facebookAppstate: "",

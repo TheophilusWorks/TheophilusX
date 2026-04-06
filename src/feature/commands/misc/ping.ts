@@ -5,6 +5,7 @@ export default new TXCommand({
   description: "Replies with Pong!",
   usage: "ping",
   minimumArguments: 0,
+  cooldown: 2_000, // 2s
   minimumGroupedArguments: 0,
   execute: async ({ adapter, context }) => {
     await adapter.reply(`Pong! Current platform: "${context.platform}"`);

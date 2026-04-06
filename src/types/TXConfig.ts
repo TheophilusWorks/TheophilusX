@@ -1,7 +1,14 @@
+import { TXPlatform } from "../core/context/TXContext";
+
 export default interface TXConfig {
   commandsPath: string;
   eventsPath: string;
   debugLogs: boolean;
+  platforms: {
+    discord: boolean;
+    facebookMessenger: boolean;
+    cli: boolean;
+  }
 
   prefix: string | string[];
   adminIds?: TXAdminId[];

@@ -9,9 +9,17 @@ import TXCommand from "./command/TXCommand";
 import { DebugLevel } from "../types/TXDebugLevel";
 import TXAdapterBuilder from "./adapter/TXAdapterBuilder";
 import { pathToFileURL } from "node:url";
+import { TXPlatform } from "./context/TXContext";
+import buildCliAdapter from "../adapters/cliAdapter";
+import { todo } from "node:test";
 
 export default class TheophilusX {
+  public static version = "1.0.0";
   public prefixes: string[];
+  public usedPlatforms: TXPlatform[] = [];
+  public commandCount = 0;
+  public eventCount = 0;
+
   private eventBus: EventEmitter;
   private adapterBuilders: TXAdapterBuilder[];
   private config: TXConfig;
@@ -38,31 +46,32 @@ export default class TheophilusX {
     this.eventBus.emit(event, ...args);
   }
 
+  public getUsedPlatforms() {
+    return this.usedPlatforms
+  }
+
   public getCommand(cmdName: string): TXCommand | undefined {
     return this.commands.get(cmdName);
+  }
+
+  public getCommands(): Map<string, TXCommand> {
+    return this.commands;
   }
 
   public async start() {
     this.debug("Starting TheophilusX...", DebugLevel.Info);
 
     try {
-      this.checkForAdapters();
-      this.debug(
-        `Found ${this.adapterBuilders.length} adapters`,
-        DebugLevel.Ok,
-      );
       await this.loadEvents();
       await this.loadCommands();
+      await this.registerPlatforms();
+      this.checkForAdapters();
       await this.loginBot();
     } catch (error) {
       let e = toError(error);
       this.config.debugLogs = true;
       this.debug(`Error starting TheophilusX: ${e.message}`, DebugLevel.Error);
     }
-  }
-
-  public addAdapter(adapter: TXAdapterBuilder) {
-    this.adapterBuilders.push(adapter);
   }
 
   public debug(msg: string, header = DebugLevel.Debug) {
@@ -75,11 +84,42 @@ export default class TheophilusX {
   }
 
   private checkForAdapters(): void {
-    this.debug("Checking for adapters", DebugLevel.Info);
     if (this.adapterBuilders.length === 0) {
       throw new Error(
-        "Missing at least one adapter in configuration. Please provide an adapter to start TheophilusX.",
+        "No adapters registered. Enable at least one platform in config or call addAdapter().",
       );
+    }
+    this.debug(
+      `${this.adapterBuilders.length} adapter(s) registered`,
+      DebugLevel.Ok,
+    );
+  }
+
+  private async registerPlatforms() {
+    const { platforms } = this.config;
+    if (!platforms) return;
+
+    if (platforms.cli) {
+      this.addAdapter(buildCliAdapter(this));
+      this.debug("CLI adapter registered", DebugLevel.Ok);
+
+      this.usedPlatform(TXPlatform.Cli);
+    }
+
+    if (platforms.discord) {
+      todo("Implement Discord adapter");
+      // this.addAdapter(buildDiscordAdapter(this));
+      // this.debug("Discord adapter registered", DebugLevel.Ok);
+      //
+      // this.usedPlatform(TXPlatform.Discord);
+    }
+
+    if (platforms.facebookMessenger) {
+      todo("Implement Facebook Messenger adapter");
+      // this.addAdapter(buildFacebookAdapter(this));
+      // this.debug("Facebook messenger adapter registered", DebugLevel.Ok);
+      //
+      // this.usedPlatform(TXPlatform.FavebookMessenger);
     }
   }
 
@@ -107,6 +147,7 @@ export default class TheophilusX {
         await this.importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
 
       this.on(event.event, event.callback);
+      this.eventCount++;
       this.debug(
         `Enrolled event "${event.event}" from "${path.basename(file)}"`,
         DebugLevel.Ok,
@@ -151,6 +192,7 @@ export default class TheophilusX {
         }
 
         this.commands.set(cmd.name, cmd);
+        this.commandCount++;
         this.debug(
           `Loaded command "${cmd.name}" from category "${category}"`,
           DebugLevel.Ok,
@@ -160,13 +202,21 @@ export default class TheophilusX {
   }
 
   private async loginBot() {
-    for (const adapterBuilder of this.adapterBuilders) {
-      await adapterBuilder.login();
+    for (const adapter of this.adapterBuilders) {
+      await adapter.login();
     }
   }
 
   private async importDefault<T>(filePath: string): Promise<T> {
     const mod = await import(pathToFileURL(filePath).href);
     return (mod.default?.default ?? mod.default) as T;
+  }
+
+  private addAdapter(adapterBuilder: TXAdapterBuilder) {
+    return this.adapterBuilders.push(adapterBuilder);
+  }
+
+  private async usedPlatform(platform: TXPlatform) {
+    this.usedPlatforms.push(platform)
   }
 }

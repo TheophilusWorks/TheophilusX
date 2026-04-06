@@ -1,4 +1,8 @@
-export type TXPlatform = 'CLI' | 'FACEBOOK_MESSENGER' | 'DISCORD';
+export enum TXPlatform {
+  Cli = "CLI",
+  Discord = "DISCORD",
+  FavebookMessenger = "FACEBOOK_MESSENGER",
+}
 
 export interface TXIAuthor {
   id: string;
