@@ -38,7 +38,7 @@ export default class TheophilusX {
     this.eventBus.emit(event, ...args);
   }
 
-  public getCommands(cmdName: string): TXCommand | undefined {
+  public getCommand(cmdName: string): TXCommand | undefined {
     return this.commands.get(cmdName);
   }
 

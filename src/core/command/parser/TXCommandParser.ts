@@ -1,5 +1,6 @@
 import TXICommandArgument from "../../../types/TXICommandArgument";
 import TXAdapterBuilder from "../../adapter/TXAdapterBuilder";
+import { TXIContext } from "../../context/TXContext";
 
 const TRUTHY = new Set(["true", "t", "y", "yes"]);
 const FALSY = new Set(["false", "f", "n", "no"]);
@@ -12,11 +13,13 @@ export default class TXCommandArgumentParser {
   private currentTokenIdx: number = 0;
   private depth: number;
 
+  private adapter: TXAdapterBuilder;
+  private context: TXIContext;
+
   private name: string = "";
   private args: Array<string> = new Array();
   private groupedArgs: Array<TXICommandArgument> = new Array();
   private stringFlags: Record<string, string> = {};
-  private adapter: TXAdapterBuilder;
   private booleanFlags: Record<string, boolean> = {};
 
   constructor(
@@ -24,11 +27,13 @@ export default class TXCommandArgumentParser {
     commandString: string,
     adapter: TXAdapterBuilder,
     depth: number = 0,
+    context: TXIContext,
   ) {
     this.commandString = commandString.slice(prefixUsed.length).trim();
     this.adapter = adapter;
     this.tokens = this.tokenize();
     this.depth = depth;
+    this.context = context
   }
 
   public parse(): TXICommandArgument {
@@ -61,6 +66,7 @@ export default class TXCommandArgumentParser {
       adapter: this.adapter,
       stringFlags: this.stringFlags,
       booleanFlags: this.booleanFlags,
+      context: this.context,
     };
   }
 
@@ -125,6 +131,7 @@ export default class TXCommandArgumentParser {
         raw,
         this.adapter,
         this.depth + 1,
+        this.context
       ).parse(),
     );
   }

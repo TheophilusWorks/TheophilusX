@@ -24,6 +24,8 @@ export default function buildCliAdapter(bot: TheophilusX) {
             usedPrefix,
             trimmed,
             adapter,
+            undefined,
+            buildCLIContext(trimmed),
           ).parse();
           bot.emit("commandCreate", args);
         } else {
