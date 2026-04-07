@@ -8,20 +8,20 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
-  execute: async ({ adapter, stringFlags }) => {
+  execute: async ({ adapter, stringFlags, context }) => {
     let buffer: string;
 
     let cmdName: string | undefined = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
-      if (!cmd) return adapter.reply(`Command "${cmdName}" not found.`);
+      if (!cmd) return adapter.reply(context, `Command "${cmdName}" not found.`);
 
       buffer = inspectCommand(cmd);
     } else {
       buffer = generateHelpMenu();
     }
 
-    adapter.reply(buffer);
+    adapter.reply(context, buffer);
   },
 });
 

@@ -30,6 +30,6 @@ export default new TXCommand({
   ⦇ owner ─┄  Theophilus
   ⦇ dev   ─┄  Theophilus
 `;
-    await adapter.reply(info.trim());
+    await adapter.reply(context, info.trim());
   },
 });

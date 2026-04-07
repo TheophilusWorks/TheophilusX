@@ -39,10 +39,20 @@ export default function buildCliAdapter(bot: TheophilusX) {
       });
     })
     .setMessageSender(async (_target, message) => {
-      console.log(message);
+      if (typeof message === "string") {
+        console.log(message);
+      } else {
+        let msg = `${message.message}\n\n${message.attachments?.join("\n")}`;
+        console.log(msg);
+      }
     })
-    .setReplySender(async (message) => {
-      console.log(message);
+    .setReplySender(async (_ctx, message) => {
+      if (typeof message === "string") {
+        console.log(message);
+      } else {
+        let msg = `${message.message}\n\n${message.attachments?.join("\n")}`;
+        console.log(msg);
+      }
     });
 
   return adapter;
@@ -57,6 +67,7 @@ function buildCLIContext(raw: string): TXIContext {
     serverId: undefined,
     timestamp: new Date(),
     raw,
+    replied: false,
     author: {
       id: "cli",
       displayName: "CLI User",

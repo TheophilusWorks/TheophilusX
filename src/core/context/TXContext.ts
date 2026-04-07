@@ -20,4 +20,5 @@ export interface TXIContext {
   serverId?: string;
   timestamp: Date;
   raw: unknown;
+  replied: boolean;
 }

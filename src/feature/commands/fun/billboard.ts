@@ -4,8 +4,9 @@ import fs from "fs/promises";
 import path from "path";
 import { fitText } from "../../../utils/fitText.js";
 import { ensurePath } from "../../../utils/ensurePath.js";
-import { __dirname } from "../../../utils/path.js";
+import { getDirname } from "../../../utils/path.js";
 
+const __dirname = getDirname(import.meta.url);
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
 
 export default new TXCommand({
@@ -16,17 +17,17 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
-  execute: async ({ adapter, args }) => {
+  execute: async ({ adapter, args, context }) => {
     const text = args.join(" ");
     const filepath = await makeBillboard(text);
 
     try {
-      await adapter.reply({
+      await adapter.reply(context, {
         message: "Here's your billboard!",
         attachments: [filepath],
       });
     } finally {
-      // await fs.unlink(filepath);
+      await fs.unlink(filepath);
     }
   },
 });

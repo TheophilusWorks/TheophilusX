@@ -11,8 +11,10 @@ import TXLogger from "./logger/TXLogger.js";
 import TXCommandRegistry from "./registry/TXCommandRegistry.js";
 import TXEventRegistry from "./registry/TXEventRegistry.js";
 import TXAdapterRegistry from "./registry/TXAdapterRegistry.js";
-import { __dirname } from "../utils/path.js";
+import buildDiscordAdapter from "../adapters/discordAdapter.js";
+import { getDirname } from "../utils/path.js";
 
+const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
   path.resolve(__dirname, "../../assets/Montserrat-Bold.ttf"),
   "Montserrat",
@@ -75,6 +77,10 @@ export default class TheophilusX {
     return this.adapterRegistry.usedPlatforms;
   }
 
+  public getConfig() {
+    return this.config;
+  }
+
   public async start() {
     this.logger.log("Starting TheophilusX...", DebugLevel.Info);
 
@@ -88,7 +94,7 @@ export default class TheophilusX {
 
       this.logger.collect(this.eventRegistry.toSummaryNode());
       this.logger.collect(this.commandRegistry.toSummaryNode());
-      this.logger.collect(this.adapterRegistry.toSummaryNode()); // once built
+      this.logger.collect(this.adapterRegistry.toSummaryNode());
       this.logger.printSummary(`TheophilusX v${TheophilusX.version}`);
     } catch (error) {
       let e = toError(error);
@@ -97,15 +103,15 @@ export default class TheophilusX {
   }
 
   get commandCount() {
-    return this.commandRegistry.commandCount
+    return this.commandRegistry.commandCount;
   }
 
   get eventCount() {
-    return this.eventRegistry.eventCount
+    return this.eventRegistry.eventCount;
   }
 
   private registerPlatforms() {
-    const { platforms } = this.config;
+    const { platforms, token } = this.config;
     if (!platforms) return;
 
     if (platforms.cli) {
@@ -113,7 +119,12 @@ export default class TheophilusX {
     }
 
     if (platforms.discord) {
-      // TODO: Implement Discord adapter
+      if (!token.discordToken)
+        throw new Error("Discord token is required for Discord platform");
+      this.adapterRegistry.add(
+        buildDiscordAdapter(this, token.discordToken),
+        TXPlatform.Discord,
+      );
     }
 
     if (platforms.facebookMessenger) {

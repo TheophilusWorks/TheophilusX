@@ -56,10 +56,7 @@ function formatScope(scopeName: string | null): string {
 function formatMessage(msg: string, level: DebugLevel): string {
   switch (level) {
     case DebugLevel.Ok:
-      return msg
-        .split("\n")
-        .map((l) => rainbowMsg(l))
-        .join("\n");
+      return chalk.hex("#00FF00")(msg);
     case DebugLevel.Warn:
       return chalk.hex("#FFFF00")(msg);
     case DebugLevel.Error:

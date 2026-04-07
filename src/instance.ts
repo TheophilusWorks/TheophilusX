@@ -1,3 +1,4 @@
+import "dotenv/config";
 import TheophilusX from "./core/TheophilusX.js";
 
 const instance = new TheophilusX({
@@ -37,7 +38,7 @@ const instance = new TheophilusX({
   // as long as you have a .env file with the appropriate variables,
   // If you change this, your tokens will not be loaded and your bot will not work.
   token: {
-    discordToken: "",
+    discordToken: process.env.DISCORD_TOKEN || "",
     facebookAppstate: "",
   },
 });

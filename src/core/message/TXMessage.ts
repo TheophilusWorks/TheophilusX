@@ -1,4 +1,4 @@
-export default interface TXReplyMessage {
+export default interface TXMessage {
   message: string;
   attachments?: string[];
 }

@@ -8,6 +8,9 @@ export default new TXCommand({
   cooldown: 2_000, // 2s
   minimumGroupedArguments: 0,
   execute: async ({ adapter, context }) => {
-    await adapter.reply(`Pong! Current platform: "${context.platform}"`);
+    await adapter.reply(
+      context,
+      `Pong! Current platform: "${context.platform}"`,
+    );
   },
 });

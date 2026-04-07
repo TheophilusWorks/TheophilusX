@@ -24,6 +24,7 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       if (NOTIFIED_USERS.has(cooldownKey)) return;
 
       adapter.reply(
+        cmdQuery.context,
         `Please wait for ${ms(cd)} before using ${cmdQuery.command} again.`,
       );
       NOTIFIED_USERS.add(cooldownKey);
@@ -36,6 +37,7 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   } catch (err) {
     let e = err as Error;
     adapter.reply(
+      cmdQuery.context,
       `An error occurred while executing the command: ${e.message}`,
     );
   }

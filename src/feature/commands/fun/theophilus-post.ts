@@ -4,8 +4,9 @@ import TXCommand from "../../../core/command/TXCommand.js";
 import { ensurePath } from "../../../utils/ensurePath.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { fitText } from "../../../utils/fitText.js";
-import { __dirname } from "../../../utils/path.js";
+import { getDirname } from "../../../utils/path.js";
 
+const __dirname = getDirname(import.meta.url);
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache/");
 
 export default new TXCommand({
@@ -16,17 +17,20 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
-  execute: async ({ adapter, args }) => {
+  execute: async ({ adapter, args, context }) => {
     let text = args.join(" ");
 
     if (text.length > 450) {
-      adapter.reply("caption is too long! Max 450 characters.");
+      adapter.reply(context, "caption is too long! Max 450 characters.");
       return;
     }
 
     let filepath = await makeTheophilusPost(text);
     try {
-      await adapter.reply({ message: "Here's your Theophilus post", attachments: [filepath] });
+      await adapter.reply(context, {
+        message: "Here's your Theophilus post",
+        attachments: [filepath],
+      });
     } finally {
       await fs.unlink(filepath).catch(() => {});
     }
@@ -64,7 +68,7 @@ async function makeTheophilusPost(text: string): Promise<string> {
     maxHeight: postH,
     font: "{size}px Montserrat",
     minFontSize: 22,
-    maxFontSize: 48,
+    maxFontSize: 250,
   });
 
   ctx.font = `${fontSize}px Montserrat`;
