@@ -2,46 +2,10 @@ import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import TXCommand from "../../../core/command/TXCommand";
 import fs from "fs/promises";
 import path from "path";
+import { fitText } from "../../../utils/fitText";
+import { ensurePath } from "../../../utils/ensurePath";
 
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
-
-GlobalFonts.registerFromPath(
-  path.resolve(__dirname, "../../../../assets/Montserrat-Bold.ttf"),
-  "Montserrat",
-);
-
-async function makeBillboard(text: string): Promise<Buffer> {
-  const filename = `billboard_${encodeURIComponent(text)}.png`;
-  const filepath = path.join(CACHE_DIR, filename);
-
-  const img = await loadImage(
-    path.resolve(__dirname, "../../../../assets/billboard.png"),
-  );
-  const canvas = createCanvas(img.width, img.height);
-  const ctx = canvas.getContext("2d");
-
-  ctx.drawImage(img, 0, 0);
-
-  const billboardX = img.width * 0.5;
-  const billboardY = img.height * 0.37;
-  const billboardW = img.width * 0.7;
-
-  let fontSize = 120;
-  while (fontSize > 20) {
-    ctx.font = `bold ${fontSize}px Montserrat`;
-    if (ctx.measureText(text).width <= billboardW) break;
-    fontSize -= 2;
-  }
-
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = "black";
-  ctx.fillText(text, billboardX, billboardY);
-
-  const buffer = canvas.toBuffer("image/png");
-  await fs.writeFile(filepath, buffer);
-  return buffer;
-}
 
 export default new TXCommand({
   name: "billboard",
@@ -52,7 +16,61 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   execute: async ({ adapter, args }) => {
     const text = args.join(" ");
-    const buffer = await makeBillboard(text);
-    adapter.reply("Image created!");
+    const filepath = await makeBillboard(text);
+    adapter.reply(filepath);
   },
 });
+
+GlobalFonts.registerFromPath(
+  path.resolve(__dirname, "../../../../assets/Montserrat-Bold.ttf"),
+  "Montserrat",
+);
+
+async function makeBillboard(text: string): Promise<string> {
+  await ensurePath(CACHE_DIR);
+
+  const filename = `billboard_${encodeURIComponent(text)}.png`;
+  const filepath = path.join(CACHE_DIR, filename);
+
+  try {
+    await fs.access(filepath);
+    return filepath;
+  } catch {}
+
+  const img = await loadImage(
+    path.resolve(__dirname, "../../../../assets/billboard.png"),
+  );
+  const canvas = createCanvas(img.width, img.height);
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(img, 0, 0);
+
+  const billboardX = img.width * 0.5;
+  const billboardY = img.height * 0.5;
+  const billboardW = img.width * 0.6;
+  const billboardH = img.height * 0.35;
+
+  const { lines, fontSize, lineHeight } = fitText({
+    ctx,
+    text,
+    maxWidth: billboardW,
+    maxHeight: billboardH,
+    font: "bold {size}px Montserrat",
+  });
+
+  ctx.font = `bold ${fontSize}px Montserrat`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "black";
+
+  const totalHeight = lines.length * lineHeight;
+  const startY = billboardY - totalHeight / 2 + lineHeight / 2;
+
+  lines.forEach((line, i) => {
+    ctx.fillText(line, billboardX, startY + i * lineHeight);
+  });
+
+  const buffer = canvas.toBuffer("image/png");
+  await fs.writeFile(filepath, buffer);
+  return filepath;
+}
