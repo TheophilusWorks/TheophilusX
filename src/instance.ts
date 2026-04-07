@@ -20,7 +20,7 @@ const instance = new TheophilusX({
   // the bot will not work on that platform.
   platforms: {
     cli: true,
-    discord: false,
+    discord: true,
     facebookMessenger: false,
   },
 

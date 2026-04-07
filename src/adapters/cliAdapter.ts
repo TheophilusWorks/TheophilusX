@@ -14,6 +14,9 @@ export default function buildCliAdapter(bot: TheophilusX) {
 
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
+      // a second of delay so it wont mess
+      // with the loading logs
+      await new Promise((res) => setTimeout(res, 1000));
       rl.prompt();
       rl.on("line", (input) => {
         const trimmed = input.trim();

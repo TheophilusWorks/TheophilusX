@@ -3,5 +3,6 @@ export enum DebugLevel {
   Info = "INFO",
   Warn = "WARN",
   Error = "ERROR",
+  Fatal = "FATAL",
   Ok = "OK",
 }

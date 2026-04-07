@@ -11,6 +11,11 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   let adapter = cmdQuery.adapter;
   try {
     if (ctx.author.isSelf) return;
+    let cmd = instance.hasCommand(cmdQuery.command)
+      ? instance.getCommand(cmdQuery.command)
+      : instance.getCommandAlias(cmdQuery.command);
+
+    if (!cmd) return;
 
     let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
     let cd = COOLDOWN_USERS.getRemainingCooldown(cooldownKey);
@@ -24,9 +29,6 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       NOTIFIED_USERS.add(cooldownKey);
       return;
     }
-
-    let cmd = instance.getCommand(cmdQuery.command);
-    if (!cmd) return;
 
     await cmd.execute(cmdQuery);
     COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
