@@ -1,4 +1,4 @@
-import TXICommandArgument from "./TXICommandArgument";
+import TXICommandArgument from "./TXICommandArgument.js";
 
 export default interface TXICommand {
   name: string;

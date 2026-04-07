@@ -1,9 +1,10 @@
-import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
-import TXCommand from "../../../core/command/TXCommand";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
+import TXCommand from "../../../core/command/TXCommand.js";
 import fs from "fs/promises";
 import path from "path";
-import { fitText } from "../../../utils/fitText";
-import { ensurePath } from "../../../utils/ensurePath";
+import { fitText } from "../../../utils/fitText.js";
+import { ensurePath } from "../../../utils/ensurePath.js";
+import { __dirname } from "../../../utils/path.js";
 
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
 

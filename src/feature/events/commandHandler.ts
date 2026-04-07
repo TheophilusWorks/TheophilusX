@@ -1,7 +1,7 @@
 import ms from "ms";
-import TXCooldownManager from "../../core/command/TXCooldownHandler";
-import TXEventBuilder from "../../core/event/TXEventBuilder";
-import instance from "../../instance";
+import TXCooldownManager from "../../core/command/TXCooldownHandler.js";
+import TXEventBuilder from "../../core/event/TXEventBuilder.js";
+import instance from "../../instance.js";
 
 export const COOLDOWN_USERS = new TXCooldownManager();
 const NOTIFIED_USERS: Set<string> = new Set();

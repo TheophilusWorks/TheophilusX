@@ -1,5 +1,7 @@
-import { DebugLevel } from "../../types/TXDebugLevel";
-import { TXLoggerNode } from "./TXLoggerNode";
+import { DebugLevel } from "../../types/TXDebugLevel.js";
+import { TXLoggerNode } from "./TXLoggerNode.js";
+import chalk from "chalk";
+import gradient from "gradient-string";
 
 const LEVEL_PAD = 5; // length of longest level name ("DEBUG", "FATAL")
 

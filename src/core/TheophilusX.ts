@@ -1,16 +1,17 @@
-import TXEvents from "../types/TXEvents";
-import TXConfig from "../types/TXConfig";
-import toError from "../utils/toError";
+import TXEvents from "../types/TXEvents.js";
+import TXConfig from "../types/TXConfig.js";
+import toError from "../utils/toError.js";
 import path from "node:path";
-import TXCommand from "./command/TXCommand";
-import { DebugLevel } from "../types/TXDebugLevel";
-import { TXPlatform } from "./context/TXContext";
-import buildCliAdapter from "../adapters/cliAdapter";
+import TXCommand from "./command/TXCommand.js";
+import { DebugLevel } from "../types/TXDebugLevel.js";
+import { TXPlatform } from "./context/TXContext.js";
+import buildCliAdapter from "../adapters/cliAdapter.js";
 import { GlobalFonts } from "@napi-rs/canvas";
-import TXLogger from "./logger/TXLogger";
-import TXCommandRegistry from "./registry/TXCommandRegistry";
-import TXEventRegistry from "./registry/TXEventRegistry";
-import TXAdapterRegistry from "./registry/TXAdapterRegistry";
+import TXLogger from "./logger/TXLogger.js";
+import TXCommandRegistry from "./registry/TXCommandRegistry.js";
+import TXEventRegistry from "./registry/TXEventRegistry.js";
+import TXAdapterRegistry from "./registry/TXAdapterRegistry.js";
+import { __dirname } from "../utils/path.js";
 
 GlobalFonts.registerFromPath(
   path.resolve(__dirname, "../../assets/Montserrat-Bold.ttf"),

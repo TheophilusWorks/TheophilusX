@@ -1,8 +1,8 @@
-import TXAdapterBuilder from "../adapter/TXAdapterBuilder";
-import TXLogger from "../logger/TXLogger";
-import { TXLoggerNode } from "../logger/TXLoggerNode";
-import { DebugLevel } from "../../types/TXDebugLevel";
-import { TXPlatform } from "../context/TXContext";
+import TXAdapterBuilder from "../adapter/TXAdapterBuilder.js";
+import TXLogger from "../logger/TXLogger.js";
+import { TXLoggerNode } from "../logger/TXLoggerNode.js";
+import { DebugLevel } from "../../types/TXDebugLevel.js";
+import { TXPlatform } from "../context/TXContext.js";
 
 export default class TXAdapterRegistry {
   private adapters: TXAdapterBuilder[];

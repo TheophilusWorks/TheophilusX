@@ -1,4 +1,4 @@
-import { TXIContext } from "../context/TXContext";
+import { TXIContext } from "../context/TXContext.js";
 
 export default class TXCooldownManager {
   private cooldowns: Map<string, number> = new Map();

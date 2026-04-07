@@ -1,4 +1,4 @@
-import TXEvents from "../../types/TXEvents";
+import TXEvents from "../../types/TXEvents.js";
 
 export default class TXEventBuilder<K extends keyof TXEvents> {
   public event: K;

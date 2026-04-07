@@ -1,4 +1,4 @@
-import { TXPlatform } from "../core/context/TXContext";
+import { TXPlatform } from "../core/context/TXContext.js";
 
 export default interface TXConfig {
   commandsPath: string;

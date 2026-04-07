@@ -1,9 +1,10 @@
 import fs from "fs/promises";
 import path from "path";
-import TXCommand from "../../../core/command/TXCommand";
-import { ensurePath } from "../../../utils/ensurePath";
+import TXCommand from "../../../core/command/TXCommand.js";
+import { ensurePath } from "../../../utils/ensurePath.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { fitText } from "../../../utils/fitText";
+import { fitText } from "../../../utils/fitText.js";
+import { __dirname } from "../../../utils/path.js";
 
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache/");
 

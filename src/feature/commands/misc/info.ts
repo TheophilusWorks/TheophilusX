@@ -1,7 +1,7 @@
 import ms from "ms";
-import TXCommand from "../../../core/command/TXCommand";
-import TheophilusX from "../../../core/TheophilusX";
-import instance from "../../../instance";
+import TXCommand from "../../../core/command/TXCommand.js";
+import TheophilusX from "../../../core/TheophilusX.js";
+import instance from "../../../instance.js";
 
 export default new TXCommand({
   name: "info",

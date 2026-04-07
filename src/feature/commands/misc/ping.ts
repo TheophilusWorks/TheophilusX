@@ -1,4 +1,4 @@
-import TXCommand from "../../../core/command/TXCommand";
+import TXCommand from "../../../core/command/TXCommand.js";
 
 export default new TXCommand({
   name: "ping",

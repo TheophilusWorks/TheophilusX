@@ -1,5 +1,5 @@
-import TXCommand from "../../../core/command/TXCommand";
-import instance from "../../../instance";
+import TXCommand from "../../../core/command/TXCommand.js";
+import instance from "../../../instance.js";
 
 export default new TXCommand({
   name: "help",

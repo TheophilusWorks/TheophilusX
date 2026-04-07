@@ -1,4 +1,4 @@
-import TheophilusX from "./core/TheophilusX";
+import TheophilusX from "./core/TheophilusX.js";
 
 const instance = new TheophilusX({
   // Where commands and events are located.

@@ -1,6 +1,6 @@
-import TXICommandArgument from "../../../types/TXICommandArgument";
-import TXAdapterBuilder from "../../adapter/TXAdapterBuilder";
-import { TXIContext } from "../../context/TXContext";
+import TXICommandArgument from "../../../types/TXICommandArgument.js";
+import TXAdapterBuilder from "../../adapter/TXAdapterBuilder.js";
+import { TXIContext } from "../../context/TXContext.js";
 
 const TRUTHY = new Set(["true", "t", "y", "yes"]);
 const FALSY = new Set(["false", "f", "n", "no"]);

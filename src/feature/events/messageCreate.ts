@@ -1,4 +1,4 @@
-import TXEventBuilder from "../../core/event/TXEventBuilder";
+import TXEventBuilder from "../../core/event/TXEventBuilder.js";
 
 export default new TXEventBuilder("messageCreate", async (ctx, adapter) => {
   if (ctx.author.isSelf || ctx.content == "") return;

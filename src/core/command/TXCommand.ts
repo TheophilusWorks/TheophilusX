@@ -1,5 +1,5 @@
-import TXICommand from "../../types/TXICommand";
-import TXICommandArgument from "../../types/TXICommandArgument";
+import TXICommand from "../../types/TXICommand.js";
+import TXICommandArgument from "../../types/TXICommandArgument.js";
 
 export default class TXCommand {
   public name: string;

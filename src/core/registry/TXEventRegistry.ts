@@ -2,11 +2,11 @@ import EventEmitter from "node:events";
 import fs from "fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import TXLogger from "../logger/TXLogger";
-import { TXLoggerNode } from "../logger/TXLoggerNode";
-import { DebugLevel } from "../../types/TXDebugLevel";
-import TXEvents from "../../types/TXEvents";
-import TXEventBuilder from "../event/TXEventBuilder";
+import TXLogger from "../logger/TXLogger.js";
+import { TXLoggerNode } from "../logger/TXLoggerNode.js";
+import { DebugLevel } from "../../types/TXDebugLevel.js";
+import TXEvents from "../../types/TXEvents.js";
+import TXEventBuilder from "../event/TXEventBuilder.js";
 
 export default class TXEventRegistry {
   private eventBus: EventEmitter;

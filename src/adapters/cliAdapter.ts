@@ -1,9 +1,9 @@
 import readline from "readline/promises";
-import TheophilusX from "../core/TheophilusX";
-import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder";
-import { TXIContext, TXPlatform } from "../core/context/TXContext";
-import instance from "../instance";
-import TXCommandArgumentParser from "../core/command/parser/TXCommandParser";
+import TheophilusX from "../core/TheophilusX.js";
+import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder.js";
+import { TXIContext, TXPlatform } from "../core/context/TXContext.js";
+import instance from "../instance.js";
+import TXCommandArgumentParser from "../core/command/parser/TXCommandParser.js";
 
 export default function buildCliAdapter(bot: TheophilusX) {
   const rl = readline.createInterface({

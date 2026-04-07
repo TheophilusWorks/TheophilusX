@@ -1,10 +1,10 @@
 import fs from "fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import TXCommand from "../command/TXCommand";
-import TXLogger from "../logger/TXLogger";
-import { TXLoggerNode } from "../logger/TXLoggerNode";
-import { DebugLevel } from "../../types/TXDebugLevel";
+import TXCommand from "../command/TXCommand.js";
+import TXLogger from "../logger/TXLogger.js";
+import { TXLoggerNode } from "../logger/TXLoggerNode.js";
+import { DebugLevel } from "../../types/TXDebugLevel.js";
 
 export default class TXCommandRegistry {
   private commands: Map<string, TXCommand>;

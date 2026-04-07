@@ -1,4 +1,4 @@
-import TXReplyMessage from "../message/TXMessage";
+import TXReplyMessage from "../message/TXMessage.js";
 
 export default class TXAdapterBuilder {
   public loginManager?: () => Promise<void>;
