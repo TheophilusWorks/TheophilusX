@@ -1,8 +1,8 @@
 export enum DebugLevel {
   Debug = "DEBUG",
-  Info = "INFO",
-  Warn = "WARN",
+  Info = "INFORMATION",
+  Warn = "WARNING",
   Error = "ERROR",
   Fatal = "FATAL",
-  Ok = "OK",
+  Ok = "SUCCESS",
 }

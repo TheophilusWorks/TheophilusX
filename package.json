@@ -9,7 +9,6 @@
     "@types/ms": "^2.1.0",
     "@types/node": "^25.5.2",
     "axios": "^1.14.0",
-    "chalk": "^4.1.2",
     "discord.js": "^14.26.2",
     "dotenv": "^17.4.0",
     "gradient-string": "^3.0.0",
