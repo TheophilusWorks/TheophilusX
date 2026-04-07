@@ -1,3 +1,5 @@
+import TXReplyMessage from "../message/TXMessage";
+
 export default class TXAdapterBuilder {
   public loginManager?: () => Promise<void>;
   public messageSender?: (target: string, message: string) => Promise<void>;
@@ -26,7 +28,15 @@ export default class TXAdapterBuilder {
   public async sendMessage(target: string, message: string) {
     await this.messageSender?.(target, message);
   }
-  public async reply(message: string) {
-    await this.replySender?.(message);
+  public async reply(message: string | TXReplyMessage) {
+    if (typeof message === "string") {
+      await this.replySender?.(message);
+    } else {
+      let attachments = message.attachments
+        ? message.attachments.join("\n")
+        : "";
+      let msg = `${message.message}\n${attachments}`;
+      this.replySender?.(msg.trim());
+    }
   }
 }

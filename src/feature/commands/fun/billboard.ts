@@ -1,4 +1,4 @@
-import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import TXCommand from "../../../core/command/TXCommand";
 import fs from "fs/promises";
 import path from "path";
@@ -19,20 +19,21 @@ export default new TXCommand({
     const text = args.join(" ");
     const filepath = await makeBillboard(text);
 
-    await adapter.reply(filepath);
-    // fs.unlink(filepath)
+    try {
+      await adapter.reply({
+        message: "Here's your billboard!",
+        attachments: [filepath],
+      });
+    } finally {
+      // await fs.unlink(filepath);
+    }
   },
 });
-
-GlobalFonts.registerFromPath(
-  path.resolve(__dirname, "../../../../assets/Montserrat-Bold.ttf"),
-  "Montserrat",
-);
 
 async function makeBillboard(text: string): Promise<string> {
   await ensurePath(CACHE_DIR);
 
-  const filename = `billboard_.png`;
+  const filename = `billboard_${crypto.randomUUID()}.png`;
   const filepath = path.join(CACHE_DIR, filename);
 
   try {

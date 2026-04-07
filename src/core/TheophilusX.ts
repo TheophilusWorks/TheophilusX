@@ -12,6 +12,7 @@ import { pathToFileURL } from "node:url";
 import { TXPlatform } from "./context/TXContext";
 import buildCliAdapter from "../adapters/cliAdapter";
 import { todo } from "node:test";
+import { GlobalFonts } from "@napi-rs/canvas";
 
 export default class TheophilusX {
   public static version = "1.0.0";
@@ -47,7 +48,7 @@ export default class TheophilusX {
   }
 
   public getUsedPlatforms() {
-    return this.usedPlatforms
+    return this.usedPlatforms;
   }
 
   public getCommand(cmdName: string): TXCommand | undefined {
@@ -61,17 +62,25 @@ export default class TheophilusX {
   public async start() {
     this.debug("Starting TheophilusX...", DebugLevel.Info);
 
+    GlobalFonts.registerFromPath(
+      path.resolve(__dirname, "../../assets/Montserrat-Bold.ttf"),
+      "Montserrat",
+    );
+
     try {
       await this.loadEvents();
       await this.loadCommands();
       await this.registerPlatforms();
       this.checkForAdapters();
+      this.debug("TheophilusX logging in", DebugLevel.Ok)
       await this.loginBot();
     } catch (error) {
       let e = toError(error);
       this.config.debugLogs = true;
       this.debug(`Error starting TheophilusX: ${e.message}`, DebugLevel.Error);
     }
+
+
   }
 
   public debug(msg: string, header = DebugLevel.Debug) {
@@ -217,6 +226,6 @@ export default class TheophilusX {
   }
 
   private async usedPlatform(platform: TXPlatform) {
-    this.usedPlatforms.push(platform)
+    this.usedPlatforms.push(platform);
   }
 }

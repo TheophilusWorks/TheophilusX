@@ -8,8 +8,8 @@ import { fitText } from "../../../utils/fitText";
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache/");
 
 export default new TXCommand({
-  name: "theophiluspost",
-  aliases: ["tp", "theopost"],
+  name: "theophilus-post",
+  aliases: ["tp", "theo-post"],
   description: "Set the caption for theophilus's post.",
   usage: "theophilus <msg>",
   minimumArguments: 1,
@@ -17,21 +17,25 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   execute: async ({ adapter, args }) => {
     let text = args.join(" ");
-    
-    if(text.length > 450) {
+
+    if (text.length > 450) {
       adapter.reply("caption is too long! Max 450 characters.");
-      return
+      return;
     }
 
     let filepath = await makeTheophilusPost(text);
-    adapter.reply("Post generated!");
+    try {
+      await adapter.reply({ message: "Here's your Theophilus post", attachments: [filepath] });
+    } finally {
+      await fs.unlink(filepath).catch(() => {});
+    }
   },
 });
 
 async function makeTheophilusPost(text: string): Promise<string> {
   await ensurePath(CACHE_DIR);
 
-  let filename = `theophilus_.png`;
+  let filename = `theophilus-post_${crypto.randomUUID()}.png`;
   let filepath = path.join(CACHE_DIR, filename);
 
   // try {
