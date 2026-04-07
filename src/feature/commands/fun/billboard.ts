@@ -18,9 +18,9 @@ export default new TXCommand({
   execute: async ({ adapter, args }) => {
     const text = args.join(" ");
     const filepath = await makeBillboard(text);
-    
+
     await adapter.reply(filepath);
-    fs.unlink(filepath)
+    // fs.unlink(filepath)
   },
 });
 
@@ -32,7 +32,7 @@ GlobalFonts.registerFromPath(
 async function makeBillboard(text: string): Promise<string> {
   await ensurePath(CACHE_DIR);
 
-  const filename = `billboard_${encodeURIComponent(text)}.png`;
+  const filename = `billboard_.png`;
   const filepath = path.join(CACHE_DIR, filename);
 
   try {

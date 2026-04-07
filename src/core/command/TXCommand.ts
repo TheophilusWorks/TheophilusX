@@ -5,9 +5,9 @@ export default class TXCommand {
   public name: string;
   public description: string;
   public usage: string;
+  public cooldown: number;
 
   public aliases?: string[];
-  public cooldown?: number;
   public category?: string; // injected by the main loader
 
   public minimumArguments: number;

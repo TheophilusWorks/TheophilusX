@@ -6,7 +6,7 @@ export default interface TXICommand {
   usage: string;
 
   aliases?: string[];
-  cooldown?: number;
+  cooldown: number;
 
   minimumArguments: number;
   minimumGroupedArguments: number;

@@ -17,6 +17,12 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   execute: async ({ adapter, args }) => {
     let text = args.join(" ");
+    
+    if(text.length > 450) {
+      adapter.reply("caption is too long! Max 450 characters.");
+      return
+    }
+
     let filepath = await makeTheophilusPost(text);
     adapter.reply("Post generated!");
   },
@@ -25,7 +31,7 @@ export default new TXCommand({
 async function makeTheophilusPost(text: string): Promise<string> {
   await ensurePath(CACHE_DIR);
 
-  let filename = `theophilus_${encodeURIComponent(text)}.png`;
+  let filename = `theophilus_.png`;
   let filepath = path.join(CACHE_DIR, filename);
 
   // try {
@@ -42,9 +48,9 @@ async function makeTheophilusPost(text: string): Promise<string> {
   ctx.drawImage(img, 0, 0);
 
   const postX = 20;
-  const postY = img.height * 0.5;
-  const postW = img.width * 0.6;
-  const postH = img.height * 0.35;
+  const postY = img.height * 0.58; // where text starts vertically
+  const postW = img.width * 0.88; // almost full width
+  const postH = img.height * 0.1; // the actual available height in the post box
 
   const { lines, fontSize, lineHeight } = fitText({
     ctx,
