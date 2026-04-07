@@ -9,6 +9,7 @@ const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
 
 export default new TXCommand({
   name: "billboard",
+  aliases: ["bb"],
   description: "Write something on the billboard.",
   usage: "billboard <msg>",
   minimumArguments: 1,
@@ -17,7 +18,9 @@ export default new TXCommand({
   execute: async ({ adapter, args }) => {
     const text = args.join(" ");
     const filepath = await makeBillboard(text);
-    adapter.reply(filepath);
+    
+    await adapter.reply(filepath);
+    fs.unlink(filepath)
   },
 });
 
