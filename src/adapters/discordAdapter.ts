@@ -76,6 +76,10 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
             .adminIds?.some((id) => id.discordId === msg.author.id) ?? false;
 
         const usedPrefix = bot.prefixes.find((p) => msg.content.startsWith(p));
+        const usedAdminPrefix = bot.adminPrefixes.find((p) =>
+          msg.content.startsWith(p),
+        );
+        const ctx = buildDiscordContext(client, isAdmin, msg);
 
         if (usedPrefix) {
           const args = new TXCommandArgumentParser(
@@ -83,16 +87,21 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
             msg.content,
             adapter,
             undefined,
-            buildDiscordContext(client, isAdmin, msg),
+            ctx,
           ).parse();
 
           bot.emit("commandCreate", args);
-        } else {
-          bot.emit(
-            "messageCreate",
-            buildDiscordContext(client, isAdmin, msg),
+        } else if (usedAdminPrefix) {
+          const args = new TXCommandArgumentParser(
+            usedAdminPrefix,
+            msg.content,
             adapter,
-          );
+            undefined,
+            ctx,
+          ).parse();
+          bot.emit("adminCommandCreate", args);
+        } else {
+          bot.emit("messageCreate", ctx, adapter);
         }
       });
     })

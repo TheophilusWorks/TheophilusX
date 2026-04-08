@@ -5,4 +5,5 @@ import TXICommandArgument from "./TXICommandArgument.js";
 export default interface TXEvents {
   messageCreate: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>;
   commandCreate: (command: TXICommandArgument) => Promise<void>;
+  adminCommandCreate: (command: TXICommandArgument) => Promise<void>;
 }

@@ -163,6 +163,22 @@ export default class TXCommandRegistry {
     return this.commands;
   }
 
+  public hasAdmin(cmdName: string): boolean {
+    return this.adminCommands.has(cmdName);
+  }
+
+  public getAdmin(cmdName: string): TXCommand | undefined {
+    return this.adminCommands.get(cmdName);
+  }
+
+  public getAdminAlias(alias: string): TXCommand | undefined {
+    return this.adminCommandAliases.get(alias);
+  }
+
+  public getAllAdmin(): Map<string, TXCommand> {
+    return this.adminCommands;
+  }
+
   public toSummaryNode(): TXLoggerNode {
     const categories = new Set(
       Array.from(this.commands.values()).map((c) => c.category!),

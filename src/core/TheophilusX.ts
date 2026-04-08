@@ -23,6 +23,7 @@ GlobalFonts.registerFromPath(
 export default class TheophilusX {
   public static version = "1.0.0";
   public prefixes: string[];
+  public adminPrefixes: string[];
 
   private logger: TXLogger;
   private config: TXConfig;
@@ -37,6 +38,10 @@ export default class TheophilusX {
     this.prefixes = Array.isArray(config.prefix)
       ? config.prefix
       : [config.prefix];
+
+    this.adminPrefixes = Array.isArray(config.adminPrefix)
+      ? config.adminPrefix
+      : [config.adminPrefix];
 
     this.commandRegistry = new TXCommandRegistry(
       config.commandsPath,
@@ -72,6 +77,22 @@ export default class TheophilusX {
 
   public getCommands(): Map<string, TXCommand> {
     return this.commandRegistry.getAll();
+  }
+
+  public hasAdminCommand(cmdName: string): boolean {
+    return this.commandRegistry.hasAdmin(cmdName);
+  }
+
+  public getAdminCommand(cmdName: string): TXCommand | undefined {
+    return this.commandRegistry.getAdmin(cmdName);
+  }
+
+  public getAdminCommandAlias(alias: string): TXCommand | undefined {
+    return this.commandRegistry.getAdminAlias(alias);
+  }
+
+  public getAdminCommands(): Map<string, TXCommand> {
+    return this.commandRegistry.getAllAdmin();
   }
 
   public getUsedPlatforms() {

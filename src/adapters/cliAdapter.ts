@@ -11,31 +11,6 @@ import TXMessage from "../core/message/TXMessage.js";
 import TXMessageOptions from "../core/message/TXMessageOptions.js";
 import { TXMessagePart } from "../core/message/TXMessagePart.js";
 
-// --- resolvers ---
-
-function resolvePartsToString(parts: TXMessagePart[]): string {
-  return parts
-    .map((p) => (p.type === "text" ? p.value : `@${p.displayName}`))
-    .join("");
-}
-
-function resolveMessage(message: TXMessageOptions | string): {
-  content: string;
-  files: string[];
-} {
-  if (typeof message === "string") return { content: message, files: [] };
-  return {
-    content: resolvePartsToString(message.parts),
-    files: message.attachments ?? [],
-  };
-}
-
-function printResolved(message: TXMessageOptions | string) {
-  const { content, files } = resolveMessage(message);
-  console.log(content);
-  if (files.length) console.log(files.join("\n"));
-}
-
 // --- adapter ---
 
 export default function buildCliAdapter(bot: TheophilusX) {
@@ -125,6 +100,10 @@ export default function buildCliAdapter(bot: TheophilusX) {
         }
 
         const usedPrefix = instance.prefixes.find((p) => trimmed.startsWith(p));
+        const usedAdminPrefix = instance.adminPrefixes.find((p) =>
+          trimmed.startsWith(p),
+        );
+        const ctx = buildCLIContext(trimmed);
 
         if (usedPrefix) {
           const args = new TXCommandArgumentParser(
@@ -132,11 +111,20 @@ export default function buildCliAdapter(bot: TheophilusX) {
             trimmed,
             adapter,
             undefined,
-            buildCLIContext(trimmed),
+            ctx,
           ).parse();
           bot.emit("commandCreate", args);
+        } else if (usedAdminPrefix) {
+          const args = new TXCommandArgumentParser(
+            usedAdminPrefix,
+            trimmed,
+            adapter,
+            undefined,
+            ctx,
+          ).parse();
+          bot.emit("adminCommandCreate", args);
         } else {
-          bot.emit("messageCreate", buildCLIContext(trimmed), adapter);
+          bot.emit("messageCreate", ctx, adapter);
         }
 
         rl.prompt();
@@ -160,6 +148,31 @@ export default function buildCliAdapter(bot: TheophilusX) {
     });
 
   return adapter;
+}
+
+// --- resolvers ---
+
+function resolvePartsToString(parts: TXMessagePart[]): string {
+  return parts
+    .map((p) => (p.type === "text" ? p.value : `@${p.displayName}`))
+    .join("");
+}
+
+function resolveMessage(message: TXMessageOptions | string): {
+  content: string;
+  files: string[];
+} {
+  if (typeof message === "string") return { content: message, files: [] };
+  return {
+    content: resolvePartsToString(message.parts),
+    files: message.attachments ?? [],
+  };
+}
+
+function printResolved(message: TXMessageOptions | string) {
+  const { content, files } = resolveMessage(message);
+  console.log(content);
+  if (files.length) console.log(files.join("\n"));
 }
 
 // --- helpers ---
