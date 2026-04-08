@@ -1,4 +1,5 @@
 import TXCommand from "../../../core/command/TXCommand.js";
+import { TXIContext } from "../../../core/context/TXContext.js";
 import instance from "../../../instance.js";
 
 export default new TXCommand({
@@ -8,20 +9,21 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
+  usedStringFlags: ["cmd", "page"],
   execute: async ({ adapter, stringFlags, context }) => {
     let buffer: string;
 
     let cmdName: string | undefined = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
-      if (!cmd) {
+      if (!cmd || cmd.blacklistedPlatform?.includes(context.platform)) {
         adapter.reply(context, `Command "${cmdName}" not found.`);
         return;
       }
 
       buffer = inspectCommand(cmd);
     } else {
-      buffer = generateHelpMenu();
+      buffer = generateHelpMenu(context);
     }
 
     adapter.reply(context, buffer);
@@ -52,13 +54,13 @@ function inspectCommand(cmd: TXCommand): string {
 `;
 }
 
-function generateHelpMenu() {
+function generateHelpMenu(ctx: TXIContext) {
   return `
 ‗   ↳ ❝ [ Commands ] ¡! ❞
 ೃ⁀➷ Here are the list of all available commands:
          ◇─◇───◇─◇
 
-${sortCommandsByCategory()}
+${sortCommandsByCategory(ctx)}
 
 𓆩⟡𓆪 Type \`help --cmd=<command name>\` to inspect a command
 `.trim();
@@ -69,11 +71,13 @@ ${sortCommandsByCategory()}
 // it becomes a performance issue, we can consider caching the sorted commands
 // and only recalculating when commands are added/removed.
 // Plus we lowkey need a delay lol
-function sortCommandsByCategory() {
+function sortCommandsByCategory(ctx: TXIContext) {
   let categories: Record<string, TXCommand[]> = {};
   let buffer = "";
 
   for (const cmd of instance.getCommands().values()) {
+    if (cmd.blacklistedPlatform?.includes(ctx.platform)) continue;
+
     let category = cmd.category || "Uncategorized";
 
     if (!(category in categories)) {

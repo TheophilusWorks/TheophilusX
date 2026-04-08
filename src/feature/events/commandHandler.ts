@@ -9,6 +9,7 @@ const NOTIFIED_USERS: Set<string> = new Set();
 export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   let ctx = cmdQuery.context;
   let adapter = cmdQuery.adapter;
+
   try {
     if (ctx.author.isSelf) return;
     let cmd = instance.hasCommand(cmdQuery.command)
@@ -16,6 +17,8 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       : instance.getCommandAlias(cmdQuery.command);
 
     if (!cmd) return;
+
+    if (cmd.blacklistedPlatform?.includes(ctx.platform)) return;
 
     let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
     let cd = COOLDOWN_USERS.getRemainingCooldown(cooldownKey);

@@ -1,3 +1,4 @@
+import { TXPlatform } from "../core/context/TXContext.js";
 import TXICommandArgument from "./TXICommandArgument.js";
 
 export default interface TXICommand {
@@ -6,6 +7,7 @@ export default interface TXICommand {
   usage: string;
 
   aliases?: string[];
+  blacklistedPlatforms?: TXPlatform[];
   cooldown: number;
 
   minimumArguments: number;
