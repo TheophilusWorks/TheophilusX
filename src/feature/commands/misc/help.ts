@@ -14,7 +14,10 @@ export default new TXCommand({
     let cmdName: string | undefined = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
-      if (!cmd) return adapter.reply(context, `Command "${cmdName}" not found.`);
+      if (!cmd) {
+        adapter.reply(context, `Command "${cmdName}" not found.`);
+        return;
+      }
 
       buffer = inspectCommand(cmd);
     } else {

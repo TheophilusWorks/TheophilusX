@@ -10,6 +10,9 @@ import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder.js";
 import { TXIContext, TXPlatform } from "../core/context/TXContext.js";
 import TheophilusX from "../core/TheophilusX.js";
 import TXCommandArgumentParser from "../core/command/parser/TXCommandParser.js";
+import TXSentMessage, {
+  TXIWaitReplyOptions,
+} from "../core/message/TXSentMessage.js";
 
 export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
   const client = new Client({
@@ -36,18 +39,19 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
     },
   });
 
-  let adapter = new TXAdapterBuilder()
+  const waitReply = discordWaitReply(client);
+
+  const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
       await client.login(token);
 
       client.on("messageCreate", async (message) => {
-        let msg = message as Message;
+        const msg = message as Message;
 
-        let isAdmin = bot
-          .getConfig()
-          .adminIds?.find((id) => id.discordId == msg.author.id)
-          ? true
-          : false;
+        const isAdmin =
+          bot
+            .getConfig()
+            .adminIds?.some((id) => id.discordId === msg.author.id) ?? false;
 
         const usedPrefix = bot.prefixes.find((p) => msg.content.startsWith(p));
 
@@ -57,69 +61,104 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
             msg.content,
             adapter,
             undefined,
-            buildDiscordContext(client, isAdmin, message),
+            buildDiscordContext(client, isAdmin, msg),
           ).parse();
 
           bot.emit("commandCreate", args);
         } else {
           bot.emit(
             "messageCreate",
-            buildDiscordContext(client, isAdmin, message),
+            buildDiscordContext(client, isAdmin, msg),
             adapter,
           );
         }
       });
     })
     .setMessageSender(async (target, message) => {
-      let channel = await client.channels.fetch(target);
+      const channel = await client.channels.fetch(target);
+      if (!channel?.isTextBased() || !channel.isSendable()) return null;
 
-      if (channel && channel?.isTextBased() && channel.isSendable()) {
-        if (typeof message === "string") {
-          await channel.send(message);
-          return;
-        }
-        await channel.send({
-          content: message.message,
-          files: message.attachments,
-        });
-      }
+      const sent =
+        typeof message === "string"
+          ? await channel.send(message)
+          : await channel.send({
+              content: message.message,
+              files: message.attachments,
+            });
+
+      const ctx = buildDiscordContext(client, false, sent);
+      return new TXSentMessage(ctx, waitReply);
     })
     .setReplySender(async (ctx, msg) => {
-      let message = ctx.raw as Message;
+      const raw = ctx.raw as Message;
 
-      if (typeof msg === "string") {
-        ctx.replied = await safeReply(ctx.replied, message, msg, []);
-        return;
-      }
+      const sent =
+        typeof msg === "string"
+          ? await safeReply(ctx.replied, raw, msg, [])
+          : await safeReply(
+              ctx.replied,
+              raw,
+              msg.message,
+              msg.attachments ?? [],
+            );
 
-      ctx.replied = await safeReply(
-        ctx.replied,
-        message,
-        msg.message,
-        msg.attachments ?? [],
-      );
+      if (!sent) return null;
+
+      ctx.replied = true;
+      return new TXSentMessage(ctx, waitReply);
     });
 
   return adapter;
 }
 
+function discordWaitReply(client: Client) {
+  return function (
+    ctx: TXIContext,
+    options: TXIWaitReplyOptions,
+  ): Promise<TXIContext | null> {
+    return new Promise((resolve) => {
+      const timeout = options.timeout;
+
+      const timer = setTimeout(() => {
+        client.off("messageCreate", handler);
+        resolve(null);
+      }, timeout);
+
+      function handler(raw: Message) {
+        if (raw.channelId !== ctx.channelId) return;
+
+        const incoming = buildDiscordContext(client, ctx.author.isAdmin, raw);
+        if (options.filter && !options.filter(incoming)) return;
+
+        clearTimeout(timer);
+        client.off("messageCreate", handler);
+        resolve(incoming);
+      }
+
+      client.on("messageCreate", handler);
+    });
+  };
+}
+
+// --- helpers ---
+
 function buildDiscordContext(
   client: Client,
   isAdmin: boolean,
-  msg: Message<boolean>,
+  msg: Message,
 ): TXIContext {
   return {
     platform: TXPlatform.Discord,
     content: msg.content,
     author: {
       id: msg.author.id,
-      displayName: msg.member?.displayName || msg.author.username,
+      displayName: msg.member?.displayName ?? msg.author.username,
       username: msg.author.username,
-      isAdmin: isAdmin ? true : false,
+      isAdmin,
       isSelf: client.user?.id === msg.author.id,
     },
     channelId: msg.channelId,
-    serverId: msg.guildId || undefined,
+    serverId: msg.guildId ?? undefined,
     timestamp: msg.createdAt,
     replied: false,
     raw: msg,
@@ -131,15 +170,13 @@ async function safeReply(
   msg: Message,
   content: string,
   files: string[],
-) {
-  let embed = new EmbedBuilder().setDescription(content).setColor("Blurple");
+): Promise<Message | null> {
+  const embed = new EmbedBuilder().setDescription(content).setColor("Blurple");
 
   if (replied) {
-    if (!msg.channel.isTextBased() || !msg.channel.isSendable()) return false;
-    await msg.channel.send({ embeds: [embed], files });
-    return true;
+    if (!msg.channel.isTextBased() || !msg.channel.isSendable()) return null;
+    return await msg.channel.send({ embeds: [embed], files });
   }
 
-  await msg.reply({ embeds: [embed], files });
-  return true;
+  return await msg.reply({ embeds: [embed], files });
 }
