@@ -21,7 +21,7 @@ export default new TXCommand({
   ⌗ database  MongoDB
   ⌘ prefixes  ${prefixes}
 
-  01 ⋆ platforms  ${instance.getUsedPlatforms()}
+  01 ⋆ platforms  ${instance.getUsedPlatforms().join(" | ")}
   02 ⋆ commands   ${instance.commandCount} cmds
   03 ⋆ events     ${instance.eventCount} events
   04 ⋆ uptime     ${ms(process.uptime() * 1000)}
