@@ -11,7 +11,11 @@ const instance = new TheophilusX({
 
   // The prefix(es) that will trigger commands.
   // Can be a string or an array of strings.
-  prefix: ["!", "%", "$", "/", "="],
+  prefix: ["!", "%", "#", "/", "="],
+
+  // The admin prefix will trigger admin-only commwnds.
+  // Can be a string or an array
+  adminPrefix: ["$", ">", "admin"],
 
   // Platforms to enable.
   // Set to false to disable a platform.
@@ -29,7 +33,7 @@ const instance = new TheophilusX({
   // these users will have access to admin-only commands.
   adminIds: [
     {
-      discordId: "",
+      discordId: "1264839050427367570",
       facebookId: "",
     },
   ],

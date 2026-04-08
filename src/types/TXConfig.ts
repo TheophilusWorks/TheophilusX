@@ -1,5 +1,3 @@
-import { TXPlatform } from "../core/context/TXContext.js";
-
 export default interface TXConfig {
   commandsPath: string;
   eventsPath: string;
@@ -8,9 +6,10 @@ export default interface TXConfig {
     discord: boolean;
     facebookMessenger: boolean;
     cli: boolean;
-  }
+  };
 
   prefix: string | string[];
+  adminPrefix: string | string[];
   adminIds?: TXAdminId[];
   token: TXToken;
 }
