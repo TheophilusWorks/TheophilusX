@@ -13,6 +13,8 @@ import TXCommandArgumentParser from "../core/command/parser/TXCommandParser.js";
 import TXSentMessage, {
   TXIWaitReplyOptions,
 } from "../core/message/TXSentMessage.js";
+import TXMessage from "../core/message/TXMessage.js";
+import TXMessageOptions from "../core/message/TXMessageOptions.js";
 
 export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
   const client = new Client({
@@ -38,8 +40,6 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       },
     },
   });
-
-  const waitReply = discordWaitReply(client);
 
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
@@ -87,7 +87,7 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
             });
 
       const ctx = buildDiscordContext(client, false, sent);
-      return new TXSentMessage(ctx, waitReply);
+      return new TXSentMessage(ctx, discordWaitReply(client));
     })
     .setReplySender(async (ctx, msg) => {
       const raw = ctx.raw as Message;
@@ -105,24 +105,45 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       if (!sent) return null;
 
       ctx.replied = true;
-      return new TXSentMessage(ctx, waitReply);
+      return new TXSentMessage(ctx, discordWaitReply(client));
     });
 
   return adapter;
+}
+
+function makeDiscordReplyFn(
+  client: Client,
+  incoming: TXIContext,
+  raw: Message,
+): (msg: TXMessageOptions | string) => Promise<TXSentMessage | null> {
+  return async (msg) => {
+    const sent =
+      typeof msg === "string"
+        ? await safeReply(incoming.replied, raw, msg, [])
+        : await safeReply(
+            incoming.replied,
+            raw,
+            msg.message,
+            msg.attachments ?? [],
+          );
+
+    if (!sent) return null;
+
+    incoming.replied = true;
+    return new TXSentMessage(incoming, discordWaitReply(client));
+  };
 }
 
 function discordWaitReply(client: Client) {
   return function (
     ctx: TXIContext,
     options: TXIWaitReplyOptions,
-  ): Promise<TXIContext | null> {
+  ): Promise<TXMessage | null> {
     return new Promise((resolve) => {
-      const timeout = options.timeout;
-
       const timer = setTimeout(() => {
         client.off("messageCreate", handler);
         resolve(null);
-      }, timeout);
+      }, options.timeout);
 
       function handler(raw: Message) {
         if (raw.channelId !== ctx.channelId) return;
@@ -132,7 +153,10 @@ function discordWaitReply(client: Client) {
 
         clearTimeout(timer);
         client.off("messageCreate", handler);
-        resolve(incoming);
+
+        resolve(
+          new TXMessage(incoming, makeDiscordReplyFn(client, incoming, raw)),
+        );
       }
 
       client.on("messageCreate", handler);

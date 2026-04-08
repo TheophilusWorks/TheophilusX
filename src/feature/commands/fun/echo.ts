@@ -10,14 +10,19 @@ export default new TXCommand({
   execute: async ({ adapter, context, args }) => {
     if (args.length > 0) {
       await adapter.reply(context, args.join(" "));
-      return
+      return;
     }
 
-    let msg = await adapter.reply(context, "Please reply to this message with the message you want to echo.");
-    let reply = await msg?.waitReply({
+    let msg = await adapter.reply(
+      context,
+      "Please reply to this message with the message you want to echo.",
+    );
+    let reply = await msg.waitReply({
       timeout: 30_000,
-    })
+    });
 
-    adapter.reply(context, reply?.content || "")
+    if (!reply) return;
+
+    await reply.reply(reply.context.content);
   },
 });

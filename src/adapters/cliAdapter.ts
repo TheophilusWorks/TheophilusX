@@ -7,6 +7,8 @@ import TXCommandArgumentParser from "../core/command/parser/TXCommandParser.js";
 import TXSentMessage, {
   TXIWaitReplyOptions,
 } from "../core/message/TXSentMessage.js";
+import TXMessage from "../core/message/TXMessage.js";
+import TXMessageOptions from "../core/message/TXMessageOptions.js";
 
 export default function buildCliAdapter(bot: TheophilusX) {
   const rl = readline.createInterface({
@@ -20,17 +22,33 @@ export default function buildCliAdapter(bot: TheophilusX) {
   const waitReplyMap = new Map<
     number,
     {
-      resolve: (ctx: TXIContext | null) => void;
+      resolve: (msg: TXMessage | null) => void;
       timer: NodeJS.Timeout;
       filter?: (ctx: TXIContext) => boolean;
     }
   >();
 
+  function allocateReplyId(): number {
+    return replyIdCounter++;
+  }
+
+  function makeCliReplyFn(
+    incoming: TXIContext,
+  ): (msg: TXMessageOptions | string) => Promise<TXSentMessage | null> {
+    return async (msg) => {
+      const id = allocateReplyId();
+      printMessage(msg);
+      console.log(`[reply id: ${id}]\n`);
+
+      return new TXSentMessage(incoming, makeWaitReply(id));
+    };
+  }
+
   function makeWaitReply(replyId: number) {
     return (
       _ctx: TXIContext,
       options: TXIWaitReplyOptions,
-    ): Promise<TXIContext | null> => {
+    ): Promise<TXMessage | null> => {
       return new Promise((resolve) => {
         const timer = setTimeout(() => {
           waitReplyMap.delete(replyId);
@@ -42,16 +60,13 @@ export default function buildCliAdapter(bot: TheophilusX) {
     };
   }
 
-  function allocateReplyId(): number {
-    return replyIdCounter++;
-  }
-
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
+      // a bit of delay so it wont mess with the logs
       await new Promise((res) => setTimeout(res, 1000));
       rl.prompt();
 
-      rl.on("line", (input) => {
+      rl.on("line", async (input) => {
         const trimmed = input.trim();
 
         // Handle reply syntax: "reply: <id> <message>"
@@ -72,10 +87,13 @@ export default function buildCliAdapter(bot: TheophilusX) {
             } else {
               clearTimeout(pending.timer);
               waitReplyMap.delete(replyId);
-              pending.resolve(incomingCtx);
+              pending.resolve(
+                new TXMessage(incomingCtx, makeCliReplyFn(incomingCtx)),
+              );
             }
           }
 
+        await new Promise((res) => setTimeout(res, 300));
           rl.prompt();
           return;
         }
@@ -103,14 +121,16 @@ export default function buildCliAdapter(bot: TheophilusX) {
       printMessage(message);
       console.log(`[reply id: ${id}]\n`);
 
-      return new TXSentMessage(buildCLIContext(""), makeWaitReply(id));
+      const ctx = buildCLIContext("");
+      return new TXSentMessage(ctx, makeWaitReply(id));
     })
     .setReplySender(async (_ctx, message) => {
       const id = allocateReplyId();
       printMessage(message);
       console.log(`[reply id: ${id}]\n`);
 
-      return new TXSentMessage(buildCLIContext(""), makeWaitReply(id));
+      const ctx = buildCLIContext("");
+      return new TXSentMessage(ctx, makeWaitReply(id));
     });
 
   return adapter;

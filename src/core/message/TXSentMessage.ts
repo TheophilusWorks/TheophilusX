@@ -1,4 +1,5 @@
 import { TXIContext } from "../context/TXContext.js";
+import TXMessage from "./TXMessage.js";
 
 export interface TXIWaitReplyOptions {
   timeout: number;
@@ -11,7 +12,7 @@ export default class TXSentMessage {
     private waitReplyFn: (
       ctx: TXIContext,
       options: TXIWaitReplyOptions,
-    ) => Promise<TXIContext | null>,
+    ) => Promise<TXMessage | null>,
   ) {}
 
   waitReply(options: TXIWaitReplyOptions) {
