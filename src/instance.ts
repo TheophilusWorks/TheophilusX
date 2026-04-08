@@ -6,6 +6,7 @@ const instance = new TheophilusX({
   // TheophilusX will automatically load all .js files in these
   // directories.
   commandsPath: "./dist/feature/commands/",
+  adminCommandsPath: "./dist/feature/adminCommands/",
   eventsPath: "./dist/feature/events/",
   debugLogs: true,
 

@@ -40,6 +40,7 @@ export default class TheophilusX {
 
     this.commandRegistry = new TXCommandRegistry(
       config.commandsPath,
+      config.adminCommandsPath,
       this.logger,
     );
     this.eventRegistry = new TXEventRegistry(config.eventsPath, this.logger);
@@ -87,6 +88,7 @@ export default class TheophilusX {
     try {
       await this.eventRegistry.load();
       await this.commandRegistry.load();
+      await this.commandRegistry.loadAdmin();
       this.registerPlatforms();
       this.adapterRegistry.check();
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);
