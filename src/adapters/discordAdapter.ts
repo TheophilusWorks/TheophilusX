@@ -15,6 +15,28 @@ import TXSentMessage, {
 } from "../core/message/TXSentMessage.js";
 import TXMessage from "../core/message/TXMessage.js";
 import TXMessageOptions from "../core/message/TXMessageOptions.js";
+import { TXMessagePart } from "../core/message/TXMessagePart.js";
+
+// --- resolvers ---
+
+function resolvePartsToString(parts: TXMessagePart[]): string {
+  return parts
+    .map((p) => (p.type === "text" ? p.value : `<@${p.userId}>`))
+    .join("");
+}
+
+function resolveMessage(message: TXMessageOptions | string): {
+  content: string;
+  files: string[];
+} {
+  if (typeof message === "string") return { content: message, files: [] };
+  return {
+    content: resolvePartsToString(message.parts),
+    files: message.attachments ?? [],
+  };
+}
+
+// --- adapter ---
 
 export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
   const client = new Client({
@@ -78,30 +100,17 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       const channel = await client.channels.fetch(target);
       if (!channel?.isTextBased() || !channel.isSendable()) return null;
 
-      const sent =
-        typeof message === "string"
-          ? await channel.send(message)
-          : await channel.send({
-              content: message.message,
-              files: message.attachments,
-            });
+      const { content, files } = resolveMessage(message);
+      const sent = await channel.send({ content, files });
 
       const ctx = buildDiscordContext(client, false, sent);
       return new TXSentMessage(ctx, discordWaitReply(client));
     })
     .setReplySender(async (ctx, msg) => {
       const raw = ctx.raw as Message;
+      const { content, files } = resolveMessage(msg);
 
-      const sent =
-        typeof msg === "string"
-          ? await safeReply(ctx.replied, raw, msg, [])
-          : await safeReply(
-              ctx.replied,
-              raw,
-              msg.message,
-              msg.attachments ?? [],
-            );
-
+      const sent = await safeReply(ctx.replied, raw, content, files);
       if (!sent) return null;
 
       ctx.replied = true;
@@ -111,22 +120,18 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
   return adapter;
 }
 
+// --- wait reply ---
+
 function makeDiscordReplyFn(
   client: Client,
   incoming: TXIContext,
   raw: Message,
-): (msg: TXMessageOptions | string) => Promise<TXSentMessage | null> {
-  return async (msg) => {
-    const sent =
-      typeof msg === "string"
-        ? await safeReply(incoming.replied, raw, msg, [])
-        : await safeReply(
-            incoming.replied,
-            raw,
-            msg.message,
-            msg.attachments ?? [],
-          );
-
+) {
+  return async (
+    msg: TXMessageOptions | string,
+  ): Promise<TXSentMessage | null> => {
+    const { content, files } = resolveMessage(msg);
+    const sent = await safeReply(incoming.replied, raw, content, files);
     if (!sent) return null;
 
     incoming.replied = true;

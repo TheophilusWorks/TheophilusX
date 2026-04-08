@@ -1,4 +1,6 @@
+import { TXMessagePart } from "./TXMessagePart.js";
+
 export default interface TXMessageOptions {
-  message: string;
+  parts: TXMessagePart[];
   attachments?: string[];
 }

@@ -1,10 +1,11 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
 import TXCommand from "../../../core/command/TXCommand.js";
 import fs from "fs/promises";
 import path from "path";
 import { fitText } from "../../../utils/fitText.js";
 import { ensurePath } from "../../../utils/ensurePath.js";
 import { getDirname } from "../../../utils/path.js";
+import { text, mention } from "../../../core/message/TXMessageBuilder.js";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const __dirname = getDirname(import.meta.url);
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
@@ -18,12 +19,15 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   execute: async ({ adapter, args, context }) => {
-    const text = args.join(" ");
-    const filepath = await makeBillboard(text);
+    const txt = args.join(" ");
+    const filepath = await makeBillboard(txt);
 
     try {
       await adapter.reply(context, {
-        message: "Here's your billboard!",
+        parts: [
+          text("Here's your billboard, "),
+          mention(context.author.id, context.author.displayName),
+        ],
         attachments: [filepath],
       });
     } finally {

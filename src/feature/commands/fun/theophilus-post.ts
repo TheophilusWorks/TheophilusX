@@ -5,6 +5,7 @@ import { ensurePath } from "../../../utils/ensurePath.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { fitText } from "../../../utils/fitText.js";
 import { getDirname } from "../../../utils/path.js";
+import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 
 const __dirname = getDirname(import.meta.url);
 const CACHE_DIR = path.resolve(__dirname, "../../../../cache/");
@@ -18,17 +19,20 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   execute: async ({ adapter, args, context }) => {
-    let text = args.join(" ");
+    let txt = args.join(" ");
 
-    if (text.length > 450) {
+    if (txt.length > 450) {
       adapter.reply(context, "caption is too long! Max 450 characters.");
       return;
     }
 
-    let filepath = await makeTheophilusPost(text);
+    let filepath = await makeTheophilusPost(txt);
     try {
       await adapter.reply(context, {
-        message: "Here's your Theophilus post",
+        parts: [
+          text("Here's your Theophilus post, "),
+          mention(context.author.id, context.author.displayName)
+        ],
         attachments: [filepath],
       });
     } finally {

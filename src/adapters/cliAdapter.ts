@@ -9,6 +9,34 @@ import TXSentMessage, {
 } from "../core/message/TXSentMessage.js";
 import TXMessage from "../core/message/TXMessage.js";
 import TXMessageOptions from "../core/message/TXMessageOptions.js";
+import { TXMessagePart } from "../core/message/TXMessagePart.js";
+
+// --- resolvers ---
+
+function resolvePartsToString(parts: TXMessagePart[]): string {
+  return parts
+    .map((p) => (p.type === "text" ? p.value : `@${p.displayName}`))
+    .join("");
+}
+
+function resolveMessage(message: TXMessageOptions | string): {
+  content: string;
+  files: string[];
+} {
+  if (typeof message === "string") return { content: message, files: [] };
+  return {
+    content: resolvePartsToString(message.parts),
+    files: message.attachments ?? [],
+  };
+}
+
+function printResolved(message: TXMessageOptions | string) {
+  const { content, files } = resolveMessage(message);
+  console.log(content);
+  if (files.length) console.log(files.join("\n"));
+}
+
+// --- adapter ---
 
 export default function buildCliAdapter(bot: TheophilusX) {
   const rl = readline.createInterface({
@@ -37,7 +65,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
   ): (msg: TXMessageOptions | string) => Promise<TXSentMessage | null> {
     return async (msg) => {
       const id = allocateReplyId();
-      printMessage(msg);
+      printResolved(msg);
       console.log(`[reply id: ${id}]\n`);
 
       return new TXSentMessage(incoming, makeWaitReply(id));
@@ -62,14 +90,12 @@ export default function buildCliAdapter(bot: TheophilusX) {
 
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
-      // a bit of delay so it wont mess with the logs
       await new Promise((res) => setTimeout(res, 1000));
       rl.prompt();
 
       rl.on("line", async (input) => {
         const trimmed = input.trim();
 
-        // Handle reply syntax: "reply: <id> <message>"
         const replyMatch = trimmed.match(/^reply:\s*(\d+)\s+([\s\S]+)$/);
         if (replyMatch) {
           const replyId = parseInt(replyMatch[1], 10);
@@ -93,7 +119,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
             }
           }
 
-        await new Promise((res) => setTimeout(res, 300));
+          await new Promise((res) => setTimeout(res, 300));
           rl.prompt();
           return;
         }
@@ -118,7 +144,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
     })
     .setMessageSender(async (_target, message) => {
       const id = allocateReplyId();
-      printMessage(message);
+      printResolved(message);
       console.log(`[reply id: ${id}]\n`);
 
       const ctx = buildCLIContext("");
@@ -126,7 +152,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
     })
     .setReplySender(async (_ctx, message) => {
       const id = allocateReplyId();
-      printMessage(message);
+      printResolved(message);
       console.log(`[reply id: ${id}]\n`);
 
       const ctx = buildCLIContext("");
@@ -136,18 +162,7 @@ export default function buildCliAdapter(bot: TheophilusX) {
   return adapter;
 }
 
-function printMessage(
-  message: string | { message: string; attachments?: string[] },
-) {
-  if (typeof message === "string") {
-    console.log(message);
-  } else {
-    console.log(message.message);
-    if (message.attachments?.length) {
-      console.log(message.attachments.join("\n"));
-    }
-  }
-}
+// --- helpers ---
 
 function buildCLIContext(raw: string): TXIContext {
   const trimmed = raw.trim();
