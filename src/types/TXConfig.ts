@@ -13,6 +13,7 @@ export default interface TXConfig {
   adminPrefix: string | string[];
   adminIds?: TXAdminId[];
   token: TXToken;
+  mongoDbURI: string;
 }
 
 export interface TXToken {

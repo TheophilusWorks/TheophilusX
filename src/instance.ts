@@ -46,6 +46,8 @@ const instance = new TheophilusX({
     discordToken: process.env.DISCORD_TOKEN || "",
     facebookAppstate: "",
   },
+
+  mongoDbURI: process.env.MONGODB_URI || ""
 });
 
 export default instance;

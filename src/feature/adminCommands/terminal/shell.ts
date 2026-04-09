@@ -29,7 +29,10 @@ export default new TXCommand({
         filter: (msg) => msg.author.id == context.author.id,
       });
 
-      if (cmd?.context.content == "==exit==") return;
+      if (cmd?.context.content == "==exit==") {
+        adapter.reply(context, "Exited shell mode...");
+        return;
+      }
       let output = await runShell(cmd?.context.content || "");
       output += `\n\n\nType \`==exit==\` to exit shell mode`;
       await adapter.reply(context, output);

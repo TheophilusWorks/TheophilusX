@@ -113,7 +113,7 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       const sent = await channel.send({ content, files });
 
       const ctx = buildDiscordContext(client, false, sent);
-      return new TXSentMessage(ctx, discordWaitReply(client));
+      return new TXSentMessage(ctx, discordWaitReply(client, sent.id));
     })
     .setReplySender(async (ctx, msg) => {
       const raw = ctx.raw as Message;
@@ -123,7 +123,7 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       if (!sent) return null;
 
       ctx.replied = true;
-      return new TXSentMessage(ctx, discordWaitReply(client));
+      return new TXSentMessage(ctx, discordWaitReply(client, sent.id));
     });
 
   return adapter;
@@ -144,11 +144,11 @@ function makeDiscordReplyFn(
     if (!sent) return null;
 
     incoming.replied = true;
-    return new TXSentMessage(incoming, discordWaitReply(client));
+    return new TXSentMessage(incoming, discordWaitReply(client, sent.id));
   };
 }
 
-function discordWaitReply(client: Client) {
+function discordWaitReply(client: Client, sentMessageId: string) {
   return function (
     ctx: TXIContext,
     options: TXIWaitReplyOptions,
@@ -161,6 +161,7 @@ function discordWaitReply(client: Client) {
 
       function handler(raw: Message) {
         if (raw.channelId !== ctx.channelId) return;
+        if (raw.reference?.messageId !== sentMessageId) return;
 
         const incoming = buildDiscordContext(client, ctx.author.isAdmin, raw);
         if (options.filter && !options.filter(incoming)) return;
