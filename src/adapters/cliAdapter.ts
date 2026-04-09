@@ -152,10 +152,12 @@ export default function buildCliAdapter(bot: TheophilusX) {
 
 // --- resolvers ---
 
-function resolvePartsToString(parts: TXMessagePart[]): string {
-  return parts
-    .map((p) => (p.type === "text" ? p.value : `@${p.displayName}`))
-    .join("");
+function resolvePartsToString(parts: TXMessagePart[] | undefined): string {
+  return (
+    parts
+      ?.map((p) => (p.type === "text" ? p.value : `@${p.displayName}`))
+      .join("") || ""
+  );
 }
 
 function resolveMessage(message: TXMessageOptions | string): {
@@ -164,7 +166,7 @@ function resolveMessage(message: TXMessageOptions | string): {
 } {
   if (typeof message === "string") return { content: message, files: [] };
   return {
-    content: resolvePartsToString(message.parts),
+    content: resolvePartsToString(message?.parts),
     files: message.attachments ?? [],
   };
 }

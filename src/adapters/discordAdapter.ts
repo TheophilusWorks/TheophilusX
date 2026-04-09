@@ -19,10 +19,12 @@ import { TXMessagePart } from "../core/message/TXMessagePart.js";
 
 // --- resolvers ---
 
-function resolvePartsToString(parts: TXMessagePart[]): string {
-  return parts
-    .map((p) => (p.type === "text" ? p.value : `<@${p.userId}>`))
-    .join("");
+function resolvePartsToString(parts: TXMessagePart[] | undefined): string {
+  return (
+    parts
+      ?.map((p) => (p.type === "text" ? p.value : `<@${p.userId}>`))
+      .join("") || ""
+  );
 }
 
 function resolveMessage(message: TXMessageOptions | string): {
@@ -210,12 +212,19 @@ async function safeReply(
   content: string,
   files: string[],
 ): Promise<Message | null> {
-  const embed = new EmbedBuilder().setDescription(content).setColor("Blurple");
+
+  const payload: any = { files };
+
+  if (content) {
+    payload.embeds = [
+      new EmbedBuilder().setDescription(content).setColor("Blurple")
+    ];
+  }
 
   if (replied) {
     if (!msg.channel.isTextBased() || !msg.channel.isSendable()) return null;
-    return await msg.channel.send({ embeds: [embed], files });
+    return await msg.channel.send(payload);
   }
 
-  return await msg.reply({ embeds: [embed], files });
+  return await msg.reply(payload);
 }

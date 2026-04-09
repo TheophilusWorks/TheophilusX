@@ -20,8 +20,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
-    "exec": "npm run clean && tsc && node ."
+    "clean": "rm -rf dist .tsbuildinfo",
+    "exec": "npm run clean && npm run build && node ./dist/main.js"
   },
   "repository": {
     "type": "git",
