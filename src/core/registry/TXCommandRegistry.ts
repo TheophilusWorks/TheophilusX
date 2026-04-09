@@ -1,10 +1,10 @@
 import fs from "fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import TXCommand from "../command/TXCommand.js";
 import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import { DebugLevel } from "../../types/TXDebugLevel.js";
+import { importDefault } from "../../utils/importDefault.js";
 
 export default class TXCommandRegistry {
   private adminCommands: Map<string, TXCommand>;
@@ -59,7 +59,7 @@ export default class TXCommandRegistry {
 
       for (const commandFile of commandFiles) {
         const fullPath = path.resolve(categoryPath, commandFile);
-        const cmd = await this.importDefault<TXCommand>(fullPath);
+        const cmd = await importDefault<TXCommand>(fullPath);
 
         if (!cmd.category) {
           cmd.category = category;
@@ -91,6 +91,18 @@ export default class TXCommandRegistry {
     }
   }
 
+  public async reloadModules() {
+    this.commands = new Map();
+    this.adminCommands = new Map();
+    this.commandAliases = new Map();
+    this.adminCommandAliases = new Map();
+    this.commandCount = 0;
+    this.adminCommandCount = 0;
+
+    await this.load();
+    await this.loadAdmin();
+  }
+
   public async loadAdmin(): Promise<void> {
     this.logger.log(
       `Loading all admin commands in "${this.adminCommandsPath}"`,
@@ -115,7 +127,7 @@ export default class TXCommandRegistry {
 
       for (const commandFile of commandFiles) {
         const fullPath = path.resolve(categoryPath, commandFile);
-        const cmd = await this.importDefault<TXCommand>(fullPath);
+        const cmd = await importDefault<TXCommand>(fullPath);
 
         if (!cmd.category) {
           cmd.category = category;
@@ -211,10 +223,5 @@ export default class TXCommandRegistry {
         },
       ],
     };
-  }
-
-  private async importDefault<T>(filePath: string): Promise<T> {
-    const mod = await import(pathToFileURL(filePath).href);
-    return (mod.default?.default ?? mod.default) as T;
   }
 }

@@ -14,7 +14,6 @@ import TXAdapterRegistry from "./registry/TXAdapterRegistry.js";
 import buildDiscordAdapter from "../adapters/discordAdapter.js";
 import { getDirname } from "../utils/path.js";
 import TXDatabaseManager from "./database/TXDatabaseManager.js";
-import { Schema } from "mongoose";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -35,6 +34,8 @@ export default class TheophilusX {
   private adapterRegistry: TXAdapterRegistry;
 
   private databaseManager: TXDatabaseManager;
+
+  private isReloading: boolean = false;
 
   constructor(config: TXConfig) {
     this.config = config;
@@ -109,6 +110,19 @@ export default class TheophilusX {
 
   public getConfig() {
     return this.config;
+  }
+
+  public isModuleReloading() {
+    return this.isReloading;
+  }
+
+  public async reloadModules() {
+    this.logger.log("Reloading TheophilusX...", DebugLevel.Info);
+    this.isReloading = true;
+    await this.eventRegistry.reloadModules();
+    await this.commandRegistry.reloadModules();
+    this.isReloading = false;
+    this.logger.log("Reloaded TheophilusX...", DebugLevel.Ok);
   }
 
   public async start() {

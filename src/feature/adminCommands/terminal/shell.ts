@@ -8,8 +8,8 @@ export default new TXCommand({
   name: "shell",
   description: "Runs a raw shell command",
   usage: "shell <command>",
-  minimumArguments: 1,
-  minimumGroupedArguments: 1,
+  minimumArguments: 0,
+  minimumGroupedArguments: 0,
   cooldown: 5_000,
   execute: async ({ adapter, context, args }) => {
     if (args.length > 0) {

@@ -1,12 +1,12 @@
 import EventEmitter from "node:events";
 import fs from "fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import { DebugLevel } from "../../types/TXDebugLevel.js";
 import TXEvents from "../../types/TXEvents.js";
 import TXEventBuilder from "../event/TXEventBuilder.js";
+import { importDefault } from "../../utils/importDefault.js";
 
 export default class TXEventRegistry {
   private eventBus: EventEmitter;
@@ -36,7 +36,7 @@ export default class TXEventRegistry {
     for (const file of files) {
       const fullPath = path.resolve(this.eventsPath, file);
       const event =
-        await this.importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
+        await importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
 
       this.on(event.event, event.callback);
       this.eventCount++;
@@ -48,8 +48,18 @@ export default class TXEventRegistry {
     }
   }
 
+  public async reloadModules() {
+    this.eventBus = new EventEmitter();
+    this.eventCount = 0;
+    await this.load();
+  }
+
   public on<K extends keyof TXEvents>(event: K, callback: TXEvents[K]): void {
     this.eventBus.on(event, callback);
+  }
+
+  public off<K extends keyof TXEvents>(event: K, callback: TXEvents[K]): void {
+    this.eventBus.off(event, callback);
   }
 
   public emit<K extends keyof TXEvents>(
@@ -67,10 +77,5 @@ export default class TXEventRegistry {
         children: [],
       })),
     };
-  }
-
-  private async importDefault<T>(filePath: string): Promise<T> {
-    const mod = await import(pathToFileURL(filePath).href);
-    return (mod.default?.default ?? mod.default) as T;
   }
 }
