@@ -9,7 +9,7 @@ export default class TXCommand {
   public cooldown: number;
 
   public aliases?: string[];
-  public blacklistedPlatform?: TXPlatform[]
+  public blacklistedPlatform?: TXPlatform[];
   public category?: string; // injected by the main loader
 
   public minimumArguments: number;
@@ -31,7 +31,7 @@ export default class TXCommand {
     this.minimumGroupedArguments = context.minimumGroupedArguments;
     this.usedStringFlags = context.usedStringFlags;
     this.usedBooleanFlags = context.usedBooleanFlags;
-    this.blacklistedPlatform = context.blacklistedPlatforms
+    this.blacklistedPlatform = context.blacklistedPlatforms;
 
     this.execute = context.execute;
   }

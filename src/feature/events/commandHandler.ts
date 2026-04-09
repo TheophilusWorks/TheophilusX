@@ -12,35 +12,51 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
 
   try {
     if (ctx.author.isSelf) return;
+
     let cmd = instance.hasCommand(cmdQuery.command)
       ? instance.getCommand(cmdQuery.command)
       : instance.getCommandAlias(cmdQuery.command);
 
     if (!cmd) return;
-
     if (cmd.blacklistedPlatform?.includes(ctx.platform)) return;
 
     let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
     let cd = COOLDOWN_USERS.getRemainingCooldown(cooldownKey);
 
     if (cd > 0) {
-      if (NOTIFIED_USERS.has(cooldownKey)) return;
+      if (!NOTIFIED_USERS.has(cooldownKey)) {
+        await adapter.reply(
+          ctx,
+          `Please wait ${ms(cd)} before using ${cmdQuery.command} again.`,
+        );
+        NOTIFIED_USERS.add(cooldownKey);
+        setTimeout(() => NOTIFIED_USERS.delete(cooldownKey), cd);
+      }
+      return;
+    }
 
-      adapter.reply(
-        cmdQuery.context,
-        `Please wait for ${ms(cd)} before using ${cmdQuery.command} again.`,
+    if (cmd.minimumArguments > cmdQuery.args.length) {
+      await adapter.reply(
+        ctx,
+        `Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
       );
-      NOTIFIED_USERS.add(cooldownKey);
+      return;
+    }
+
+    if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
+      await adapter.reply(
+        ctx,
+        `Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
+      );
       return;
     }
 
     await cmd.execute(cmdQuery);
     COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
-    NOTIFIED_USERS.delete(cooldownKey);
   } catch (err) {
     let e = err as Error;
-    adapter.reply(
-      cmdQuery.context,
+    await adapter.reply(
+      ctx,
       `An error occurred while executing the command: ${e.message}`,
     );
   }
