@@ -9,8 +9,8 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   execute: async ({ adapter, context, args }) => {
-    await adapter.reply(context, "Reloading modules")
-    await instance.reloadModules()
-    await adapter.reply(context, "Modules successfully reloaded.")
-  }
+    await adapter.reply(context, "Reloading modules");
+    await instance.reloadModules();
+    await adapter.reply(context, "Modules successfully reloaded.");
+  },
 });
