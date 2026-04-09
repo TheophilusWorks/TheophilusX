@@ -111,10 +111,6 @@ export default class TheophilusX {
     return this.config;
   }
 
-  public createDbModel<T>(name: string, schema: Schema<T>) {
-    return this.databaseManager.createModel(name, schema);
-  }
-
   public async start() {
     this.logger.log("Starting TheophilusX...", DebugLevel.Info);
 

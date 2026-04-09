@@ -197,7 +197,7 @@ function buildDiscordContext(
       isSelf: client.user?.id === msg.author.id,
     },
     channelId: msg.channelId,
-    serverId: msg.guildId ?? undefined,
+    serverId: msg.guildId ?? "0",
     timestamp: msg.createdAt,
     replied: false,
     raw: msg,

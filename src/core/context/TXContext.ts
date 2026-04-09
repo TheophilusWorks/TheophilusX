@@ -17,7 +17,7 @@ export interface TXIContext {
   author: TXIAuthor;
   content: string;
   channelId?: string;
-  serverId?: string;
+  serverId: string;
   timestamp: Date;
   raw: unknown;
   replied: boolean;
