@@ -13,6 +13,8 @@ import TXEventRegistry from "./registry/TXEventRegistry.js";
 import TXAdapterRegistry from "./registry/TXAdapterRegistry.js";
 import buildDiscordAdapter from "../adapters/discordAdapter.js";
 import { getDirname } from "../utils/path.js";
+import TXDatabaseManager from "./database/TXDatabaseManager.js";
+import { Schema } from "mongoose";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -30,7 +32,9 @@ export default class TheophilusX {
 
   private commandRegistry: TXCommandRegistry;
   private eventRegistry: TXEventRegistry;
-  protected adapterRegistry: TXAdapterRegistry;
+  private adapterRegistry: TXAdapterRegistry;
+
+  private databaseManager: TXDatabaseManager;
 
   constructor(config: TXConfig) {
     this.config = config;
@@ -50,6 +54,10 @@ export default class TheophilusX {
     );
     this.eventRegistry = new TXEventRegistry(config.eventsPath, this.logger);
     this.adapterRegistry = new TXAdapterRegistry(this.logger);
+    this.databaseManager = new TXDatabaseManager(
+      config.mongoDbURI,
+      this.logger,
+    );
   }
 
   public on<K extends keyof TXEvents>(event: K, callback: TXEvents[K]) {
@@ -103,10 +111,15 @@ export default class TheophilusX {
     return this.config;
   }
 
+  public createDbModel<T>(name: string, schema: Schema<T>) {
+    return this.databaseManager.createModel(name, schema);
+  }
+
   public async start() {
     this.logger.log("Starting TheophilusX...", DebugLevel.Info);
 
     try {
+      await this.databaseManager.connect();
       await this.eventRegistry.load();
       await this.commandRegistry.load();
       await this.commandRegistry.loadAdmin();
