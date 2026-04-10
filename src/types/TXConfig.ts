@@ -2,6 +2,8 @@ export default interface TXConfig {
   adminCommandsPath: string;
   commandsPath: string;
   eventsPath: string;
+  cachePath: string;
+
   debugLogs: boolean;
   platforms: {
     discord: boolean;

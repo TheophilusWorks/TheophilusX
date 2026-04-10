@@ -4,7 +4,7 @@ import toError from "../utils/toError.js";
 import path from "node:path";
 import TXCommand from "./command/TXCommand.js";
 import { DebugLevel } from "../types/TXDebugLevel.js";
-import { TXPlatform } from "./context/TXContext.js";
+import { TXIContext, TXPlatform } from "./context/TXContext.js";
 import buildCliAdapter from "../adapters/cliAdapter.js";
 import { GlobalFonts } from "@napi-rs/canvas";
 import TXLogger from "./logger/TXLogger.js";
@@ -14,6 +14,10 @@ import TXAdapterRegistry from "./registry/TXAdapterRegistry.js";
 import buildDiscordAdapter from "../adapters/discordAdapter.js";
 import { getDirname } from "../utils/path.js";
 import TXDatabaseManager from "./database/TXDatabaseManager.js";
+import { exec, spawn } from "node:child_process";
+import { promisify } from "node:util";
+import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
+import TXCacheManager from "./cache-manager/TXCacheManager.js";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -21,21 +25,25 @@ GlobalFonts.registerFromPath(
   "Montserrat",
 );
 
+const execAsync = promisify(exec);
+
 export default class TheophilusX {
   public static version = "1.0.0";
   public prefixes: string[];
   public adminPrefixes: string[];
 
+  public isReloading: boolean = false;
+  public updateSchedule: Date | undefined = undefined;
+
   private logger: TXLogger;
   private config: TXConfig;
+  private cache: TXCacheManager;
 
   private commandRegistry: TXCommandRegistry;
   private eventRegistry: TXEventRegistry;
   private adapterRegistry: TXAdapterRegistry;
 
   private databaseManager: TXDatabaseManager;
-
-  private isReloading: boolean = false;
 
   constructor(config: TXConfig) {
     this.config = config;
@@ -59,6 +67,10 @@ export default class TheophilusX {
       config.mongoDbURI,
       this.logger,
     );
+    this.cache = new TXCacheManager({
+      cachePath: config.cachePath,
+      updateSchedule: new Date(0),
+    });
   }
 
   public on<K extends keyof TXEvents>(event: K, callback: TXEvents[K]) {
@@ -112,8 +124,77 @@ export default class TheophilusX {
     return this.config;
   }
 
-  public isModuleReloading() {
-    return this.isReloading;
+  public isUpdating(): boolean {
+    return (
+      this.updateSchedule !== undefined && this.updateSchedule > new Date()
+    );
+  }
+
+  public async compile() {
+    await execAsync("npx tsc");
+  }
+
+  public async updateTheophilusX(
+    adapter: TXAdapterBuilder,
+    context: TXIContext,
+  ) {
+    this.eventRegistry.clear();
+    
+    // set schedule 5 min from now
+    const updateSchedule = new Date(Date.now() + 5 * 60_000);
+    this.updateSchedule = updateSchedule;
+    this.cache.set("updateSchedule", updateSchedule);
+    this.cache.save();
+
+    const time = updateSchedule.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    // wait 3:30 min before actually pulling
+    await new Promise((res) => setTimeout(res, 3 * 60_000 + 30_000));
+
+    await adapter.reply(context, "Pulling latest changes...");
+
+    const { stdout: beforeHash } = await execAsync("git rev-parse HEAD");
+    await execAsync("git pull");
+    const { stdout: afterHash } = await execAsync("git rev-parse HEAD");
+
+    const before = beforeHash.trim();
+    const after = afterHash.trim();
+
+    if (before === after) {
+      this.updateSchedule = undefined;
+      this.cache.set("updateSchedule", new Date(0));
+      this.cache.save();
+      await adapter.reply(context, "Already up to date. No new commits.");
+      return;
+    }
+
+    const { stdout: logOutput } = await execAsync(
+      `git log ${before}..${after} --oneline`,
+    );
+
+    const commits = logOutput.trim().split("\n").filter(Boolean);
+    const commitLines = commits.map((line) => `• ${line}`).join("\n");
+
+    await adapter.reply(
+      context,
+      `Pulled ${commits.length} commit${commits.length === 1 ? "" : "s"}:\n${commitLines}`,
+    );
+
+    await adapter.reply(context, "Compiling...");
+    await execAsync("npx tsc");
+
+    await adapter.reply(context, "Restarting...");
+
+    spawn(process.execPath, process.argv.slice(1), {
+      detached: true,
+      stdio: "inherit",
+    }).unref();
+
+    process.exit(0);
   }
 
   public async reloadModules() {
@@ -130,6 +211,9 @@ export default class TheophilusX {
 
     try {
       await this.databaseManager.connect();
+      await this.cache.load();
+      this.restoreUpdateSchedule();
+
       await this.eventRegistry.load();
       await this.commandRegistry.load();
       await this.commandRegistry.loadAdmin();
@@ -154,6 +238,32 @@ export default class TheophilusX {
 
   get eventCount() {
     return this.eventRegistry.eventCount;
+  }
+
+  private restoreUpdateSchedule() {
+    const cached = this.cache.get("updateSchedule");
+
+    if (!cached || cached.getTime() === 0) return;
+
+    if (cached > new Date()) {
+      this.updateSchedule = cached;
+      this.logger.log(
+        `Maintenance window active until ${cached.toLocaleTimeString()}`,
+        DebugLevel.Info,
+      );
+
+      const remaining = cached.getTime() - Date.now();
+      setTimeout(() => {
+        this.updateSchedule = undefined;
+        this.cache.set("updateSchedule", new Date(0));
+        this.cache.save();
+        this.logger.log("Maintenance window cleared.", DebugLevel.Ok);
+      }, remaining);
+    } else {
+      // window already passed, clear it
+      this.cache.set("updateSchedule", new Date(0));
+      this.cache.save();
+    }
   }
 
   private registerPlatforms() {

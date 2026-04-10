@@ -7,10 +7,12 @@ export const COOLDOWN_USERS = new TXCooldownManager();
 const NOTIFIED_USERS: Set<string> = new Set();
 
 export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
+  if (instance.isUpdating()) return;
+
   let ctx = cmdQuery.context;
   let adapter = cmdQuery.adapter;
 
-  if (instance.isModuleReloading()) {
+  if (instance.isReloading) {
     await adapter.reply(
       ctx,
       `Cannot execute command "${cmdQuery.command}". I'm currently reloading`,

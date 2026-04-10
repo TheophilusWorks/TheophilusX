@@ -10,6 +10,14 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
   let ctx = cmdQuery.context;
   let adapter = cmdQuery.adapter;
 
+  if (instance.isReloading) {
+    await adapter.reply(
+      ctx,
+      `Cannot execute command "${cmdQuery.command}". I'm currently reloading`,
+    );
+    return;
+  }
+  
   try {
     if (ctx.author.isSelf) return;
     let cmd = instance.hasAdminCommand(cmdQuery.command)

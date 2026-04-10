@@ -1,19 +1,17 @@
-import { exec } from "child_process";
-import { promisify } from "util";
 import TXCommand from "../../../core/command/TXCommand.js";
-
-const execAsync = promisify(exec);
+import instance from "../../../instance.js";
 
 export default new TXCommand({
   name: "compile",
   description: "Recompiles TheophilusX's source",
-  usage: "compile",
+  usage: "update",
   minimumArguments: 0,
+  aliases: ["comp"],
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   execute: async ({ adapter, context }) => {
     await adapter.reply(context, "Compiling...");
-    await execAsync("npx tsc");
+    await instance.compile();
     await adapter.reply(context, "Successfully recompiled TheophilusX");
   },
 });

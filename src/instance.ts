@@ -8,6 +8,7 @@ const instance = new TheophilusX({
   commandsPath: "./dist/feature/commands/",
   adminCommandsPath: "./dist/feature/adminCommands/",
   eventsPath: "./dist/feature/events/",
+  cachePath: "./cache/tx-state.json",
   debugLogs: true,
 
   // The prefix(es) that will trigger commands.
@@ -47,7 +48,7 @@ const instance = new TheophilusX({
     facebookAppstate: "",
   },
 
-  mongoDbURI: process.env.MONGODB_URI || ""
+  mongoDbURI: process.env.MONGODB_URI || "",
 });
 
 export default instance;

@@ -145,6 +145,15 @@ export default function buildCliAdapter(bot: TheophilusX) {
 
       const ctx = buildCLIContext("");
       return new TXSentMessage(ctx, makeWaitReply(id));
+    })
+    .setAnnouncementSender(async (_ctx, message) => {
+      const id = allocateReplyId();
+      console.log("\n[📢 ANNOUNCEMENT]");
+      printResolved(message);
+      console.log(`[reply id: ${id}]\n`);
+
+      const ctx = buildCLIContext("");
+      return new TXSentMessage(ctx, makeWaitReply(id));
     });
 
   return adapter;

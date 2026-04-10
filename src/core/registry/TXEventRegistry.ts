@@ -48,8 +48,12 @@ export default class TXEventRegistry {
     }
   }
 
+  public clear() {
+    this.eventBus = new EventEmitter()
+  }
+
   public async reloadModules() {
-    this.eventBus = new EventEmitter();
+    this.clear()
     this.eventCount = 0;
     await this.load();
   }

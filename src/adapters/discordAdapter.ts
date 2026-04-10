@@ -127,6 +127,42 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
 
       ctx.replied = true;
       return new TXSentMessage(ctx, discordWaitReply(client, sent.id));
+    })
+    .setAnnouncementSender(async (_ctx, message) => {
+      const { content, files } = resolveMessage(message);
+      let first: TXSentMessage | null = null;
+
+      for (const guild of client.guilds.cache.values()) {
+        const channel =
+          guild.systemChannel ??
+          (guild.channels.cache.find(
+            (c) =>
+              c.isTextBased() &&
+              c.isSendable() &&
+              c.permissionsFor(guild.members.me!)?.has("SendMessages"),
+          ) as any);
+
+        if (!channel?.isTextBased() || !channel.isSendable()) continue;
+
+        const payload: any = { files };
+        if (content) {
+          payload.embeds = [
+            new EmbedBuilder().setDescription(content).setColor("Blurple"),
+          ];
+        }
+
+        const sent = await channel.send(payload).catch(() => null);
+        if (!sent) continue;
+
+        const ctx = buildDiscordContext(client, false, sent);
+        const sentMsg = new TXSentMessage(
+          ctx,
+          discordWaitReply(client, sent.id),
+        );
+        if (!first) first = sentMsg;
+      }
+
+      return first;
     });
 
   return adapter;
