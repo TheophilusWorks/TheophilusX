@@ -13,6 +13,5 @@ export default new TXCommand({
     await adapter.announce(context, "TheophilusX is currently updating...");
     await adapter.reply(context, "Successfully announced an update...");
     await instance.updateTheophilusX(adapter, context);
-    await adapter.reply(context, "Successfully announced and scheduled an update...");
   },
 });

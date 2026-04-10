@@ -8,7 +8,7 @@ import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const __dirname = getDirname(import.meta.url);
-const CACHE_DIR = path.resolve(__dirname, );
+const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
 
 export default new TXCommand({
   name: "billboard",

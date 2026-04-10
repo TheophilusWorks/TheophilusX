@@ -139,18 +139,12 @@ export default class TheophilusX {
     context: TXIContext,
   ) {
     this.eventRegistry.clear();
-    
+
     // set schedule 5 min from now
     const updateSchedule = new Date(Date.now() + 5 * 60_000);
     this.updateSchedule = updateSchedule;
     this.cache.set("updateSchedule", updateSchedule);
     this.cache.save();
-
-    const time = updateSchedule.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
 
     // wait 3:30 min before actually pulling
     await new Promise((res) => setTimeout(res, 3 * 60_000 + 30_000));
@@ -169,6 +163,7 @@ export default class TheophilusX {
       this.cache.set("updateSchedule", new Date(0));
       this.cache.save();
       await adapter.reply(context, "Already up to date. No new commits.");
+      this.updateSchedule = undefined;
       return;
     }
 

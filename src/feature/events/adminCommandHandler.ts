@@ -17,7 +17,7 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
     );
     return;
   }
-  
+
   try {
     if (ctx.author.isSelf) return;
     let cmd = instance.hasAdminCommand(cmdQuery.command)
@@ -39,6 +39,22 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
         `Please wait for ${ms(cd)} before using ${cmdQuery.command} again.`,
       );
       NOTIFIED_USERS.add(cooldownKey);
+      return;
+    }
+
+    if (cmd.minimumArguments > cmdQuery.args.length) {
+      await adapter.reply(
+        ctx,
+        `Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
+      );
+      return;
+    }
+
+    if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
+      await adapter.reply(
+        ctx,
+        `Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
+      );
       return;
     }
 
