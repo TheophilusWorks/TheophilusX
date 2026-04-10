@@ -16,6 +16,7 @@ import TXSentMessage, {
 import TXMessage from "../core/message/TXMessage.js";
 import TXMessageOptions from "../core/message/TXMessageOptions.js";
 import { TXMessagePart } from "../core/message/TXMessagePart.js";
+import instance from "../instance.js";
 
 // --- resolvers ---
 
@@ -198,6 +199,18 @@ function buildDiscordContext(
       isAdmin,
       isSelf: client.user?.id === msg.author.id,
     },
+    mentions: msg.mentions.users.map((user) => {
+      const member = msg.guild?.members.cache.get(user.id);
+      return {
+        id: user.id,
+        displayName: member?.displayName ?? user.username,
+        username: user.username,
+        isAdmin:
+          instance.getConfig().adminIds?.some((a) => a.discordId === user.id) ??
+          false,
+        isSelf: client.user?.id === user.id,
+      };
+    }),
     channelId: msg.channelId,
     serverId: msg.guildId ?? "0",
     timestamp: msg.createdAt,
@@ -212,12 +225,11 @@ async function safeReply(
   content: string,
   files: string[],
 ): Promise<Message | null> {
-
   const payload: any = { files };
 
   if (content) {
     payload.embeds = [
-      new EmbedBuilder().setDescription(content).setColor("Blurple")
+      new EmbedBuilder().setDescription(content).setColor("Blurple"),
     ];
   }
 

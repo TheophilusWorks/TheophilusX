@@ -188,6 +188,7 @@ function buildCLIContext(raw: string): TXIContext {
     serverId: "0",
     timestamp: new Date(),
     raw,
+    mentions: [],
     replied: false,
     author: {
       id: "cli",

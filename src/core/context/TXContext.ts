@@ -21,4 +21,5 @@ export interface TXIContext {
   timestamp: Date;
   raw: unknown;
   replied: boolean;
+  mentions: TXIAuthor[];
 }
