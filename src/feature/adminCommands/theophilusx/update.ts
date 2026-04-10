@@ -1,5 +1,6 @@
-import { exec } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
 import TXCommand from "../../../core/command/TXCommand.js";
 
 const execAsync = promisify(exec);
@@ -12,35 +13,42 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   execute: async ({ adapter, context }) => {
-    try {
-      const { stdout: pullStdout } = await execAsync("git pull");
+    await adapter.reply(context, "Pulling latest changes...");
 
-      // check if anything was updated
-      const match = pullStdout.match(/Updating\s+([0-9a-f]+)\.\.([0-9a-f]+)/);
+    const { stdout: beforeHash } = await execAsync("git rev-parse HEAD");
+    await execAsync("git pull");
+    const { stdout: afterHash } = await execAsync("git rev-parse HEAD");
 
-      if (!match) {
-        await adapter.reply(context, "Already up to date, no commits pulled.");
-        return;
-      }
+    const before = beforeHash.trim();
+    const after = afterHash.trim();
 
-      const [_, oldHash, newHash] = match;
-
-      const { stdout: countStdout } = await execAsync(
-        `git rev-list --count ${oldHash}..${newHash}`,
-      );
-
-      const commitCount = parseInt(countStdout.trim(), 10);
-
-      await adapter.reply(
-        context,
-        `Pulled ${commitCount} commit${commitCount === 1 ? "" : "s"} successfully!`,
-      );
-    } catch (err) {
-      console.error("[update command] error:", err);
-      await adapter.reply(
-        context,
-        `Failed to update: ${(err as Error).message}`,
-      );
+    if (before === after) {
+      await adapter.reply(context, "Already up to date. No new commits.");
+      return;
     }
+
+    const { stdout: logOutput } = await execAsync(
+      `git log ${before}..${after} --oneline`,
+    );
+
+    const commits = logOutput.trim().split("\n").filter(Boolean);
+    const commitLines = commits.map((line) => `• ${line}`).join("\n");
+
+    await adapter.reply(
+      context,
+      `Pulled ${commits.length} commit${commits.length === 1 ? "" : "s"}:\n${commitLines}`,
+    );
+
+    await adapter.reply(context, "Compiling...");
+    await execAsync("npx tsc");
+
+    await adapter.reply(context, "Restarting...");
+
+    spawn(process.execPath, process.argv.slice(1), {
+      detached: true,
+      stdio: "inherit",
+    }).unref();
+
+    process.exit(0);
   },
 });
