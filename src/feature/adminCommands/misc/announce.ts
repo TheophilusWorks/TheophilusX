@@ -17,11 +17,16 @@ export default new TXCommand({
 });
 
 function createAnnouncementMsg(content: string, tag: string) {
-  let buffer = content.split("\n").map((c) => `┊  ${c}`);
+  let buffer = content
+    .split("\n")
+    .map((c) => `┊  ${c}`)
+    .join("\n");
 
   return `
 ╭┈─ 📢 Announcement ◌ೄˊˎ
+┊
 ${buffer}
+┊
 ╰──────┈➤ ❝ [ ${tag} ]
 `.trim();
 }

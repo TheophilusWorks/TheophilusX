@@ -12,10 +12,6 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    serverId: {
-      type: String,
-      required: true,
-    },
 
     economy: {
       coins: {
@@ -41,18 +37,13 @@ userSchema.index({ platform: 1, userId: 1, serverId: 1 }, { unique: true });
 
 type UserDoc = InferSchemaType<typeof userSchema>;
 type UserEconomy = NonNullable<UserDoc["economy"]>;
-type UserQuery = Pick<UserDoc, "platform" | "userId" | "serverId">;
+type UserQuery = Pick<UserDoc, "platform" | "userId">;
 
 export default model("users", userSchema);
 
-export function queryUser(
-  platform: TXPlatform,
-  serverId: string,
-  userId: string,
-): UserQuery {
+export function queryUser(platform: TXPlatform, userId: string): UserQuery {
   return {
     platform,
-    serverId,
     userId,
   };
 }

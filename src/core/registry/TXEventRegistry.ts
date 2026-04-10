@@ -7,6 +7,7 @@ import { DebugLevel } from "../../types/TXDebugLevel.js";
 import TXEvents from "../../types/TXEvents.js";
 import TXEventBuilder from "../event/TXEventBuilder.js";
 import { importDefault } from "../../utils/importDefault.js";
+import TXICommandArgument from "../../types/TXICommandArgument.js";
 
 export default class TXEventRegistry {
   private eventBus: EventEmitter;
@@ -49,11 +50,11 @@ export default class TXEventRegistry {
   }
 
   public clear() {
-    this.eventBus = new EventEmitter()
+    this.eventBus = new EventEmitter();
   }
 
   public async reloadModules() {
-    this.clear()
+    this.clear();
     this.eventCount = 0;
     await this.load();
   }

@@ -18,6 +18,7 @@ import { exec, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
+import TXICommandArgument from "../types/TXICommandArgument.js";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -82,6 +83,14 @@ export default class TheophilusX {
     ...args: Parameters<TXEvents[K]>
   ) {
     this.eventRegistry.emit(event, ...args);
+  }
+
+  public executeCommand(cmdQuery: TXICommandArgument) {
+    this.emit("commandCreate", cmdQuery);
+  }
+
+  public executeAdminCommand(cmdQuery: TXICommandArgument) {
+    this.emit("adminCommandCreate", cmdQuery);
   }
 
   public hasCommand(cmdName: string): boolean {

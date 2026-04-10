@@ -12,10 +12,10 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   execute: async ({ adapter, context }) => {
-    let { platform, serverId } = context;
+    let { platform } = context;
     let { id, displayName } =
       context.mentions.length != 0 ? context.mentions[0] : context.author;
-    let query = queryUser(platform, serverId, id);
+    let query = queryUser(platform, id);
     let user = await Users.findOne(query);
     if (!user) user = new Users(query);
 
