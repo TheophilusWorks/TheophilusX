@@ -22,9 +22,14 @@ const userSchema = new Schema(
         type: Number,
         default: 0,
       },
+
       nextDaily: {
         type: Date,
         default: null,
+      },
+      nextWork: {
+        type: Date,
+        defUlt: null,
       },
     },
   },
