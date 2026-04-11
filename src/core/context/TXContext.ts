@@ -7,7 +7,8 @@ export enum TXPlatform {
 export interface TXIAuthor {
   id: string;
   displayName: string;
-  username?: string;
+  username: string;
+  avatarURL?: string;
   isSelf: boolean;
   isAdmin: boolean;
 }

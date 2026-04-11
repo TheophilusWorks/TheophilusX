@@ -23,7 +23,7 @@ export default class TXCooldownManager {
     // avoid leaks
     setTimeout(() => {
       this.cooldowns.delete(key);
-    }, cd);
+    }, duration);
   }
 
   public getRemainingCooldown(key: string): number {

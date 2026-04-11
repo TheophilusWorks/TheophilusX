@@ -7,7 +7,6 @@ import { DebugLevel } from "../../types/TXDebugLevel.js";
 import TXEvents from "../../types/TXEvents.js";
 import TXEventBuilder from "../event/TXEventBuilder.js";
 import { importDefault } from "../../utils/importDefault.js";
-import TXICommandArgument from "../../types/TXICommandArgument.js";
 
 export default class TXEventRegistry {
   private eventBus: EventEmitter;

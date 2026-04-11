@@ -234,6 +234,7 @@ function buildDiscordContext(
       username: msg.author.username,
       isAdmin,
       isSelf: client.user?.id === msg.author.id,
+      avatarURL: msg.author.avatarURL() ?? undefined,
     },
     mentions: msg.mentions.users.map((user) => {
       const member = msg.guild?.members.cache.get(user.id);
@@ -245,6 +246,7 @@ function buildDiscordContext(
           instance.getConfig().adminIds?.some((a) => a.discordId === user.id) ??
           false,
         isSelf: client.user?.id === user.id,
+        avatarURL: user.avatarURL() ?? undefined,
       };
     }),
     channelId: msg.channelId,
