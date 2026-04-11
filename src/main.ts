@@ -2,6 +2,11 @@ import instance from "./instance.js";
 
 async function main() {
   await instance.start();
+
+  // just in case i forgot to catch a promise
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error(`Unhandled promise error: ${reason} at ${promise}`);
+  });
 }
 
 main();

@@ -5,17 +5,25 @@ export default class TXCooldownManager {
 
   constructor() {}
 
-  public static getCooldownKey(cmdName: string, ctx: TXIContext): string {
+  public static getCooldownKey(
+    keyName: string,
+    ctx: TXIContext,
+    includeServerId = true,
+  ): string {
     let platform = ctx.platform;
     let userId = ctx.author.id;
-    let channelId = ctx.channelId || "0";
-    let serverId = ctx.serverId || "0";
+    let serverId = includeServerId ? ctx.serverId : "0";
 
-    return `${cmdName}-${platform}-${userId}-${channelId}-${serverId}`;
+    return `${keyName}-${platform}-${userId}-${serverId}`;
   }
 
   public setCooldown(key: string, duration: number) {
-    this.cooldowns.set(key, Date.now() + duration);
+    let cd = Date.now() + duration;
+    this.cooldowns.set(key, cd);
+    // avoid leaks
+    setTimeout(() => {
+      this.cooldowns.delete(key);
+    }, cd);
   }
 
   public getRemainingCooldown(key: string): number {
