@@ -18,6 +18,18 @@ const userSchema = new Schema(
         type: Number,
         default: 0,
       },
+      level: {
+        type: Number,
+        default: 0,
+      },
+      exp: {
+        type: Number,
+        default: 0,
+      },
+      totalExp: {
+        type: Number,
+        default: 0,
+      },
       bankBalance: {
         type: Number,
         default: 0,
@@ -58,5 +70,9 @@ export function initializeUserEconomy(): UserEconomy {
     coins: 0,
     bankBalance: 0,
     nextDaily: null,
+    nextWork: null,
+    level: 1,
+    exp: 0,
+    totalExp: 0,
   };
 }
