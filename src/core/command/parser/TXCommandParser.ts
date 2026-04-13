@@ -17,8 +17,8 @@ export default class TXCommandArgumentParser {
   private context: TXIContext;
 
   private name: string = "";
-  private args: Array<string> = new Array();
-  private groupedArgs: Array<TXICommandArgument> = new Array();
+  private args: Array<string> = [];
+  private groupedArgs: Array<TXICommandArgument> = [];
   private stringFlags: Record<string, string> = {};
   private booleanFlags: Record<string, boolean> = {};
 
@@ -33,14 +33,14 @@ export default class TXCommandArgumentParser {
     this.adapter = adapter;
     this.tokens = this.tokenize();
     this.depth = depth;
-    this.context = context
+    this.context = context;
   }
 
   public parse(): TXICommandArgument {
     while (this.currentTokenIdx < this.tokens.length) {
       let token = this.currentToken();
 
-      if (this.currentTokenIdx == 0) {
+      if (this.currentTokenIdx === 0) {
         this.name = this.advance();
         continue;
       }
@@ -71,7 +71,7 @@ export default class TXCommandArgumentParser {
   }
 
   private parseGroupedArgs() {
-    this.advance(); // consume "["
+    this.advance();
     let current = "";
     let depth = 1;
 
@@ -91,7 +91,7 @@ export default class TXCommandArgumentParser {
           if (current.trim().length > 0) {
             this.pushGroupedArg(current.trim());
           }
-          this.advance(); // consume closing "]"
+          this.advance();
           return;
         }
         current += (current.length > 0 ? " " : "") + token;
@@ -117,7 +117,6 @@ export default class TXCommandArgumentParser {
       this.advance();
     }
 
-    // unterminated bracket
     if (current.trim().length > 0) {
       this.pushGroupedArg(current.trim());
     }
@@ -125,27 +124,26 @@ export default class TXCommandArgumentParser {
 
   private pushGroupedArg(raw: string) {
     if (this.depth >= TXCommandArgumentParser.MAX_DEPTH) return;
+
     this.groupedArgs.push(
       new TXCommandArgumentParser(
         "",
         raw,
         this.adapter,
         this.depth + 1,
-        this.context
+        this.context,
       ).parse(),
     );
   }
 
   private parseFlags(token: string) {
-    token = token.slice(2); // remove leading --
+    token = token.slice(2);
 
-    // non-valued flag (e.g. --silent)
     if (!token.includes("=")) {
       this.booleanFlags[token] = true;
       return;
     }
 
-    // double "=" or missing key/value (e.g. --=foo, --key=, --a=b=c)
     if (token.split("=").length - 1 !== 1) {
       this.recover();
       return;
@@ -153,7 +151,6 @@ export default class TXCommandArgumentParser {
 
     let [key, value] = token.split("=");
 
-    // empty key or empty value
     if (key.length === 0 || value.length === 0) {
       this.recover();
       return;
@@ -168,16 +165,33 @@ export default class TXCommandArgumentParser {
     }
   }
 
+  private isValidToken(token: string) {
+    if (/^[a-zA-Z0-9]+$/.test(token)) return true;
+
+    if (/^--[a-zA-Z0-9]+(=[^=\s]+)?$/.test(token)) return true;
+
+    return false;
+  }
+
   private tokenize(): string[] {
     const tokens: string[] = [];
     let current = "";
     let inQuote = false;
     let quoteChar = "";
 
+    const pushCurrent = () => {
+      if (current.length === 0) return;
+
+      if (inQuote || this.isValidToken(current)) {
+        tokens.push(current);
+      }
+
+      current = "";
+    };
+
     for (let i = 0; i < this.commandString.length; i++) {
       const char = this.commandString[i];
 
-      // escape sequences inside quotes
       if (inQuote && char === "\\" && i + 1 < this.commandString.length) {
         const next = this.commandString[i + 1];
         if (next === quoteChar || next === "\\") {
@@ -187,35 +201,25 @@ export default class TXCommandArgumentParser {
         }
       }
 
-      // opening quote
       if (!inQuote && (char === '"' || char === "'")) {
         inQuote = true;
         quoteChar = char;
         continue;
       }
 
-      // closing quote
       if (inQuote && char === quoteChar) {
         inQuote = false;
         quoteChar = "";
         continue;
       }
 
-      // whitespace outside quotes = token boundary
       if (!inQuote && /\s/.test(char)) {
-        if (current.length > 0) {
-          tokens.push(current);
-          current = "";
-        }
+        pushCurrent();
         continue;
       }
 
-      // bracket and comma delimiters
       if (!inQuote && (char === "[" || char === "]" || char === ",")) {
-        if (current.length > 0) {
-          tokens.push(current);
-          current = "";
-        }
+        pushCurrent();
         tokens.push(char);
         continue;
       }
@@ -223,8 +227,11 @@ export default class TXCommandArgumentParser {
       current += char;
     }
 
-    // unterminated quote, treat remainder as token
-    if (current.length > 0) tokens.push(current);
+    if (current.length > 0) {
+      if (this.isValidToken(current)) {
+        tokens.push(current);
+      }
+    }
 
     return tokens;
   }

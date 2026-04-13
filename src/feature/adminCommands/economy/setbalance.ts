@@ -24,7 +24,7 @@ export default new TXCommand({
     if (!["coins", "bank"].includes(targetStorage)) {
       await adapter.reply(
         context,
-        "Invalid storage. Please pick either 'coins' or 'bank'",
+        `Invalid storage "${targetStorage}". Please pick either 'coins' or 'bank'`,
       );
       return;
     }
