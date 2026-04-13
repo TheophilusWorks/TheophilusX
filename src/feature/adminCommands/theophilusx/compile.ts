@@ -9,6 +9,7 @@ export default new TXCommand({
   aliases: ["comp"],
   minimumGroupedArguments: 0,
   cooldown: 5_000,
+  minimumMentions: 0,
   execute: async ({ adapter, context }) => {
     await adapter.reply(context, "Compiling...");
     await instance.compile();

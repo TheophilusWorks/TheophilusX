@@ -20,6 +20,7 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, context }) => {
     let { platform, author } = context;
     let now = new Date();

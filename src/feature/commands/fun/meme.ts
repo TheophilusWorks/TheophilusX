@@ -16,6 +16,7 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, context, args, stringFlags }) => {
     let subreddit = stringFlags?.["subreddit"] || "";
     let data: Record<string, unknown>;

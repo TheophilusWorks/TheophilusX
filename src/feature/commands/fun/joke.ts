@@ -13,6 +13,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   usedBooleanFlags: ["list-categories"],
   usedStringFlags: ["category"],
+  minimumMentions: 0,
   execute: async ({ adapter, context, stringFlags, booleanFlags }) => {
     if (booleanFlags?.["list-categories"]) {
       await listCategories(adapter, context);

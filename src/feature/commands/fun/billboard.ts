@@ -18,6 +18,7 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, args, context }) => {
     const txt = args.join(" ");
     const filepath = await makeBillboard(txt);

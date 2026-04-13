@@ -11,6 +11,7 @@ export default interface TXICommand {
   cooldown: number;
 
   minimumArguments: number;
+  minimumMentions: number;
   minimumGroupedArguments: number;
   usedStringFlags?: string[];
   usedBooleanFlags?: string[];

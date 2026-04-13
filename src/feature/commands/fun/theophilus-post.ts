@@ -18,6 +18,7 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, args, context }) => {
     let txt = args.join(" ");
 
@@ -31,7 +32,7 @@ export default new TXCommand({
       await adapter.reply(context, {
         parts: [
           text("Here's your Theophilus post, "),
-          mention(context.author.id, context.author.displayName)
+          mention(context.author.id, context.author.displayName),
         ],
         attachments: [filepath],
       });

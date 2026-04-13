@@ -8,6 +8,7 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   usedStringFlags: ["tag"],
+  minimumMentions: 0,
   execute: async ({ adapter, context, stringFlags, args }) => {
     let tag = stringFlags ? stringFlags["tag"] : "admin";
 

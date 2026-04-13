@@ -11,6 +11,7 @@ export default new TXCommand({
   aliases: ["bal"],
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, context }) => {
     let { platform } = context;
     let { id, displayName } =

@@ -11,6 +11,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   aliases: ["h"],
   usedStringFlags: ["cmd", "page"],
+  minimumMentions: 0,
   execute: async ({ adapter, stringFlags, context }) => {
     let buffer: string;
 

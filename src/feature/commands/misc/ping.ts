@@ -7,6 +7,7 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 3_000,
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, context }) => {
     await adapter.reply(
       context,

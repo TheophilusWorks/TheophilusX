@@ -31,6 +31,7 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
+  minimumMentions: 0,
   execute: async ({ adapter, context, args }) => {
     let wordle = getRandomWordle();
     let answers: Map<string, string> = new Map();

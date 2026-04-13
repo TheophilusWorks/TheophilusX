@@ -11,6 +11,7 @@ export default new TXCommand({
   description: "Spin a roulette and gamble",
   usage: "roulette <bet> <red | black | green> (number)",
   minimumArguments: 2,
+  minimumMentions: 0,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   execute: async ({ adapter, context, args }) => {

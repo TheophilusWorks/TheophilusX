@@ -9,6 +9,7 @@ export default new TXCommand({
   minimumArguments: 0,
   minimumGroupedArguments: 0,
   cooldown: 5_000,
+  minimumMentions: 0,
   execute: async (cmdQuery) => {
     const { adapter, context } = cmdQuery;
 
