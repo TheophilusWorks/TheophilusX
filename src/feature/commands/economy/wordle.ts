@@ -33,105 +33,106 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async ({ adapter, context, args }) => {
+    let bet = parseFloat(args[0]);
+
+    if (isNaN(bet) || bet <= 0) {
+      await adapter.reply(context, formatError("Invalid bet amount."));
+      return;
+    }
+
+    // ── upsert + balance check (no transaction needed here) ──────────────────
+    await Users.findOneAndUpdate(
+      queryUser(context.platform, context.author.id),
+      { $setOnInsert: { economy: initializeUserEconomy() } },
+      { upsert: true },
+    );
+
+    let user = await Users.findOne(
+      queryUser(context.platform, context.author.id),
+    );
+
+    if (!user) return;
+
+    let coins = user.economy!.coins;
+
+    if (bet > coins) {
+      await adapter.reply(
+        context,
+        formatError(
+          `Insufficient balance.\nYou have 🪙 ${coins} coins but bet 🪙 ${bet}.`,
+        ),
+      );
+      return;
+    }
+
+    // deduct bet immediately. prevents dupe exploit
+    await Users.updateOne(queryUser(context.platform, context.author.id), {
+      $inc: { "economy.coins": -bet },
+    });
+
     let wordle = getRandomWordle();
     let answers: Map<string, string> = new Map();
+    let won = false;
+    let timedOut = false;
+
+    await adapter.reply(context, formatGameStart(bet));
+
+    while (answers.size < WORDLE_ROWS) {
+      let prompt = await adapter.reply(
+        context,
+        formatBoard(answers, answers.size + 1),
+      );
+
+      let guess = await prompt.waitReply({
+        timeout: 120_000,
+        filter: (msg) => msg.author.id === context.author.id,
+      });
+
+      if (!guess) {
+        timedOut = true;
+        break;
+      }
+
+      let content = guess.context.content.trim().toLowerCase();
+
+      if (content.length !== 5) {
+        let key = `len-${context.platform}-${context.author.id}`;
+        if (!NOTIFIED_USERS.has(key)) {
+          await guess.reply(formatError("Guess must be exactly 5 letters."));
+          NOTIFIED_USERS.add(key);
+          setTimeout(() => NOTIFIED_USERS.delete(key), 15_000);
+        }
+        continue;
+      }
+
+      if (![...wordleWords, ...nonWordleWords].includes(content)) {
+        let key = `word-${content}-${context.platform}-${context.author.id}`;
+        if (!WORDLE_NOTIFY.has(key)) {
+          await guess.reply(
+            formatError(`"${content.toUpperCase()}" is not a valid word.`),
+          );
+          WORDLE_NOTIFY.add(key);
+          setTimeout(() => WORDLE_NOTIFY.delete(key), 15_000);
+        }
+        continue;
+      }
+
+      let res = validateWordle(content, wordle);
+      answers.set(content, res.result.join(""));
+
+      if (res.correct) {
+        won = true;
+        break;
+      }
+    }
+
     let session = await mongoose.startSession();
 
     try {
       await session.withTransaction(async () => {
-        let bet = parseFloat(args[0]);
-
-        if (isNaN(bet) || bet <= 0) {
-          await adapter.reply(context, formatError("Invalid bet amount."));
+        if (timedOut) {
+          await adapter.reply(context, formatTimeout(wordle));
           return;
-        }
-
-        await Users.findOneAndUpdate(
-          queryUser(context.platform, context.author.id),
-          { $setOnInsert: { economy: initializeUserEconomy() } },
-          { upsert: true, session },
-        );
-
-        let user = await Users.findOne(
-          queryUser(context.platform, context.author.id),
-          null,
-          { session },
-        );
-
-        if (!user) return;
-
-        let coins = user.economy!.coins;
-
-        if (bet > coins) {
-          await adapter.reply(
-            context,
-            formatError(
-              `Insufficient balance.\nYou have 🪙 ${coins} coins but bet 🪙 ${bet}.`,
-            ),
-          );
-          return;
-        }
-
-        // deduct bet immediately.. prevents any dupe exploit
-        await Users.updateOne(
-          queryUser(context.platform, context.author.id),
-          { $inc: { "economy.coins": -bet } },
-          { session },
-        );
-
-        await adapter.reply(context, formatGameStart(bet));
-
-        let won = false;
-
-        while (answers.size < WORDLE_ROWS) {
-          let prompt = await adapter.reply(
-            context,
-            formatBoard(answers, answers.size + 1),
-          );
-
-          let guess = await prompt.waitReply({
-            timeout: 120_000,
-            filter: (msg) => msg.author.id === context.author.id,
-          });
-
-          if (!guess) {
-            await adapter.reply(context, formatTimeout(wordle));
-            return;
-          }
-
-          let content = guess.context.content.trim().toLowerCase();
-
-          if (content.length !== 5) {
-            let key = `len-${context.platform}-${context.author.id}`;
-            if (!NOTIFIED_USERS.has(key)) {
-              await guess.reply(
-                formatError("Guess must be exactly 5 letters."),
-              );
-              NOTIFIED_USERS.add(key);
-              setTimeout(() => NOTIFIED_USERS.delete(key), 15_000);
-            }
-            continue;
-          }
-
-          if (![...wordleWords, ...nonWordleWords].includes(content)) {
-            let key = `word-${content}-${context.platform}-${context.author.id}`;
-            if (!WORDLE_NOTIFY.has(key)) {
-              await guess.reply(
-                formatError(`"${content.toUpperCase()}" is not a valid word.`),
-              );
-              WORDLE_NOTIFY.add(key);
-              setTimeout(() => WORDLE_NOTIFY.delete(key), 15_000);
-            }
-            continue;
-          }
-
-          let res = validateWordle(content, wordle);
-          answers.set(content, res.result.join(""));
-
-          if (res.correct) {
-            won = true;
-            break;
-          }
         }
 
         if (won) {
@@ -141,8 +142,6 @@ export default new TXCommand({
             { $inc: { "economy.coins": winnings } },
             { session, returnDocument: "before" },
           );
-          // updated is pre-winnings doc, but bet was already deducted earlier
-          // so real old balance = updated.coins + bet
           let oldCoins = (updated?.economy?.coins ?? 0) + bet;
           let newCoins = oldCoins - bet + winnings;
           await adapter.reply(
@@ -155,7 +154,6 @@ export default new TXCommand({
             null,
             { session },
           );
-          // bet already deducted, so old = current + bet
           let currentCoins = updated?.economy?.coins ?? 0;
           let oldCoins = currentCoins + bet;
           await adapter.reply(
@@ -164,14 +162,17 @@ export default new TXCommand({
           );
         }
       });
-    } catch {
+    } catch (err) {
+      let e = err as Error;
+      await adapter.reply(
+        context,
+        formatError(`Something went wrong settling your bet.\n${e.message}`),
+      );
     } finally {
       session.endSession();
     }
   },
 });
-
-// ─── Formatting ───────────────────────────────────────────────────────────────
 
 function formatError(msg: string): string {
   return [`‗   ↳ ❝ [ Wordle ] ¡! ❞`, `ೃ⁀➷ ${msg}`].join("\n");
@@ -249,7 +250,7 @@ function formatWin(
     `┊ 🪙 Bet: ${bet}`,
     `┊ 💰 Won: +${winnings}`,
     `┊`,
-    `┊ 🏦 ${oldCoins} ➜ ${newCoins}`,
+    `┊ 🪙 ${oldCoins} ➜ ${newCoins}`,
     `╰─────────┈➤`,
     ``,
     `𓆩⟡𓆪 Wordsmith energy.`,
@@ -316,8 +317,6 @@ function buildFinalBoard(answers: Map<string, string>): string[] {
   return rows;
 }
 
-// ─── Game Logic ───────────────────────────────────────────────────────────────
-
 function getRandomWordle(): string {
   let words = wordleWords as string[];
   return words[Math.floor(randomRange(0, words.length))];
@@ -333,7 +332,7 @@ function validateWordle(guess: string, answer: string): TXWordleResult {
     letterCount[letter] = (letterCount[letter] || 0) + 1;
   }
 
-  // pass 1 — greens
+  // pass 1. greens
   for (let i = 0; i < 5; i++) {
     if (answer[i] === guess[i]) {
       result[i] = TXWordleColor.Green;
@@ -342,7 +341,7 @@ function validateWordle(guess: string, answer: string): TXWordleResult {
     }
   }
 
-  // pass 2 — yellows + grays
+  // pass 2. yellows + grays
   for (let i = 0; i < 5; i++) {
     if (used[i]) continue;
     if (letterCount[guess[i]] > 0) {
