@@ -13,19 +13,22 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
   if (instance.isReloading) {
     await adapter.reply(
       ctx,
-      `Cannot execute command "${cmdQuery.command}". I'm currently reloading`,
+      [
+        `‗ ↳ ❝ Reloading ❞`,
+        `⁀➷ Cannot run \`${cmdQuery.command}\` right now — try again in a moment.`,
+      ].join("\n"),
     );
     return;
   }
 
   try {
     if (ctx.author.isSelf) return;
+
     let cmd = instance.hasAdminCommand(cmdQuery.command)
       ? instance.getAdminCommand(cmdQuery.command)
       : instance.getAdminCommandAlias(cmdQuery.command);
 
     if (!cmd) return;
-
     if (cmd.blacklistedPlatform?.includes(ctx.platform)) return;
 
     let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
@@ -33,19 +36,30 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
 
     if (cd > 0) {
       if (NOTIFIED_USERS.has(cooldownKey)) return;
-
-      adapter.reply(
-        cmdQuery.context,
-        `Please wait for ${ms(cd)} before using ${cmdQuery.command} again.`,
+      await adapter.reply(
+        ctx,
+        [
+          `‗ ↳ ❝ Cooldown ❞`,
+          `ೃ⁀➷ Wait ${ms(cd)} before using \`${cmdQuery.command}\` again.`,
+        ].join("\n"),
       );
       NOTIFIED_USERS.add(cooldownKey);
+      setTimeout(() => NOTIFIED_USERS.delete(cooldownKey), cd);
       return;
     }
 
     if (cmd.minimumArguments > cmdQuery.args.length) {
       await adapter.reply(
         ctx,
-        `Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
+        [
+          `‗ ↳ ❝ Invalid Usage ¡! ❞`,
+          `ೃ⁀➷ Not enough arguments — expected ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
+          ``,
+          `╭┈  ̗̀➛`,
+          `┊ usage : \`${cmd.usage}\``,
+          `┊ help  : \`%help --cmd=${cmd.name}\``,
+          `╰─────────┈➤`,
+        ].join("\n"),
       );
       return;
     }
@@ -53,7 +67,15 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
     if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
       await adapter.reply(
         ctx,
-        `Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
+        [
+          `‗ ↳ ❝ Invalid Usage ¡! ❞`,
+          `ೃ⁀➷ Not enough grouped arguments — expected ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
+          ``,
+          `╭┈  ̗̀➛`,
+          `┊ usage : \`${cmd.usage}\``,
+          `┊ help  : \`%help --cmd=${cmd.name}\``,
+          `╰─────────┈➤`,
+        ].join("\n"),
       );
       return;
     }
@@ -63,9 +85,16 @@ export default new TXEventBuilder("adminCommandCreate", async (cmdQuery) => {
     NOTIFIED_USERS.delete(cooldownKey);
   } catch (err) {
     let e = err as Error;
-    adapter.reply(
-      cmdQuery.context,
-      `An error occurred while executing the command: ${e.message}`,
+    await adapter.reply(
+      ctx,
+      [
+        `‗ ↳ ❝ Error ¡! ❞`,
+        `ೃ⁀➷ Something went wrong running \`${cmdQuery.command}\`.`,
+        ``,
+        `╭┈  ̗̀➛`,
+        `┊ ${e.message}`,
+        `╰─────────┈➤`,
+      ].join("\n"),
     );
   }
 });

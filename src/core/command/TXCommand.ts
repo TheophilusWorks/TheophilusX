@@ -13,6 +13,7 @@ export default class TXCommand {
   public category?: string; // injected by the main loader
 
   public minimumArguments: number;
+  public minimumMentions: number;
   public minimumGroupedArguments: number;
   public usedStringFlags?: string[];
   public usedBooleanFlags?: string[];
@@ -28,6 +29,7 @@ export default class TXCommand {
     this.cooldown = context.cooldown;
 
     this.minimumArguments = context.minimumArguments;
+    this.minimumMentions = context.minimumMentions;
     this.minimumGroupedArguments = context.minimumGroupedArguments;
     this.usedStringFlags = context.usedStringFlags;
     this.usedBooleanFlags = context.usedBooleanFlags;

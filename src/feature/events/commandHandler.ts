@@ -7,7 +7,7 @@ export const COOLDOWN_USERS = new TXCooldownManager();
 const NOTIFIED_USERS: Set<string> = new Set();
 const NOTIFIED_ARGS: Set<string> = new Set();
 
-const ARGS_NOTIFY_CD = 5_000; // 5s
+const ARGS_NOTIFY_CD = 5_000;
 
 export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   if (instance.isUpdating()) return;
@@ -18,7 +18,10 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   if (instance.isReloading) {
     await adapter.reply(
       ctx,
-      `Cannot execute command "${cmdQuery.command}". I'm currently reloading`,
+      [
+        `‗ ↳ ❝ Reloading ❞`,
+        `⁀➷ Cannot run \`${cmdQuery.command}\` right now — try again in a moment.`,
+      ].join("\n"),
     );
     return;
   }
@@ -40,7 +43,10 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       if (!NOTIFIED_USERS.has(cooldownKey)) {
         await adapter.reply(
           ctx,
-          `Please wait ${ms(cd)} before using ${cmdQuery.command} again.`,
+          [
+            `‗ ↳ ❝ Cooldown ❞`,
+            `ೃ⁀➷ Wait ${ms(cd)} before using \`${cmdQuery.command}\` again.`,
+          ].join("\n"),
         );
         NOTIFIED_USERS.add(cooldownKey);
         setTimeout(() => NOTIFIED_USERS.delete(cooldownKey), cd);
@@ -50,33 +56,42 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
 
     const argsKey = `${cooldownKey}:args`;
 
+    const replyArgError = async (msg: string) => {
+      if (NOTIFIED_ARGS.has(argsKey)) return;
+      await adapter.reply(
+        ctx,
+        [
+          `‗ ↳ ❝ Invalid Usage ¡! ❞`,
+          `ೃ⁀➷ ${msg}`,
+          ``,
+          `╭┈  ̗̀➛`,
+          `┊ usage : \`${cmd!.usage}\``,
+          `┊ help  : \`%help --cmd=${cmd!.name}\``,
+          `╰─────────┈➤`,
+        ].join("\n"),
+      );
+      NOTIFIED_ARGS.add(argsKey);
+      setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
+    };
+
+    if (cmd.minimumMentions > cmdQuery.context.mentions.length) {
+      await replyArgError(
+        `Not enough mentions — expected ${cmd.minimumMentions}, got ${cmdQuery.context.mentions.length}.`,
+      );
+      return;
+    }
+
     if (cmd.minimumArguments > cmdQuery.args.length) {
-      if (!NOTIFIED_ARGS.has(argsKey)) {
-        await adapter.reply(
-          ctx,
-          `
-Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.
-Type \`%help --cmd=${cmd.name}\` to inspect the command
-`,
-        );
-        NOTIFIED_ARGS.add(argsKey);
-        setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
-      }
+      await replyArgError(
+        `Not enough arguments — expected ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
+      );
       return;
     }
 
     if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
-      if (!NOTIFIED_ARGS.has(argsKey)) {
-        await adapter.reply(
-          ctx,
-          `
-Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.
-Type \`%help --cmd=${cmd.name}\` to inspect the command
-`,
-        );
-        NOTIFIED_ARGS.add(argsKey);
-        setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
-      }
+      await replyArgError(
+        `Not enough grouped arguments — expected ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
+      );
       return;
     }
 
@@ -86,7 +101,14 @@ Type \`%help --cmd=${cmd.name}\` to inspect the command
     let e = err as Error;
     await adapter.reply(
       ctx,
-      `An error occurred while executing the command: ${e.message}`,
+      [
+        `‗ ↳ ❝ Error ¡! ❞`,
+        `ೃ⁀➷ Something went wrong running \`${cmdQuery.command}\`.`,
+        ``,
+        `╭┈  ̗̀➛`,
+        `┊ ${e.message}`,
+        `╰─────────┈➤`,
+      ].join("\n"),
     );
   }
 });
