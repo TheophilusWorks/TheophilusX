@@ -233,6 +233,7 @@ export default class TheophilusX {
     } catch (error) {
       let e = toError(error);
       this.logger.fatal(`Error starting TheophilusX: ${e.message}`);
+      process.exit(1);
     }
   }
 

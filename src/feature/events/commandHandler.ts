@@ -5,6 +5,9 @@ import instance from "../../instance.js";
 
 export const COOLDOWN_USERS = new TXCooldownManager();
 const NOTIFIED_USERS: Set<string> = new Set();
+const NOTIFIED_ARGS: Set<string> = new Set();
+
+const ARGS_NOTIFY_CD = 5_000; // 5s
 
 export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
   if (instance.isUpdating()) return;
@@ -45,19 +48,35 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       return;
     }
 
+    const argsKey = `${cooldownKey}:args`;
+
     if (cmd.minimumArguments > cmdQuery.args.length) {
-      await adapter.reply(
-        ctx,
-        `Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
-      );
+      if (!NOTIFIED_ARGS.has(argsKey)) {
+        await adapter.reply(
+          ctx,
+          `
+Not enough arguments. Expected at least ${cmd.minimumArguments}, got ${cmdQuery.args.length}.
+Type \`%help --cmd=${cmd.name}\` to inspect the command
+`,
+        );
+        NOTIFIED_ARGS.add(argsKey);
+        setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
+      }
       return;
     }
 
     if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
-      await adapter.reply(
-        ctx,
-        `Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
-      );
+      if (!NOTIFIED_ARGS.has(argsKey)) {
+        await adapter.reply(
+          ctx,
+          `
+Not enough grouped arguments. Expected at least ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.
+Type \`%help --cmd=${cmd.name}\` to inspect the command
+`,
+        );
+        NOTIFIED_ARGS.add(argsKey);
+        setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
+      }
       return;
     }
 
