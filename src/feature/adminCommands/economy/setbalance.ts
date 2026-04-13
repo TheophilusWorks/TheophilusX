@@ -41,6 +41,11 @@ export default new TXCommand({
 
     let parts: TXMessagePart[] = [];
     for (const user of targets) {
+      if (user.isSelf) {
+        await adapter.reply(context, "I don't any form of data.");
+        continue;
+      }
+
       await setUserStorageTo(user, context.platform, targetStorage, amount);
       parts.push(mention(user.id, user.displayName));
       parts.push(text(", ")); // seperator

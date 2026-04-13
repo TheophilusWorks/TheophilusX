@@ -20,6 +20,11 @@ export default new TXCommand({
     let targetUser =
       context.mentions.length !== 0 ? context.mentions[0] : context.author;
 
+    if (targetUser.isSelf) {
+      adapter.reply(context, "I don't any form of data.")
+      return
+    }
+
     let parts: TXMessagePart[] = [];
 
     if (targetUser.id == context.author.id) {
