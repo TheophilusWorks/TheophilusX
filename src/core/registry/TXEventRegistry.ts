@@ -5,8 +5,9 @@ import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import { DebugLevel } from "../../types/TXDebugLevel.js";
 import TXEvents from "../../types/TXEvents.js";
-import TXEventBuilder from "../event/TXEventBuilder.js";
+import TXEventBuilder, { TXEventOptions } from "../event/TXEventBuilder.js";
 import { importDefault } from "../../utils/importDefault.js";
+import { TXIContext } from "../context/TXContext.js";
 
 export default class TXEventRegistry {
   private eventBus: EventEmitter;
@@ -38,7 +39,8 @@ export default class TXEventRegistry {
       const event =
         await importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
 
-      this.on(event.event, event.callback);
+      const wrapped = this.wrapEvent(event);
+      this.on(event.event, wrapped);
       this.eventCount++;
 
       this.logger.log(
@@ -46,6 +48,15 @@ export default class TXEventRegistry {
         DebugLevel.Ok,
       );
     }
+  }
+
+  private wrapEvent<K extends keyof TXEvents>(
+    event: TXEventBuilder<K>,
+  ): TXEvents[K] {
+    return ((...args: Parameters<TXEvents[K]>) => {
+      if (!this.shouldCallbackRun(event.options, args)) return;
+      return (event.callback as (...a: typeof args) => unknown)(...args);
+    }) as TXEvents[K];
   }
 
   public clear() {
@@ -81,5 +92,15 @@ export default class TXEventRegistry {
         children: [],
       })),
     };
+  }
+
+  public shouldCallbackRun(
+    options: TXEventOptions | undefined,
+    args: any[],
+  ): boolean {
+    if (!options) return true;
+
+    let ctx = args[0] as TXIContext;
+    return !options.blacklistedPlatforms.includes(ctx.platform);
   }
 }

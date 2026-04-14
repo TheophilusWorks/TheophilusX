@@ -18,7 +18,7 @@ export default class TXCommand {
   public usedStringFlags?: string[];
   public usedBooleanFlags?: string[];
 
-  public execute: (ctx: TXICommandArgument) => Promise<void>;
+  public execute: (ctx: TXICommandParameter) => Promise<void>;
 
   constructor(context: TXICommand) {
     this.name = context.name;

@@ -85,12 +85,12 @@ export default class TheophilusX {
     this.eventRegistry.emit(event, ...args);
   }
 
-  public executeCommand(cmdQuery: TXICommandArgument) {
-    this.emit("commandCreate", cmdQuery);
+  public executeCommand(ctx: TXIContext, cmdQuery: TXICommandArgument) {
+    this.emit("commandCreate", ctx, cmdQuery);
   }
 
-  public executeAdminCommand(cmdQuery: TXICommandArgument) {
-    this.emit("adminCommandCreate", cmdQuery);
+  public executeAdminCommand(ctx: TXIContext, cmdQuery: TXICommandArgument) {
+    this.emit("adminCommandCreate", ctx, cmdQuery);
   }
 
   public hasCommand(cmdName: string): boolean {

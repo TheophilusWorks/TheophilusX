@@ -7,7 +7,6 @@ export default interface TXICommandArgument {
   groupedArgs: TXICommandArgument[];
 
   adapter: TXAdapterBuilder;
-  context: TXIContext;
 
   stringFlags?: Record<string, string>;
   booleanFlags?: Record<string, boolean>;
