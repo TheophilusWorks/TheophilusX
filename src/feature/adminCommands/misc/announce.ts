@@ -9,11 +9,11 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   usedStringFlags: ["tag"],
   minimumMentions: 0,
-  execute: async ({ adapter, context, stringFlags, args }) => {
+  execute: async (ctx, { adapter, stringFlags, args }) => {
     let tag = stringFlags ? stringFlags["tag"] : "admin";
 
     let msg = createAnnouncementMsg(args.join(" "), tag);
-    await adapter.announce(context, msg);
+    await adapter.announce(ctx, msg);
   },
 });
 

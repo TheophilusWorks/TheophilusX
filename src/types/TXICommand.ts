@@ -1,4 +1,4 @@
-import { TXPlatform } from "../core/context/TXContext.js";
+import { TXIContext, TXPlatform } from "../core/context/TXContext.js";
 import TXICommandArgument from "./TXICommandArgument.js";
 
 export default interface TXICommand {
@@ -16,5 +16,5 @@ export default interface TXICommand {
   usedStringFlags?: string[];
   usedBooleanFlags?: string[];
 
-  execute: (args: TXICommandArgument) => Promise<void>;
+  execute: (ctx: TXIContext, args: TXICommandArgument) => Promise<void>;
 }

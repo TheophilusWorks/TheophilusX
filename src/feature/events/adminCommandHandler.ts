@@ -5,6 +5,9 @@ import instance from "../../instance.js";
 
 export const COOLDOWN_ADMINS = new TXCooldownManager();
 const NOTIFIED_USERS: Set<string> = new Set();
+const NOTIFIED_ARGS: Set<string> = new Set();
+
+const ARGS_NOTIFY_CD = 5_000;
 
 export default new TXEventBuilder(
   "adminCommandCreate",
@@ -49,39 +52,47 @@ export default new TXEventBuilder(
         return;
       }
 
-      if (cmd.minimumArguments > cmdQuery.args.length) {
+      const argsKey = `${cooldownKey}:args`;
+      const replyArgError = async (msg: string) => {
+        if (NOTIFIED_ARGS.has(argsKey)) return;
         await adapter.reply(
           ctx,
           [
             `‗ ↳ ❝ Invalid Usage ¡! ❞`,
-            `ೃ⁀➷ Not enough arguments — expected ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
+            `ೃ⁀➷ ${msg}`,
             ``,
             `╭┈  ̗̀➛`,
-            `┊ usage : \`${cmd.usage}\``,
-            `┊ help  : \`%help --cmd=${cmd.name}\``,
+            `┊ usage : \`${cmd!.usage}\``,
+            `┊ help  : \`%help --cmd=${cmd!.name}\``,
             `╰─────────┈➤`,
           ].join("\n"),
+        );
+        NOTIFIED_ARGS.add(argsKey);
+        setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
+      };
+
+      if (cmd.minimumMentions > ctx.mentions.length) {
+        await replyArgError(
+          `Not enough mentions — expected ${cmd.minimumMentions}, got ${ctx.mentions.length}.`,
+        );
+        return;
+      }
+
+      if (cmd.minimumArguments > cmdQuery.args.length) {
+        await replyArgError(
+          `Not enough arguments — expected ${cmd.minimumArguments}, got ${cmdQuery.args.length}.`,
         );
         return;
       }
 
       if (cmd.minimumGroupedArguments > cmdQuery.groupedArgs.length) {
-        await adapter.reply(
-          ctx,
-          [
-            `‗ ↳ ❝ Invalid Usage ¡! ❞`,
-            `ೃ⁀➷ Not enough grouped arguments — expected ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
-            ``,
-            `╭┈  ̗̀➛`,
-            `┊ usage : \`${cmd.usage}\``,
-            `┊ help  : \`%help --cmd=${cmd.name}\``,
-            `╰─────────┈➤`,
-          ].join("\n"),
+        await replyArgError(
+          `Not enough grouped arguments — expected ${cmd.minimumGroupedArguments}, got ${cmdQuery.groupedArgs.length}.`,
         );
         return;
       }
 
-      await cmd.execute({ ctx, ...cmdQuery });
+      await cmd.execute(ctx, cmdQuery);
       COOLDOWN_ADMINS.setCooldown(cooldownKey, cmd.cooldown);
       NOTIFIED_USERS.delete(cooldownKey);
     } catch (err) {

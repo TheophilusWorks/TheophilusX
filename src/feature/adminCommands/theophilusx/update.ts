@@ -10,8 +10,8 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   minimumMentions: 0,
-  execute: async (cmdQuery) => {
-    const { adapter, context } = cmdQuery;
+  execute: async (ctx, cmdQuery) => {
+    const { adapter } = cmdQuery;
 
     // TODO: add a way to not hardcode this.
     const time = new Date(Date.now() + 5 * 60_000).toLocaleTimeString("en-PH", {
@@ -43,8 +43,8 @@ latest changes and restarts.
       args: msg.split("\n").map((line) => (line += "\n")),
     };
 
-    instance.executeAdminCommand(announcementQuery);
-    await adapter.reply(context, "Successfully announced an update...");
-    await instance.updateTheophilusX(adapter, context);
+    instance.executeAdminCommand(ctx, announcementQuery);
+    await adapter.reply(ctx, "Successfully announced an update...");
+    await instance.updateTheophilusX(adapter, ctx);
   },
 });

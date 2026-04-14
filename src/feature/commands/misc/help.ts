@@ -12,23 +12,23 @@ export default new TXCommand({
   aliases: ["h"],
   usedStringFlags: ["cmd", "page"],
   minimumMentions: 0,
-  execute: async ({ adapter, stringFlags, context }) => {
+  execute: async (ctx, { adapter, stringFlags }) => {
     let buffer: string;
 
     let cmdName: string | undefined = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
-      if (!cmd || cmd.blacklistedPlatform?.includes(context.platform)) {
-        adapter.reply(context, `Command "${cmdName}" not found.`);
+      if (!cmd || cmd.blacklistedPlatform?.includes(ctx.platform)) {
+        adapter.reply(ctx, `Command "${cmdName}" not found.`);
         return;
       }
 
       buffer = inspectCommand(cmd);
     } else {
-      buffer = generateHelpMenu(context);
+      buffer = generateHelpMenu(ctx);
     }
 
-    adapter.reply(context, buffer);
+    adapter.reply(ctx, buffer);
   },
 });
 

@@ -19,20 +19,20 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, args, context }) => {
+  execute: async (ctx, { adapter, args }) => {
     let txt = args.join(" ");
 
     if (txt.length > 450) {
-      adapter.reply(context, "caption is too long! Max 450 characters.");
+      adapter.reply(ctx, "caption is too long! Max 450 characters.");
       return;
     }
 
     let filepath = await makeTheophilusPost(txt);
     try {
-      await adapter.reply(context, {
+      await adapter.reply(ctx, {
         parts: [
           text("Here's your Theophilus post, "),
-          mention(context.author.id, context.author.displayName),
+          mention(ctx.author.id, ctx.author.displayName),
         ],
         attachments: [filepath],
       });

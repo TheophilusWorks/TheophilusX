@@ -21,8 +21,8 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context }) => {
-    let { platform, author } = context;
+  execute: async (ctx, { adapter }) => {
+    let { platform, author } = ctx;
     let now = new Date();
     const nextWork = new Date(now.getTime() + 6 * 60 * 60 * 1000);
     let work = getRandomWork();
@@ -63,7 +63,7 @@ export default new TXCommand({
       const timeLeft =
         (user?.economy?.nextWork?.getTime() ?? 0) - now.getTime();
 
-      await adapter.reply(context, {
+      await adapter.reply(ctx, {
         parts: [
           text(`
 🌙 ❝ On Break ❞
@@ -86,7 +86,7 @@ export default new TXCommand({
     const oldExp = result?.economy?.exp ?? 0;
     const newExp = oldExp + expReward;
 
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       parts: [
         text(`
 💼 ❝ Work Rewards ❞

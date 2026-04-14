@@ -14,21 +14,18 @@ export default new TXCommand({
   minimumMentions: 0,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
-  execute: async ({ adapter, context, args }) => {
-    let { platform, author } = context;
+  execute: async (ctx, { adapter, args }) => {
+    let { platform, author } = ctx;
     const bet = parseFloat(args[0]);
     if (isNaN(bet) || bet <= 0) {
-      await adapter.reply(
-        context,
-        `Invalid bet. Please enter a positive number.`,
-      );
+      await adapter.reply(ctx, `Invalid bet. Please enter a positive number.`);
       return;
     }
 
     const color = args[1].toLowerCase() as TXRouletteColor;
     if (!["red", "black", "green"].includes(color)) {
       await adapter.reply(
-        context,
+        ctx,
         `Invalid color. Choose either red, black, or green.`,
       );
       return;
@@ -38,10 +35,7 @@ export default new TXCommand({
     if (args[2]) {
       const n = parseFloat(args[2]);
       if (isNaN(n) || n < 0 || n > 36) {
-        await adapter.reply(
-          context,
-          `Invalid number. Must be between 0 and 36.`,
-        );
+        await adapter.reply(ctx, `Invalid number. Must be between 0 and 36.`);
         return;
       }
       guessNumber = n;
@@ -84,12 +78,9 @@ export default new TXCommand({
     } catch (err) {
       const e = err as Error;
       if (e.message === "Insufficient balance") {
-        await adapter.reply(
-          context,
-          `You don't have enough coins to bet ${bet}.`,
-        );
+        await adapter.reply(ctx, `You don't have enough coins to bet ${bet}.`);
       } else {
-        await adapter.reply(context, `Something went wrong. Please try again.`);
+        await adapter.reply(ctx, `Something went wrong. Please try again.`);
       }
       return;
     } finally {
@@ -107,7 +98,7 @@ export default new TXCommand({
     };
 
     await adapter.reply(
-      context,
+      ctx,
       `
 ‗   ↳ ❝ [ Roulette ] ¡! ❞
 ೃ⁀➷ The wheel has spoken...

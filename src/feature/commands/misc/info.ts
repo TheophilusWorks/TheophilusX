@@ -11,7 +11,7 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context }) => {
+  execute: async (ctx, { adapter }) => {
     let prefixes = instance.prefixes.join(" · ");
 
     let info = `
@@ -31,6 +31,6 @@ export default new TXCommand({
   ⦇ owner ─┄  Theophilus
   ⦇ dev   ─┄  Theophilus
 `;
-    await adapter.reply(context, info.trim());
+    await adapter.reply(ctx, info.trim());
   },
 });

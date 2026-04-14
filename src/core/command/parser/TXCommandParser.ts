@@ -14,7 +14,6 @@ export default class TXCommandArgumentParser {
   private depth: number;
 
   private adapter: TXAdapterBuilder;
-  private context: TXIContext;
 
   private name: string = "";
   private args: Array<string> = [];
@@ -27,13 +26,11 @@ export default class TXCommandArgumentParser {
     commandString: string,
     adapter: TXAdapterBuilder,
     depth: number = 0,
-    context: TXIContext,
   ) {
     this.commandString = commandString.slice(prefixUsed.length).trim();
     this.adapter = adapter;
     this.tokens = this.tokenize();
     this.depth = depth;
-    this.context = context;
   }
 
   public parse(): TXICommandArgument {
@@ -66,7 +63,6 @@ export default class TXCommandArgumentParser {
       adapter: this.adapter,
       stringFlags: this.stringFlags,
       booleanFlags: this.booleanFlags,
-      context: this.context,
     };
   }
 
@@ -131,7 +127,6 @@ export default class TXCommandArgumentParser {
         raw,
         this.adapter,
         this.depth + 1,
-        this.context,
       ).parse(),
     );
   }

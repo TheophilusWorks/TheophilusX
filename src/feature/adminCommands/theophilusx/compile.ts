@@ -10,9 +10,9 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   minimumMentions: 0,
-  execute: async ({ adapter, context }) => {
-    await adapter.reply(context, "Compiling...");
+  execute: async (ctx, { adapter }) => {
+    await adapter.reply(ctx, "Compiling...");
     await instance.compile();
-    await adapter.reply(context, "Successfully recompiled TheophilusX");
+    await adapter.reply(ctx, "Successfully recompiled TheophilusX");
   },
 });

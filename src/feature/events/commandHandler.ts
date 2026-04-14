@@ -9,10 +9,9 @@ const NOTIFIED_ARGS: Set<string> = new Set();
 
 const ARGS_NOTIFY_CD = 5_000;
 
-export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
+export default new TXEventBuilder("commandCreate", async (ctx, cmdQuery) => {
   if (instance.isUpdating()) return;
 
-  let ctx = cmdQuery.context;
   let adapter = cmdQuery.adapter;
 
   if (instance.isReloading) {
@@ -74,9 +73,9 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       setTimeout(() => NOTIFIED_ARGS.delete(argsKey), ARGS_NOTIFY_CD);
     };
 
-    if (cmd.minimumMentions > cmdQuery.context.mentions.length) {
+    if (cmd.minimumMentions > ctx.mentions.length) {
       await replyArgError(
-        `Not enough mentions — expected ${cmd.minimumMentions}, got ${cmdQuery.context.mentions.length}.`,
+        `Not enough mentions — expected ${cmd.minimumMentions}, got ${ctx.mentions.length}.`,
       );
       return;
     }
@@ -95,7 +94,7 @@ export default new TXEventBuilder("commandCreate", async (cmdQuery) => {
       return;
     }
 
-    await cmd.execute(cmdQuery);
+    await cmd.execute(ctx, cmdQuery);
     COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
   } catch (err) {
     let e = err as Error;

@@ -17,13 +17,13 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args, stringFlags }) => {
+  execute: async (ctx, { adapter, stringFlags }) => {
     let subreddit = stringFlags?.["subreddit"] || "";
     let data: Record<string, unknown>;
 
     if (subreddit) {
       let temp = await axios.get(
-        `https://meme-api.com/gimme/${encodeURI(subreddit)}/1`,
+        `https://meme-api.com/gimme/${encodeURIComponent(subreddit)}/1`,
       );
       data = temp.data.memes[0];
     } else {
@@ -46,7 +46,7 @@ Post link: ${postLink}
       `../../../../cache/meme_${crypto.randomUUID()}.${extension}`,
     );
     await downloadFile(url as string, filepath);
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       parts: [text(meme)],
       attachments: [filepath],
     });

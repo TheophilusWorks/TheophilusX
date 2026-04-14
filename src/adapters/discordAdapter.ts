@@ -90,19 +90,16 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
             msg.content,
             adapter,
             undefined,
-            ctx,
           ).parse();
 
-          bot.emit("commandCreate", args);
+          bot.emit("commandCreate", ctx, args);
         } else if (usedAdminPrefix) {
           const args = new TXCommandArgumentParser(
             usedAdminPrefix,
             msg.content,
             adapter,
-            undefined,
-            ctx,
           ).parse();
-          bot.emit("adminCommandCreate", args);
+          bot.emit("adminCommandCreate", ctx, args);
         } else {
           bot.emit("messageCreate", ctx, adapter);
         }

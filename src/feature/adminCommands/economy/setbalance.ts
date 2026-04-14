@@ -16,14 +16,14 @@ export default new TXCommand({
   aliases: ["setbal", "sb"],
   cooldown: 5_000,
   minimumGroupedArguments: 0,
-  execute: async ({ adapter, context, args }) => {
-    let targets = context.mentions[0] ? context.mentions : [context.author];
+  execute: async (ctx, { adapter, args }) => {
+    let targets = ctx.mentions[0] ? ctx.mentions : [ctx.author];
     let targetStorage = args[0].toLowerCase();
     let amount = parseFloat(args[1]);
 
     if (!["coins", "bank"].includes(targetStorage)) {
       await adapter.reply(
-        context,
+        ctx,
         `Invalid storage "${targetStorage}". Please pick either 'coins' or 'bank'`,
       );
       return;
@@ -33,7 +33,7 @@ export default new TXCommand({
 
     if (isNaN(amount) || amount < 0) {
       await adapter.reply(
-        context,
+        ctx,
         "Invalid amount. Please enter a non-negative number",
       );
       return;
@@ -42,11 +42,11 @@ export default new TXCommand({
     let parts: TXMessagePart[] = [];
     for (const user of targets) {
       if (user.isSelf) {
-        await adapter.reply(context, "I don't any form of data.");
+        await adapter.reply(ctx, "I don't any form of data.");
         continue;
       }
 
-      await setUserStorageTo(user, context.platform, targetStorage, amount);
+      await setUserStorageTo(user, ctx.platform, targetStorage, amount);
       parts.push(mention(user.id, user.displayName));
       parts.push(text(", ")); // seperator
     }
@@ -54,7 +54,7 @@ export default new TXCommand({
     // pop out the last guaranteed comma
     parts.pop();
 
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       parts: [
         text("Successfully set "),
         ...parts,

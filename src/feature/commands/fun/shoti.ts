@@ -17,7 +17,7 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args }) => {
+  execute: async (ctx, { adapter }) => {
     let response = await axios.get("https://tikwm.com/api/feed/search", {
       params: { keywords: "pinay shoti" },
     });
@@ -44,10 +44,10 @@ export default new TXCommand({
     );
 
     await downloadFile(video.play, filepath);
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       parts: [
         text("Here's your shoti, "),
-        mention(context.author.id, context.author.displayName),
+        mention(ctx.author.id, ctx.author.displayName),
       ],
       attachments: [filepath],
     });

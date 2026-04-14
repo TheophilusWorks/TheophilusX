@@ -19,15 +19,15 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, args, context }) => {
+  execute: async (ctx, { adapter, args }) => {
     const txt = args.join(" ");
     const filepath = await makeBillboard(txt);
 
     try {
-      await adapter.reply(context, {
+      await adapter.reply(ctx, {
         parts: [
           text("Here's your billboard, "),
-          mention(context.author.id, context.author.displayName),
+          mention(ctx.author.id, ctx.author.displayName),
         ],
         attachments: [filepath],
       });

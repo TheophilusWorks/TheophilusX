@@ -32,24 +32,22 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args }) => {
+  execute: async (ctx, { adapter, args }) => {
     let bet = parseFloat(args[0]);
 
     if (isNaN(bet) || bet <= 0) {
-      await adapter.reply(context, formatError("Invalid bet amount."));
+      await adapter.reply(ctx, formatError("Invalid bet amount."));
       return;
     }
 
     // ── upsert + balance check (no transaction needed here) ──────────────────
     await Users.findOneAndUpdate(
-      queryUser(context.platform, context.author.id),
+      queryUser(ctx.platform, ctx.author.id),
       { $setOnInsert: { economy: initializeUserEconomy() } },
       { upsert: true },
     );
 
-    let user = await Users.findOne(
-      queryUser(context.platform, context.author.id),
-    );
+    let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
     if (!user) return;
 
@@ -57,7 +55,7 @@ export default new TXCommand({
 
     if (bet > coins) {
       await adapter.reply(
-        context,
+        ctx,
         formatError(
           `Insufficient balance.\nYou have 🪙 ${coins} coins but bet 🪙 ${bet}.`,
         ),
@@ -66,7 +64,7 @@ export default new TXCommand({
     }
 
     // deduct bet immediately. prevents dupe exploit
-    await Users.updateOne(queryUser(context.platform, context.author.id), {
+    await Users.updateOne(queryUser(ctx.platform, ctx.author.id), {
       $inc: { "economy.coins": -bet },
     });
 
@@ -75,17 +73,17 @@ export default new TXCommand({
     let won = false;
     let timedOut = false;
 
-    await adapter.reply(context, formatGameStart(bet));
+    await adapter.reply(ctx, formatGameStart(bet));
 
     while (answers.size < WORDLE_ROWS) {
       let prompt = await adapter.reply(
-        context,
+        ctx,
         formatBoard(answers, answers.size + 1),
       );
 
       let guess = await prompt.waitReply({
         timeout: 120_000,
-        filter: (msg) => msg.author.id === context.author.id,
+        filter: (msg) => msg.author.id === ctx.author.id,
       });
 
       if (!guess) {
@@ -96,7 +94,7 @@ export default new TXCommand({
       let content = guess.context.content.trim().toLowerCase();
 
       if (content.length !== 5) {
-        let key = `len-${context.platform}-${context.author.id}`;
+        let key = `len-${ctx.platform}-${ctx.author.id}`;
         if (!NOTIFIED_USERS.has(key)) {
           await guess.reply(formatError("Guess must be exactly 5 letters."));
           NOTIFIED_USERS.add(key);
@@ -106,7 +104,7 @@ export default new TXCommand({
       }
 
       if (![...wordleWords, ...nonWordleWords].includes(content)) {
-        let key = `word-${content}-${context.platform}-${context.author.id}`;
+        let key = `word-${content}-${ctx.platform}-${ctx.author.id}`;
         if (!WORDLE_NOTIFY.has(key)) {
           await guess.reply(
             formatError(`"${content.toUpperCase()}" is not a valid word.`),
@@ -131,33 +129,33 @@ export default new TXCommand({
     try {
       await session.withTransaction(async () => {
         if (timedOut) {
-          await adapter.reply(context, formatTimeout(wordle));
+          await adapter.reply(ctx, formatTimeout(wordle));
           return;
         }
 
         if (won) {
           let winnings = Math.floor(bet * WIN_MULTIPLIER);
           let updated = await Users.findOneAndUpdate(
-            queryUser(context.platform, context.author.id),
+            queryUser(ctx.platform, ctx.author.id),
             { $inc: { "economy.coins": winnings } },
             { session, returnDocument: "before" },
           );
           let oldCoins = (updated?.economy?.coins ?? 0) + bet;
           let newCoins = oldCoins - bet + winnings;
           await adapter.reply(
-            context,
+            ctx,
             formatWin(answers, oldCoins, newCoins, winnings, bet),
           );
         } else {
           let updated = await Users.findOne(
-            queryUser(context.platform, context.author.id),
+            queryUser(ctx.platform, ctx.author.id),
             null,
             { session },
           );
           let currentCoins = updated?.economy?.coins ?? 0;
           let oldCoins = currentCoins + bet;
           await adapter.reply(
-            context,
+            ctx,
             formatLose(answers, wordle, oldCoins, currentCoins, bet),
           );
         }
@@ -165,7 +163,7 @@ export default new TXCommand({
     } catch (err) {
       let e = err as Error;
       await adapter.reply(
-        context,
+        ctx,
         formatError(`Something went wrong settling your bet.\n${e.message}`),
       );
     } finally {

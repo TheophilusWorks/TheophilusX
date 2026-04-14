@@ -1,4 +1,3 @@
-import axios from "axios";
 import TXCommand from "../../../core/command/TXCommand.js";
 import { getDirname } from "../../../utils/path.js";
 import path from "node:path";
@@ -31,7 +30,7 @@ export default new TXCommand({
   usedBooleanFlags: ["list-categories"],
   usedStringFlags: ["category"],
   minimumMentions: 0,
-  execute: async ({ adapter, context, stringFlags, args }) => {
+  execute: async (ctx, { adapter, stringFlags, args }) => {
     let msg = args.join(" ");
     let language = stringFlags?.["lang"]
       ? stringFlags["lang"].toLowerCase()
@@ -46,7 +45,7 @@ export default new TXCommand({
       filepath,
       headers,
     );
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       attachments: [filepath],
     });
     await fs.unlink(filepath);

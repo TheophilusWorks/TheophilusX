@@ -15,8 +15,8 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context }) => {
-    let { platform, author } = context;
+  execute: async (ctx, { adapter }) => {
+    let { platform, author } = ctx;
     let now = new Date();
     const nextDaily = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const reward = Math.round(randomRange(200, 1000, true));
@@ -56,7 +56,7 @@ export default new TXCommand({
       const timeLeft =
         (user?.economy?.nextDaily?.getTime() ?? 0) - now.getTime();
 
-      await adapter.reply(context, {
+      await adapter.reply(ctx, {
         parts: [
           text(`
 ‗   ↳ ❝ [ Daily Rewards ] ¡! ❞
@@ -79,7 +79,7 @@ export default new TXCommand({
     const oldExp = result?.economy?.exp ?? 0;
     const newExp = oldExp + expReward;
 
-    await adapter.reply(context, {
+    await adapter.reply(ctx, {
       parts: [
         text(`
 ‗   ↳ ❝ [ Daily Rewards ] ¡! ❞

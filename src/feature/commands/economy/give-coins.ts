@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
 import TXCommand from "../../../core/command/TXCommand.js";
-import { TXPlatform } from "../../../core/context/TXContext.js";
 import Users, {
   queryUser,
   initializeUserEconomy,
 } from "../../../core/database/model/Users.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
-import { TXMessagePart } from "../../../core/message/TXMessagePart.js";
 
 export default new TXCommand({
   name: "give-coins",
@@ -17,17 +15,16 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args }) => {
-    let targetUser =
-      context.mentions.length !== 0 ? context.mentions[0] : context.author;
+  execute: async (ctx, { adapter, args }) => {
+    let targetUser = ctx.mentions.length !== 0 ? ctx.mentions[0] : ctx.author;
 
     if (targetUser.isSelf) {
-      await adapter.reply(context, "I don't any form of data.");
+      await adapter.reply(ctx, "I don't any form of data.");
       return;
     }
 
-    if (targetUser.id == context.author.id) {
-      await adapter.reply(context, "You cannot give money to youself.");
+    if (targetUser.id == ctx.author.id) {
+      await adapter.reply(ctx, "You cannot give money to youself.");
       return;
     }
 
@@ -35,7 +32,7 @@ export default new TXCommand({
 
     if (isNaN(amount) || amount <= 0) {
       await adapter.reply(
-        context,
+        ctx,
         "Please enter a non-negative number as the amount",
       );
       return;
@@ -43,26 +40,26 @@ export default new TXCommand({
 
     // init both author && target
     await Users.findOneAndUpdate(
-      queryUser(context.platform, context.author.id),
+      queryUser(ctx.platform, ctx.author.id),
       { $setOnInsert: { economy: initializeUserEconomy() } },
       { upsert: true },
     );
 
     await Users.findOneAndUpdate(
-      queryUser(context.platform, targetUser.id),
+      queryUser(ctx.platform, targetUser.id),
       { $setOnInsert: { economy: initializeUserEconomy() } },
       { upsert: true },
     );
 
     let authorData = await Users.findOne(
-      queryUser(context.platform, context.author.id),
+      queryUser(ctx.platform, ctx.author.id),
     );
 
     // unreachable, only so typescripr shuts up
     if (!authorData) return;
 
     if (authorData.economy!.coins < amount) {
-      await adapter.reply(context, {
+      await adapter.reply(ctx, {
         parts: [
           text("You dont have enough balance to give "),
           mention(targetUser.id, targetUser.displayName),
@@ -77,7 +74,7 @@ export default new TXCommand({
       await session.withTransaction(async () => {
         const authorData = await Users.findOneAndUpdate(
           {
-            ...queryUser(context.platform, context.author.id),
+            ...queryUser(ctx.platform, ctx.author.id),
             "economy.coins": { $gte: amount },
           },
           { $inc: { "economy.coins": -amount } },
@@ -85,7 +82,7 @@ export default new TXCommand({
         );
 
         if (!authorData) {
-          await adapter.reply(context, {
+          await adapter.reply(ctx, {
             parts: [
               text("You dont have enough balance to give "),
               mention(targetUser.id, targetUser.displayName),
@@ -96,16 +93,16 @@ export default new TXCommand({
         }
 
         await Users.findOneAndUpdate(
-          queryUser(context.platform, targetUser.id),
+          queryUser(ctx.platform, targetUser.id),
           { $inc: { "economy.coins": amount } },
           { session },
         );
 
         await adapter.reply(
-          context,
+          ctx,
           giveCoinsMessage(
             amount,
-            context.author.displayName,
+            ctx.author.displayName,
             targetUser.displayName,
             authorData.economy!.coins,
           ),
@@ -114,7 +111,7 @@ export default new TXCommand({
     } catch (err) {
       let e = err as Error;
       await adapter.reply(
-        context,
+        ctx,
         formatError(
           `Something went wrong while sending your money.\n${e.message}\n\nTransaction aborted`,
         ),

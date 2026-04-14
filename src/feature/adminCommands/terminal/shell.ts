@@ -12,31 +12,31 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args }) => {
+  execute: async (ctx, { adapter, args }) => {
     if (args.length > 0) {
       const command = args.join(" ");
       let output = await runShell(command);
-      await adapter.reply(context, output);
+      await adapter.reply(ctx, output);
       return;
     }
 
     while (true) {
       let res = await adapter.reply(
-        context,
+        ctx,
         `Please reply to this message with your shell command`,
       );
       let cmd = await res.waitReply({
         timeout: 120_000,
-        filter: (msg) => msg.author.id == context.author.id,
+        filter: (msg) => msg.author.id == ctx.author.id,
       });
 
       if (cmd?.context.content == "==exit==") {
-        adapter.reply(context, "Exited shell mode...");
+        adapter.reply(ctx, "Exited shell mode...");
         return;
       }
       let output = await runShell(cmd?.context.content || "");
       output += `\n\n\nType \`==exit==\` to exit shell mode`;
-      await adapter.reply(context, output);
+      await adapter.reply(ctx, output);
     }
   },
 });

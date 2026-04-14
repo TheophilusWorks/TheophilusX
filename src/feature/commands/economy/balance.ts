@@ -16,28 +16,27 @@ export default new TXCommand({
   cooldown: 5_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context }) => {
-    let targetUser =
-      context.mentions.length !== 0 ? context.mentions[0] : context.author;
+  execute: async (ctx, { adapter }) => {
+    let targetUser = ctx.mentions.length !== 0 ? ctx.mentions[0] : ctx.author;
 
     if (targetUser.isSelf) {
-      adapter.reply(context, "I don't any form of data.")
-      return
+      adapter.reply(ctx, "I don't any form of data.");
+      return;
     }
 
     let parts: TXMessagePart[] = [];
 
-    if (targetUser.id == context.author.id) {
-      parts = await inspectSelf(context.author.id, context.platform);
+    if (targetUser.id == ctx.author.id) {
+      parts = await inspectSelf(ctx.author.id, ctx.platform);
     } else {
       parts = await inspectUser(
         targetUser.id,
         targetUser.displayName,
-        context.platform,
+        ctx.platform,
       );
     }
 
-    adapter.reply(context, { parts });
+    adapter.reply(ctx, { parts });
   },
 });
 

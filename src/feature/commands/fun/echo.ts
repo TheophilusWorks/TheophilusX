@@ -8,14 +8,14 @@ export default new TXCommand({
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async ({ adapter, context, args }) => {
+  execute: async (ctx, { adapter, args }) => {
     if (args.length > 0) {
-      await adapter.reply(context, args.join(" "));
+      await adapter.reply(ctx, args.join(" "));
       return;
     }
 
     let msg = await adapter.reply(
-      context,
+      ctx,
       "Please reply to this message with the message you want to echo.",
     );
     let reply = await msg.waitReply({

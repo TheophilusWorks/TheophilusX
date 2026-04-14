@@ -1,6 +1,7 @@
 import TXICommand from "../../types/TXICommand.js";
-import TXICommandArgument from "../../types/TXICommandArgument.js";
 import { TXPlatform } from "../context/TXContext.js";
+import { TXIContext } from "../context/TXContext.js";
+import TXICommandArgument from "../../types/TXICommandArgument.js";
 
 export default class TXCommand {
   public name: string;
@@ -18,7 +19,7 @@ export default class TXCommand {
   public usedStringFlags?: string[];
   public usedBooleanFlags?: string[];
 
-  public execute: (ctx: TXICommandParameter) => Promise<void>;
+  public execute: (ctx: TXIContext, args: TXICommandArgument) => Promise<void>;
 
   constructor(context: TXICommand) {
     this.name = context.name;

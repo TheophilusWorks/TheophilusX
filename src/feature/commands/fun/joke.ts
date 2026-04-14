@@ -1,8 +1,8 @@
 import axios from "axios";
 import TXCommand from "../../../core/command/TXCommand.js";
 import TXAdapterBuilder from "../../../core/adapter/TXAdapterBuilder.js";
-import { TXIContext } from "../../../core/context/TXContext.js";
 import { capitalize } from "../../../utils/capitalize.js";
+import { TXIContext } from "../../../core/context/TXContext.js";
 
 export default new TXCommand({
   name: "joke",
@@ -14,9 +14,9 @@ export default new TXCommand({
   usedBooleanFlags: ["list-categories"],
   usedStringFlags: ["category"],
   minimumMentions: 0,
-  execute: async ({ adapter, context, stringFlags, booleanFlags }) => {
+  execute: async (ctx,{ adapter, stringFlags, booleanFlags }) => {
     if (booleanFlags?.["list-categories"]) {
-      await listCategories(adapter, context);
+      await listCategories(adapter, ctx);
       return;
     }
 
@@ -25,14 +25,14 @@ export default new TXCommand({
       : "Any";
 
     let data = await getJoke(category);
-    if (data.type == "single") await sendSingle(context, adapter, data);
-    else await sendTwopart(context, adapter, data);
+    if (data.type == "single") await sendSingle(ctx, adapter, data);
+    else await sendTwopart(ctx, adapter, data);
   },
 });
 
-async function listCategories(adapter: TXAdapterBuilder, context: TXIContext) {
+async function listCategories(adapter: TXAdapterBuilder, ctx: TXIContext) {
   await adapter.reply(
-    context,
+    ctx,
     `
 ╭┈◦•◦❥•◦ Joke categories
 ╰┈➤ Christmas
@@ -59,12 +59,12 @@ async function getJoke(category = "Any") {
 }
 
 async function sendSingle(
-  context: TXIContext,
+  ctx: TXIContext,
   adapter: TXAdapterBuilder,
   data: Record<string, unknown>,
 ) {
   await adapter.reply(
-    context,
+    ctx,
     formatIntro(
       data.category as string,
       data.type as string,
@@ -75,12 +75,12 @@ async function sendSingle(
 }
 
 async function sendTwopart(
-  context: TXIContext,
+  ctx: TXIContext,
   adapter: TXAdapterBuilder,
   data: Record<string, unknown>,
 ) {
   let msg = await adapter.reply(
-    context,
+    ctx,
     formatIntro(
       data.category as string,
       data.type as string,
@@ -91,7 +91,7 @@ async function sendTwopart(
 
   let response = await msg.waitReply({
     timeout: 120_000, // 120s
-    filter: (msg) => msg.author.id == context.author.id,
+    filter: (msg) => msg.author.id == ctx.author.id,
   });
 
   response?.reply(data.delivery as string);
