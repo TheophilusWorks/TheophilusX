@@ -25,7 +25,7 @@ export default new TXEventBuilder("messageCreate", async (ctx, adapter) => {
       { upsert: true },
     );
 
-    let expGain = Math.round(randomRange(20, 30, true));
+    let expGain = Math.round(randomRange(50, 80, true));
     const result = await addExp(ctx.platform, ctx.author.id, expGain);
     COOLDOWN_USERS.setCooldown(key, NEXT_EXP_COOLDOWN);
 
@@ -58,7 +58,7 @@ async function addExp(platform: TXPlatform, userId: string, amount: number) {
   const user = await Users.findOneAndUpdate(
     queryUser(platform, userId),
     { $inc: { "economy.exp": amount, "economy.totalExp": amount } },
-    { returnDocumemt: "after" },
+    { returnDocument: "after" },
   );
 
   if (!user)
