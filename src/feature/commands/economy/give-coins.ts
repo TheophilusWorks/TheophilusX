@@ -1,49 +1,31 @@
-import mongoose from "mongoose";
 import TXCommand from "../../../core/command/TXCommand.js";
 import Users, {
   queryUser,
   initializeUserEconomy,
 } from "../../../core/database/model/Users.js";
-import { mention, text } from "../../../core/message/TXMessageBuilder.js";
+import { RankCardBuilder, Font } from "canvacord";
+import * as fs from "fs/promises";
+import * as path from "path";
+import * as os from "os";
+
+Font.loadDefault();
 
 export default new TXCommand({
-  name: "give-coins",
-  description: "Give someone money",
-  usage: "give-coins <user> <amount>",
-  minimumArguments: 1,
-  aliases: ["gc"],
-  cooldown: 5_000, // 5s
+  name: "exp",
+  description: "Check your current EXP and level",
+  usage: "exp [user]",
+  aliases: ["xp", "level", "rank"],
+  cooldown: 5_000,
+  minimumArguments: 0,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
-  execute: async (ctx, { adapter, args }) => {
+  execute: async (ctx, { adapter }) => {
     let targetUser = ctx.mentions.length !== 0 ? ctx.mentions[0] : ctx.author;
 
     if (targetUser.isSelf) {
-      await adapter.reply(ctx, "I don't any form of data.");
+      await adapter.reply(ctx, "I don't have any economy data.");
       return;
     }
-
-    if (targetUser.id == ctx.author.id) {
-      await adapter.reply(ctx, "You cannot give money to youself.");
-      return;
-    }
-
-    let amount = parseFloat(args[0]);
-
-    if (isNaN(amount) || amount <= 0) {
-      await adapter.reply(
-        ctx,
-        "Please enter a non-negative number as the amount",
-      );
-      return;
-    }
-
-    // init both author && target
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
 
     await Users.findOneAndUpdate(
       queryUser(ctx.platform, targetUser.id),
@@ -51,98 +33,47 @@ export default new TXCommand({
       { upsert: true },
     );
 
-    let authorData = await Users.findOne(
-      queryUser(ctx.platform, ctx.author.id),
+    const userData = await Users.findOne(
+      queryUser(ctx.platform, targetUser.id),
+    );
+    if (!userData) return;
+
+    const level = userData.economy?.level ?? 0;
+    const exp = userData.economy?.exp ?? 0;
+    const currentLevelReq = requiredXP(level + 1);
+
+    const avatarURL =
+      targetUser.avatarURL ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUser.displayName)}&background=7c3aed&color=ffffff&size=256`;
+
+    const card = new RankCardBuilder()
+      .setUsername(targetUser.displayName)
+      .setDisplayName(targetUser.displayName)
+      .setAvatar(avatarURL)
+      .setCurrentXP(exp)
+      .setRequiredXP(currentLevelReq)
+      .setLevel(level)
+      .setProgressCalculator(() => {
+        return Math.min(Math.floor((exp / currentLevelReq) * 100), 100);
+      });
+
+    const image = await card.build({ format: "png" });
+    const tmpPath = path.join(
+      os.tmpdir(),
+      `rank_${targetUser.id}_${Date.now()}.png`,
     );
 
-    // unreachable, only so typescripr shuts up
-    if (!authorData) return;
-
-    if (authorData.economy!.coins < amount) {
-      await adapter.reply(ctx, {
-        parts: [
-          text("You dont have enough balance to give "),
-          mention(targetUser.id, targetUser.displayName),
-          text(` ${amount} coins`),
-        ],
-      });
-      return;
-    }
-
-    let session = await mongoose.startSession();
     try {
-      await session.withTransaction(async () => {
-        const authorData = await Users.findOneAndUpdate(
-          {
-            ...queryUser(ctx.platform, ctx.author.id),
-            "economy.coins": { $gte: amount },
-          },
-          { $inc: { "economy.coins": -amount } },
-          { session, returnDocument: "after" },
-        );
-
-        if (!authorData) {
-          await adapter.reply(ctx, {
-            parts: [
-              text("You dont have enough balance to give "),
-              mention(targetUser.id, targetUser.displayName),
-              text(` ${amount} coins`),
-            ],
-          });
-          return;
-        }
-
-        await Users.findOneAndUpdate(
-          queryUser(ctx.platform, targetUser.id),
-          { $inc: { "economy.coins": amount } },
-          { session },
-        );
-
-        await adapter.reply(
-          ctx,
-          giveCoinsMessage(
-            amount,
-            ctx.author.displayName,
-            targetUser.displayName,
-            authorData.economy!.coins,
-          ),
-        );
+      await fs.writeFile(tmpPath, image);
+      await adapter.reply(ctx, {
+        attachments: [tmpPath],
       });
-    } catch (err) {
-      let e = err as Error;
-      await adapter.reply(
-        ctx,
-        formatError(
-          `Something went wrong while sending your money.\n${e.message}\n\nTransaction aborted`,
-        ),
-      );
     } finally {
-      await session.endSession();
+      await fs.unlink(tmpPath).catch(() => {});
     }
   },
 });
-function formatError(msg: string): string {
-  return [`‗   ↳ ❝ [ Give Coins ] ¡! ❞`, `ೃ⁀➷ ${msg}`].join("\n");
-}
 
-function giveCoinsMessage(
-  amount: number,
-  sender: string,
-  recipient: string,
-  newBalance: number,
-) {
-  return [
-    `‗   ↳ ❝ [ Give Coins ] ¡! ❞`,
-    `ೃ⁀➷ Transfer initiated! Amount: 🪙 ${amount}`,
-    `         ◇─◇───◇─◇`,
-    ``,
-    `╭┈ details ̗̀➛`,
-    `┊ 👤 From: ${sender}`,
-    `┊ 👤 To: ${recipient}`,
-    `┊ 🪙 Amount: ${amount}`,
-    `┊ 💼 Your balance: ${newBalance}`,
-    `╰─────────┈➤`,
-    ``,
-    `𓆩⟡𓆪 Transfer complete!`,
-  ].join("\n");
+function requiredXP(level: number): number {
+  return 5 * level ** 2 + 50 * level + level * 1000;
 }
