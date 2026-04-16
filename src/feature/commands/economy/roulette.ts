@@ -111,7 +111,7 @@ export default new TXCommand({
 ╰─────────┈➤
 
 ╭┈ balance : ̗̀➛
-┊ 🪙 Coins: ${oldCoins} ➜ ${newCoins}${won ? ` (+${payout})` : ` (-${bet})`}
+┊ 🪙 Coins: ${oldCoins} ➜ ${newCoins}${won ? ` (+${payout - bet})` : ` (-${bet})`}
 ╰─────────┈➤
 
 𓆩⟡𓆪 ${won ? `Payout: ${payout} coins!` : "Better luck next time!"}

@@ -209,7 +209,10 @@ export default class TXCommandRegistry {
             label: category,
             children: Array.from(this.commands.values())
               .filter((c) => c.category === category)
-              .map((c) => ({ label: c.name, children: [] })),
+              .map((c) => ({
+                label: `${c.name} - ${c.description}`,
+                children: [],
+              })),
           })),
         },
         {
@@ -218,7 +221,10 @@ export default class TXCommandRegistry {
             label: category,
             children: Array.from(this.adminCommands.values())
               .filter((c) => c.category === category)
-              .map((c) => ({ label: c.name, children: [] })),
+              .map((c) => ({
+                label: `${c.name} - ${c.description}`,
+                children: [],
+              })),
           })),
         },
       ],

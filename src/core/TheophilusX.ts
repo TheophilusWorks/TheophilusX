@@ -235,6 +235,7 @@ export default class TheophilusX {
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);
       this.adapterRegistry.login();
 
+      this.logger.collect(this.itemManager.toSummaryNode());
       this.logger.collect(this.eventRegistry.toSummaryNode());
       this.logger.collect(this.commandRegistry.toSummaryNode());
       this.logger.collect(this.adapterRegistry.toSummaryNode());
