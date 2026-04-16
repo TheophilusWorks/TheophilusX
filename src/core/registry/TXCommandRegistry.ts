@@ -44,7 +44,7 @@ export default class TXCommandRegistry {
     const categoryDirs = await fs.readdir(this.commandsPath);
     this.logger.log(
       `Found ${categoryDirs.length} command categories`,
-      DebugLevel.Ok,
+      DebugLevel.Info,
     );
 
     for (const category of categoryDirs) {

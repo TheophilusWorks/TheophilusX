@@ -19,6 +19,7 @@ import { promisify } from "node:util";
 import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
+import TXItemManager from "./item-manager/TXItemManager.js";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -45,6 +46,7 @@ export default class TheophilusX {
   private adapterRegistry: TXAdapterRegistry;
 
   private databaseManager: TXDatabaseManager;
+  private itemManager: TXItemManager;
 
   constructor(config: TXConfig) {
     this.config = config;
@@ -66,6 +68,11 @@ export default class TheophilusX {
     this.adapterRegistry = new TXAdapterRegistry(this.logger);
     this.databaseManager = new TXDatabaseManager(
       config.mongoDbURI,
+      this.logger,
+    );
+    this.itemManager = new TXItemManager(
+      config.itemsPath,
+      this.databaseManager,
       this.logger,
     );
     this.cache = new TXCacheManager({
@@ -204,6 +211,7 @@ export default class TheophilusX {
   public async reloadModules() {
     this.logger.log("Reloading TheophilusX...", DebugLevel.Info);
     this.isReloading = true;
+    await this.itemManager.reloadModules();
     await this.eventRegistry.reloadModules();
     await this.commandRegistry.reloadModules();
     this.isReloading = false;
@@ -215,6 +223,7 @@ export default class TheophilusX {
 
     try {
       await this.databaseManager.connect();
+      await this.itemManager.load();
       await this.cache.load();
       this.restoreUpdateSchedule();
 

@@ -1,5 +1,4 @@
 export interface TXIInventoryEntry {
-  userId: string;
   itemId: string;
   modifier: string;
   acquiredAt: number;
