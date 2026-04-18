@@ -39,8 +39,7 @@ export default class TXEventRegistry {
       const event =
         await importDefault<TXEventBuilder<keyof TXEvents>>(fullPath);
 
-      const wrapped = this.wrapEvent(event);
-      this.on(event.event, wrapped);
+      this.on(event.event, this.wrapEvent(event));
       this.eventCount++;
 
       this.logger.log(
@@ -53,20 +52,21 @@ export default class TXEventRegistry {
   private wrapEvent<K extends keyof TXEvents>(
     event: TXEventBuilder<K>,
   ): TXEvents[K] {
-    return ((...args: Parameters<TXEvents[K]>) => {
+    const wrapper = (...args: Parameters<TXEvents[K]>) => {
       if (!this.shouldCallbackRun(event.options, args)) return;
-      return (event.callback as (...a: typeof args) => unknown)(...args);
-    }) as TXEvents[K];
+      return event.execute(...args);
+    };
+
+    return wrapper as TXEvents[K];
   }
 
-  public clear() {
-    this.eventBus = new EventEmitter();
-  }
-
-  public async reloadModules() {
-    this.clear();
-    this.eventCount = 0;
-    await this.load();
+  private shouldCallbackRun(
+    options: TXEventOptions | undefined,
+    args: any[],
+  ): boolean {
+    if (!options) return true;
+    const ctx = args[0] as TXIContext;
+    return !options.blacklistedPlatforms.includes(ctx.platform);
   }
 
   public on<K extends keyof TXEvents>(event: K, callback: TXEvents[K]): void {
@@ -84,23 +84,22 @@ export default class TXEventRegistry {
     this.eventBus.emit(event, ...args);
   }
 
+  public clear(): void {
+    this.eventBus = new EventEmitter();
+  }
+
+  public async reloadModules(): Promise<void> {
+    this.clear();
+    this.eventCount = 0;
+    await this.load();
+  }
+
   public toSummaryNode(): TXLoggerNode {
     return {
       label: `Events (${this.eventCount})`,
-      children: this.eventBus.eventNames().map((e) => ({
-        label: String(e),
-        children: [],
-      })),
+      children: this.eventBus
+        .eventNames()
+        .map((e) => ({ label: String(e), children: [] })),
     };
-  }
-
-  public shouldCallbackRun(
-    options: TXEventOptions | undefined,
-    args: any[],
-  ): boolean {
-    if (!options) return true;
-
-    let ctx = args[0] as TXIContext;
-    return !options.blacklistedPlatforms.includes(ctx.platform);
   }
 }
