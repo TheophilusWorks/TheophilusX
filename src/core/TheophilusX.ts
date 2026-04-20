@@ -112,6 +112,14 @@ export default class TheophilusX {
     return this.commandRegistry.getAlias(alias);
   }
 
+  public getAllCommandAliases() {
+    return this.commandRegistry.getAllAliases();
+  }
+
+  public getAllAdminCommandAliases() {
+    return this.commandRegistry.getAllAdminAliases();
+  }
+
   public getCommands(): Map<string, TXCommand> {
     return this.commandRegistry.getAll();
   }

@@ -171,6 +171,10 @@ export default class TXCommandRegistry {
     return this.commandAliases.get(alias);
   }
 
+  public getAllAliases() {
+    return this.commandAliases;
+  }
+
   public getAll(): Map<string, TXCommand> {
     return this.commands;
   }
@@ -185,6 +189,10 @@ export default class TXCommandRegistry {
 
   public getAdminAlias(alias: string): TXCommand | undefined {
     return this.adminCommandAliases.get(alias);
+  }
+
+  public getAllAdminAliases() {
+    return this.adminCommandAliases;
   }
 
   public getAllAdmin(): Map<string, TXCommand> {

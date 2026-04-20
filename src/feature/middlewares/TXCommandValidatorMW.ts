@@ -41,7 +41,10 @@ export default class TXCommandValidatorMW extends TXMiddleware<
         ].join("\n"),
       );
       this.NOTIFIED_ARGS.add(argsKey);
-      setTimeout(() => this.NOTIFIED_ARGS.delete(argsKey), TXCommandValidatorMW.ARGS_NOTIFY_CD);
+      setTimeout(
+        () => this.NOTIFIED_ARGS.delete(argsKey),
+        TXCommandValidatorMW.ARGS_NOTIFY_CD,
+      );
     };
 
     if (cmd.minimumMentions > ctx.mentions.length) {

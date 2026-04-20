@@ -1,3 +1,4 @@
+import TXCommand from "../../core/command/TXCommand.js";
 import TXCooldownManager from "../../core/command/TXCooldownHandler.js";
 import { TXIContext } from "../../core/context/TXContext.js";
 import { TXNext } from "../../core/event/TXEventBuilder.js";
@@ -11,11 +12,19 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
 > {
   private NOTIFIED_USERS: Set<string>;
   private COOLDOWN_USERS: TXCooldownManager;
+  private commandList: Map<string, TXCommand>;
+  private aliasCommandList: Map<string, TXCommand>;
 
-  constructor(cooldownUsers: TXCooldownManager) {
+  constructor(
+    cooldownUsers: TXCooldownManager,
+    commandList: Map<string, TXCommand>,
+    aliasCommandList: Map<string, TXCommand>,
+  ) {
     super();
     this.NOTIFIED_USERS = new Set();
-    this.COOLDOWN_USERS = cooldownUsers
+    this.COOLDOWN_USERS = cooldownUsers;
+    this.commandList = commandList;
+    this.aliasCommandList = aliasCommandList;
   }
 
   public callback = async (
@@ -27,9 +36,9 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
       if (ctx.author.isSelf) return;
       let adapter = cmdQuery.adapter;
 
-      let cmd = instance.hasCommand(cmdQuery.command)
-        ? instance.getCommand(cmdQuery.command)
-        : instance.getCommandAlias(cmdQuery.command);
+      let cmd = this.hasCommand(cmdQuery.command)
+        ? this.getCommand(cmdQuery.command)
+        : this.getCommandAlias(cmdQuery.command);
 
       ctx.metadata["cmd"] = cmd;
 
@@ -60,4 +69,15 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
       await next();
     } catch {}
   };
+
+  private hasCommand(cmdName: string) {
+    return this.commandList.has(cmdName);
+  }
+
+  private getCommand(cmdName: string) {
+    return this.commandList.get(cmdName);
+  }
+  private getCommandAlias(cmdName: string) {
+    return this.aliasCommandList.get(cmdName);
+  }
 }
