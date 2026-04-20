@@ -249,6 +249,7 @@ function buildDiscordContext(
     channelId: msg.channelId,
     serverId: msg.guildId ?? "0",
     timestamp: msg.createdAt,
+    metadata: {},
     replied: false,
     raw: msg,
   };

@@ -196,6 +196,7 @@ function buildCLIContext(raw: string): TXIContext {
     raw,
     mentions: [],
     replied: false,
+    metadata: {},
     author: {
       id: "cli",
       displayName: "CLI User",

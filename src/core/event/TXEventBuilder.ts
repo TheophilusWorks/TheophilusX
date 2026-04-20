@@ -5,9 +5,10 @@ export interface TXEventOptions {
   blacklistedPlatforms: TXPlatform[];
 }
 
+export type TXNext = () => void | Promise<void>;
+
 export type TXMiddleware<K extends keyof TXEvents> = (
-  args: Parameters<TXEvents[K]>,
-  next: () => void,
+  ...args: [...Parameters<TXEvents[K]>, next: () => Promise<void>]
 ) => void | Promise<void>;
 
 export default class TXEventBuilder<K extends keyof TXEvents> {
@@ -26,7 +27,6 @@ export default class TXEventBuilder<K extends keyof TXEvents> {
   constructor(event: K, ...args: any[]) {
     this.event = event;
 
-    // Check if first arg is options
     if (
       args[0] &&
       typeof args[0] === "object" &&
@@ -41,12 +41,12 @@ export default class TXEventBuilder<K extends keyof TXEvents> {
 
   public async execute(...args: Parameters<TXEvents[K]>): Promise<void> {
     let index = 0;
-    const stack = this.middlewares;
 
     const next = async (): Promise<void> => {
-      if (index < stack.length) {
-        const middleware = stack[index++];
-        await middleware(args, next);
+      const middleware = this.middlewares[index++];
+
+      if (middleware) {
+        await middleware(...args, next);
       } else {
         (this.callback as Function)(...args);
       }
