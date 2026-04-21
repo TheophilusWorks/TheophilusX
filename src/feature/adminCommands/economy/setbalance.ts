@@ -12,7 +12,7 @@ export default new TXCommand({
   description: "Shows your balance",
   usage: "setbalance (user1, user2, ...) <coins | bank> <amount>",
   minimumArguments: 2,
-  minimumMentions: 1,
+  minimumMentions: 0,
   aliases: ["setbal", "sb"],
   cooldown: 5_000,
   minimumGroupedArguments: 0,
