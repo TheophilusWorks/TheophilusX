@@ -15,9 +15,9 @@ type MusicItem = {
 };
 
 export default new TXCommand({
-  name: "music",
+  name: "sing",
   description: "Queries a song on YT Music and sends it as a voice message",
-  usage: "music <song name>",
+  usage: "sing <song name>",
   minimumArguments: 1,
   cooldown: 5_000,
   minimumGroupedArguments: 0,
