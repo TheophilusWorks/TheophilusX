@@ -27,16 +27,14 @@ export default new TXCommand({
     const query: string = args.join(" ").trim();
 
     const { data: raw } = await axios.post(
-      `https://www.marieg.ca/explore/${encodeURIComponent(
-        query + " song"
-      )}/`
+      `https://www.techcover.fr/explore/${encodeURIComponent(query)}/`,
     );
 
     const data: MusicItem[] = Array.isArray(raw)
       ? raw
       : Array.isArray(raw?.data)
-      ? raw.data
-      : [];
+        ? raw.data
+        : [];
 
     if (data.length === 0) {
       await adapter.reply(ctx, "No results found.");
@@ -60,14 +58,8 @@ export default new TXCommand({
     const content: string = res.context.content;
     const idx: number = Number(content.trim()) - 1;
 
-    if (
-      !Number.isInteger(idx) ||
-      idx < 0 ||
-      idx >= videos.length
-    ) {
-      await res.reply(
-        `Invalid index. Choose between 1 and ${videos.length}.`
-      );
+    if (!Number.isInteger(idx) || idx < 0 || idx >= videos.length) {
+      await res.reply(`Invalid index. Choose between 1 and ${videos.length}.`);
       return;
     }
 
@@ -80,23 +72,18 @@ export default new TXCommand({
 
     const link: string = `https://www.youtube.com/watch?v=${video.id}`;
 
-    const safeName: string = query
-      .replace(/[^a-z0-9]/gi, "_")
-      .slice(0, 40);
+    const safeName: string = query.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
 
     const filepath: string = path.resolve(
       __dirname,
-      `../../../../cache/${safeName}_${crypto.randomUUID()}.mp3`
+      `../../../../cache/${safeName}_${crypto.randomUUID()}.mp3`,
     );
 
     await ensurePath(filepath);
 
-    const { data: dl }: { data: { download?: string } } =
-      await axios.get(
-        `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(
-          link
-        )}`
-      );
+    const { data: dl }: { data: { download?: string } } = await axios.get(
+      `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(link)}`,
+    );
 
     if (!dl?.download) {
       await res.reply("Download service failed.");
@@ -111,15 +98,9 @@ export default new TXCommand({
   },
 });
 
-function formatMusicResult(
-  query: string,
-  result: MusicItem[]
-): string {
+function formatMusicResult(query: string, result: MusicItem[]): string {
   const formatted = result
-    .map(
-      (v, i) =>
-        `┊ ${i + 1}: 🎵 ${v.title}\n┊   👤 ${v.artist}`
-    )
+    .map((v, i) => `┊ ${i + 1}: 🎵 ${v.title}\n┊   👤 ${v.artist}`)
     .join("\n├───────────────\n");
 
   return `

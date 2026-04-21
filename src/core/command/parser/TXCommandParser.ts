@@ -161,10 +161,8 @@ export default class TXCommandArgumentParser {
   }
 
   private isValidToken(token: string) {
+    if (token.startsWith("--")) return true;
     if (/^[a-zA-Z0-9]+$/.test(token)) return true;
-
-    if (/^--[a-zA-Z0-9]+(=[^=\s]+)?$/.test(token)) return true;
-
     return false;
   }
 
