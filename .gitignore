@@ -3,3 +3,6 @@ node_modules
 dist
 cache
 .tsbuildinfo
+appstate.json
+Fca_Database
+temp

@@ -10,7 +10,7 @@ export default new TXCommand({
   usedStringFlags: ["tag"],
   minimumMentions: 0,
   execute: async (ctx, { adapter, stringFlags, args }) => {
-    let tag = stringFlags ? stringFlags["tag"] : "admin";
+    let tag = stringFlags?.["tag"] ? stringFlags["tag"] : "admin";
 
     let msg = createAnnouncementMsg(args.join(" "), tag);
     await adapter.announce(ctx, msg);
@@ -20,14 +20,12 @@ export default new TXCommand({
 function createAnnouncementMsg(content: string, tag: string) {
   let buffer = content
     .split("\n")
-    .map((c) => `┊  ${c}`)
+    .map((c) => `┊ ${c}`)
     .join("\n");
 
   return `
 ╭┈─ 📢 Announcement ◌ೄˊˎ
-┊
 ${buffer}
-┊
 ╰──────┈➤ ❝ [ ${tag} ]
 `.trim();
 }

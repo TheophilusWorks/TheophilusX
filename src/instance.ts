@@ -1,5 +1,6 @@
 import "dotenv/config";
 import TheophilusX from "./core/TheophilusX.js";
+import { readFileSync } from "fs";
 
 const instance = new TheophilusX({
   // Where commands and events are located.
@@ -29,7 +30,7 @@ const instance = new TheophilusX({
   platforms: {
     cli: true,
     discord: true,
-    facebookMessenger: false,
+    facebookMessenger: true,
   },
 
   // Admin IDs for each platform.
@@ -37,7 +38,7 @@ const instance = new TheophilusX({
   adminIds: [
     {
       discordId: "1264839050427367570",
-      facebookId: "",
+      facebookId: "61555836246766",
     },
   ],
 
@@ -46,7 +47,7 @@ const instance = new TheophilusX({
   // If you change this, your tokens will not be loaded and your bot will not work.
   token: {
     discordToken: process.env.DISCORD_TOKEN || "",
-    facebookAppstate: "",
+    facebookAppstate: readFileSync("./appstate.json", "utf8") || "",
   },
 
   mongoDbURI: process.env.MONGODB_URI || "",

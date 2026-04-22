@@ -20,6 +20,7 @@ import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./item-manager/TXItemManager.js";
+import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
 
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
@@ -187,24 +188,22 @@ export default class TheophilusX {
       this.cache.set("updateSchedule", new Date(0));
       this.cache.save();
       await adapter.reply(context, "Already up to date. No new commits.");
-      this.updateSchedule = undefined;
-      return;
+    } else {
+      const { stdout: logOutput } = await execAsync(
+        `git log ${before}..${after} --oneline`,
+      );
+
+      const commits = logOutput.trim().split("\n").filter(Boolean);
+      const commitLines = commits.map((line) => `• ${line}`).join("\n");
+
+      await adapter.reply(
+        context,
+        `Pulled ${commits.length} commit${commits.length === 1 ? "" : "s"}:\n${commitLines}`,
+      );
+
+      await adapter.reply(context, "Compiling...");
+      await execAsync("npx tsc");
     }
-
-    const { stdout: logOutput } = await execAsync(
-      `git log ${before}..${after} --oneline`,
-    );
-
-    const commits = logOutput.trim().split("\n").filter(Boolean);
-    const commitLines = commits.map((line) => `• ${line}`).join("\n");
-
-    await adapter.reply(
-      context,
-      `Pulled ${commits.length} commit${commits.length === 1 ? "" : "s"}:\n${commitLines}`,
-    );
-
-    await adapter.reply(context, "Compiling...");
-    await execAsync("npx tsc");
 
     await adapter.reply(context, "Restarting...");
 
@@ -307,7 +306,14 @@ export default class TheophilusX {
     }
 
     if (platforms.facebookMessenger) {
-      // TODO: Implement Facebook Messenger adapter
+      if (!token.facebookAppstate)
+        throw new Error(
+          "Facebook appstate path is required for Facebook Messenger platform",
+        );
+      this.adapterRegistry.add(
+        buildFacebookAdapter.default(this, token.facebookAppstate),
+        TXPlatform.FacebookMessenger,
+      );
     }
   }
 }

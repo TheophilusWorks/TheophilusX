@@ -22,12 +22,11 @@ const headers: Record<string, string> = {
 export default new TXCommand({
   name: "say",
   description: "Sends a TTS message",
-  usage: "joke {--lang=<language>}",
+  usage: "say {--lang=<language>}",
   minimumArguments: 0,
   cooldown: 5_000,
   aliases: ["tts", "talk"],
   minimumGroupedArguments: 0,
-  usedBooleanFlags: ["list-categories"],
   usedStringFlags: ["category"],
   minimumMentions: 0,
   execute: async (ctx, { adapter, stringFlags, args }) => {

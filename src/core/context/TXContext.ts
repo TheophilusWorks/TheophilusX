@@ -1,7 +1,7 @@
 export enum TXPlatform {
   Cli = "CLI",
   Discord = "DISCORD",
-  FavebookMessenger = "FACEBOOK_MESSENGER",
+  FacebookMessenger = "FACEBOOK_MESSENGER",
 }
 
 export interface TXIAuthor {
