@@ -28,6 +28,11 @@ export default new TXCommand({
       await adapter.reply(ctx, "I don't have any economy data.");
       return;
     }
+    
+    if (ctx.author.isEveryone) {
+      await adapter.reply(ctx, "@everyone don't any form of data.");
+      return
+    }
 
     await Users.findOneAndUpdate(
       queryUser(ctx.platform, targetUser.id),

@@ -5,6 +5,7 @@ import { getDirname } from "../../../utils/path.js";
 import path from "node:path";
 import crypto from "node:crypto";
 import { downloadFile } from "../../../utils/downloadFile.js";
+import fs from "node:fs/promises";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -73,11 +74,12 @@ export default new TXCommand({
     const link: string = `https://www.youtube.com/watch?v=${video.id}`;
 
     const safeName: string = query.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
-
     const filepath: string = path.resolve(
       __dirname,
       `../../../../cache/${safeName}_${crypto.randomUUID()}.mp3`,
     );
+
+    try {
 
     await ensurePath(filepath);
 
@@ -95,6 +97,9 @@ export default new TXCommand({
     await res.reply({
       attachments: [filepath],
     });
+    } finally {
+      await fs.unlink(filepath)
+    }
   },
 });
 

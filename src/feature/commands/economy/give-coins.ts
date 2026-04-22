@@ -22,6 +22,11 @@ export default new TXCommand({
       await adapter.reply(ctx, "I don't any form of data.");
       return;
     }
+    
+    if (ctx.author.isEveryone) {
+      await adapter.reply(ctx, "@everyone don't any form of data.");
+      return
+    }
 
     if (targetUser.id == ctx.author.id) {
       await adapter.reply(ctx, "You cannot give money to youself.");

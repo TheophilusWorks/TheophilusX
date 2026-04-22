@@ -12,6 +12,11 @@ export default new TXCommand({
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
     let target = ctx.mentions.length > 0 ? ctx.mentions[0] : ctx.author;
+    
+    if (ctx.author.isEveryone) {
+      await adapter.reply(ctx, "@everyone don't any form of data.");
+      return
+    }
 
     await adapter.reply(ctx, {
       parts: [

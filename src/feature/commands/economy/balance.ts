@@ -23,6 +23,11 @@ export default new TXCommand({
       adapter.reply(ctx, "I don't any form of data.");
       return;
     }
+    
+    if (ctx.author.isEveryone) {
+      await adapter.reply(ctx, "@everyone don't any form of data.");
+      return
+    }
 
     let parts: TXMessagePart[] = [];
 

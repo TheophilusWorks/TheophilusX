@@ -204,6 +204,7 @@ function buildCLIContext(raw: string): TXIContext {
       isSelf: false,
       avatarURL: undefined,
       isAdmin: true,
+      isEveryone: false,
     },
   };
 }

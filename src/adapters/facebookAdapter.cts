@@ -317,6 +317,7 @@ export default function buildFacebookAdapter(
         isAdmin,
         isSelf: selfID === event.senderID,
         avatarURL,
+        isEveryone: event.body?.includes("@everyone") ?? false,  // <-- add this
       },
       mentions: Object.entries(event.mentions ?? {}).map(([id, name]) => ({
         id,
@@ -327,6 +328,7 @@ export default function buildFacebookAdapter(
           false,
         isSelf: selfID === id,
         avatarURL,
+        isEveryone: false
       })),
       serverId: event.threadID,
       timestamp: event.timestamp ? new Date(event.timestamp) : new Date(),

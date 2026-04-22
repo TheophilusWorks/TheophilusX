@@ -11,6 +11,7 @@ export interface TXIAuthor {
   avatarURL?: string;
   isSelf: boolean;
   isAdmin: boolean;
+  isEveryone: boolean;
 }
 
 export interface TXIContext {

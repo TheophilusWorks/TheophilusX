@@ -21,6 +21,11 @@ export default new TXCommand({
     let targetStorage = args[0].toLowerCase();
     let amount = parseFloat(args[1]);
 
+    if (ctx.author.isEveryone) {
+      await adapter.reply(ctx, "@everyone don't any form of data.");
+      return
+    }
+
     if (!["coins", "bank"].includes(targetStorage)) {
       await adapter.reply(
         ctx,
