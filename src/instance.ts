@@ -19,7 +19,7 @@ const instance = new TheophilusX({
 
   // The admin prefix will trigger admin-only commwnds.
   // Can be a string or an array
-  adminPrefix: ["$", ">", "admin"],
+  adminPrefix: ["$", ">", "~"],
 
   // Platforms to enable.
   // Set to false to disable a platform.
@@ -30,7 +30,7 @@ const instance = new TheophilusX({
   platforms: {
     cli: true,
     discord: true,
-    facebookMessenger: true,
+    facebookMessenger: false,
   },
 
   // Admin IDs for each platform.
