@@ -15,6 +15,11 @@ export default new TXCommand({
     const { adapter } = cmdQuery;
     const isQuick = cmdQuery.booleanFlags?.["quick"] ?? false;
 
+    if (isQuick) {
+      instance.quickUpdate(adapter, ctx);
+      return;
+    }
+
     // TODO: add a way to not hardcode this.
     const time = new Date(Date.now() + 5 * 60_000).toLocaleTimeString("en-PH", {
       timeZone: "Asia/Manila",
@@ -47,11 +52,7 @@ latest changes and restarts.
 
     instance.executeAdminCommand(ctx, announcementQuery);
 
-    if (isQuick) {
-      instance.quickUpdate(adapter, ctx);
-    } else {
-      await adapter.reply(ctx, "Successfully announced an update...");
-      await instance.updateTheophilusX(adapter, ctx);
-    }
+    await adapter.reply(ctx, "Successfully announced an update...");
+    await instance.updateTheophilusX(adapter, ctx);
   },
 });
