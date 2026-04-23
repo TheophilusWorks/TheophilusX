@@ -18,7 +18,7 @@ export interface TXIContext {
   platform: TXPlatform;
   author: TXIAuthor;
   content: string;
-  channelId?: string;
+  channelId: string;
   serverId: string;
   timestamp: Date;
   raw: unknown;

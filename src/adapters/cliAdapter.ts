@@ -190,7 +190,7 @@ function buildCLIContext(raw: string): TXIContext {
   return {
     platform: TXPlatform.Cli,
     content: trimmed,
-    channelId: undefined,
+    channelId: "0",
     serverId: "0",
     timestamp: new Date(),
     raw,

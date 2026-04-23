@@ -1,5 +1,5 @@
 import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder.js";
-import { TXIContext } from "../core/context/TXContext.js";
+import { TXIAuthor, TXIContext } from "../core/context/TXContext.js";
 import TXICommandArgument from "./TXICommandArgument.js";
 
 export default interface TXEvents {
@@ -8,8 +8,12 @@ export default interface TXEvents {
     ctx: TXIContext,
     command: TXICommandArgument,
   ) => Promise<void>;
+
   adminCommandCreate: (
     ctx: TXIContext,
     command: TXICommandArgument,
   ) => Promise<void>;
+
+  userJoin: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>
+  userLeave: (ctx: TXIContext, adapter: TXAdapterBuilder) => Promise<void>
 }

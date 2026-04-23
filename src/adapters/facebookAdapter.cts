@@ -41,6 +41,10 @@ interface FcaEvent {
   messageID?: string;
   mentions?: Record<string, string>;
   isGroup?: boolean;
+  logMessageData?: {
+    addedParticipants?: { userFbId?: string; id?: string }[];
+    leftParticipantFbId?: string;
+  };
 }
 
 interface FcaThread {
@@ -70,13 +74,11 @@ function resolvePartsToFca(parts: TXMessagePart[] | undefined): {
     if (part.type === "text") {
       body += part.value;
     } else if (part.userId) {
-      // fix #8: guard — only treat as mention if userId is present
       const tag = `@${part.displayName ?? part.userId}`;
       const fromIndex = body.length;
       body += tag;
       mentions.push({ tag, id: part.userId, fromIndex });
     } else {
-      // malformed part — log and skip rather than silently corrupt the message
       console.warn("[FB] resolvePartsToFca: skipping malformed part:", part);
     }
   }
@@ -96,15 +98,12 @@ function resolveMessage(message: TXMessageOptions | string): {
   return {
     body,
     mentions,
-    // fix #3: store paths only — streams are opened inside fcaSend, not here
     attachmentPaths: message.attachments ?? [],
   };
 }
 
 // ---------------------------------------------------------------------------
 // fca sendMessage — promisified
-// fix #3: ReadStreams are created here, right before the actual send,
-// so they are never stale from sitting in the queue.
 // ---------------------------------------------------------------------------
 
 function fcaSend(
@@ -119,7 +118,6 @@ function fcaSend(
     const msg: Record<string, any> = {};
     if (body) msg.body = body;
     if (mentions.length > 0) msg.mentions = mentions;
-    // fix #3: open fresh ReadStreams here, not at resolveMessage time
     if (attachmentPaths.length > 0) {
       msg.attachment = attachmentPaths.map((p) => fs.createReadStream(p));
     }
@@ -159,7 +157,7 @@ function fetchAllGroupThreads(api: any): Promise<FcaThread[]> {
 }
 
 // ---------------------------------------------------------------------------
-// fix #4: MQTT reconnect with exponential backoff
+// MQTT reconnect with exponential backoff
 // ---------------------------------------------------------------------------
 
 const MQTT_RECONNECT_BASE_MS = 2_000;
@@ -192,11 +190,10 @@ function attachMqttReconnect(
           const newEmitter = api.listenMqtt();
           setMqttEmitter(newEmitter);
           attach(newEmitter);
-          attempt = 0; // reset on successful reconnect
+          attempt = 0;
           console.log("[FB] MQTT reconnected.");
         } catch (err) {
           console.error("[FB] MQTT reconnect failed:", err);
-          // trigger close again via a fake close so the backoff loop continues
           getMqttEmitter()?.emit("close");
         }
       }, delay);
@@ -209,7 +206,7 @@ function attachMqttReconnect(
 }
 
 // ---------------------------------------------------------------------------
-// fix #7: dedicated self-context builder for outbound messages
+// Self-context builder for outbound messages
 // ---------------------------------------------------------------------------
 
 function buildSelfContext(api: any, threadID: string, body: string): FcaEvent {
@@ -251,7 +248,6 @@ export default function buildFacebookAdapter(
           const typingMs = 300 + Math.random() * 500;
           await new Promise<void>((r) => setTimeout(r, typingMs));
 
-          // fix #3: attachmentPaths are passed through; streams open inside fcaSend
           const info = await fcaSend(
             api,
             threadID,
@@ -271,6 +267,7 @@ export default function buildFacebookAdapter(
   // ---------------------------------------------------------------------------
   // Context builder
   // ---------------------------------------------------------------------------
+
   async function resolveUserInfo(
     senderID: string,
   ): Promise<{ displayName: string; username: string; avatarURL?: string }> {
@@ -278,7 +275,6 @@ export default function buildFacebookAdapter(
 
     return new Promise((resolve) => {
       api.getUserInfo(senderID, (err: any, data: any) => {
-        // on error or missing data, fall back to ID gracefully
         const info =
           !err && data?.[senderID]
             ? {
@@ -317,7 +313,7 @@ export default function buildFacebookAdapter(
         isAdmin,
         isSelf: selfID === event.senderID,
         avatarURL,
-        isEveryone: event.body?.includes("@everyone") ?? false, // <-- add this
+        isEveryone: event.body?.includes("@everyone") ?? false,
       },
       mentions: Object.entries(event.mentions ?? {}).map(([id, name]) => ({
         id,
@@ -331,6 +327,7 @@ export default function buildFacebookAdapter(
         isEveryone: false,
       })),
       serverId: event.threadID,
+      channelId: event.threadID,
       timestamp: event.timestamp ? new Date(event.timestamp) : new Date(),
       metadata: {},
       replied: false,
@@ -419,6 +416,7 @@ export default function buildFacebookAdapter(
             logLevel: "silent",
             autoMarkDelivery: false,
             autoMarkRead: false,
+            updatePresence: false,
           });
 
           api.on?.("sessionExpired", () =>
@@ -440,7 +438,6 @@ export default function buildFacebookAdapter(
         });
       });
 
-      // fix #4: use attachMqttReconnect instead of raw mqttEmitter.on
       mqttEmitter = api.listenMqtt();
 
       attachMqttReconnect(
@@ -450,6 +447,61 @@ export default function buildFacebookAdapter(
           mqttEmitter = e;
         },
         async (event: FcaEvent) => {
+          // -----------------------------------------------------------------
+          // userJoin — someone was added to the group
+          // -----------------------------------------------------------------
+          if (event.type === "log:subscribe") {
+            const addedIDs: string[] =
+              event.logMessageData?.addedParticipants
+                ?.map((p) => p.userFbId ?? p.id)
+                .filter((id): id is string => Boolean(id)) ?? [];
+
+            for (const uid of addedIDs) {
+              const isAdmin =
+                bot
+                  .getConfig()
+                  .adminIds?.some((a: any) => a.facebookId === uid) ?? false;
+
+              const ctx = await buildFacebookContext(isAdmin, {
+                type: "log:subscribe",
+                threadID: event.threadID,
+                senderID: uid,
+                timestamp: event.timestamp,
+              });
+
+              bot.emit("userJoin", ctx, adapter);
+            }
+            return;
+          }
+
+          // -----------------------------------------------------------------
+          // userLeave — someone left or was removed from the group
+          // -----------------------------------------------------------------
+          if (event.type === "log:unsubscribe") {
+            const leftID: string =
+              event.logMessageData?.leftParticipantFbId ?? event.senderID;
+
+            if (leftID) {
+              const isAdmin =
+                bot
+                  .getConfig()
+                  .adminIds?.some((a: any) => a.facebookId === leftID) ?? false;
+
+              const ctx = await buildFacebookContext(isAdmin, {
+                type: "log:unsubscribe",
+                threadID: event.threadID,
+                senderID: leftID,
+                timestamp: event.timestamp,
+              });
+
+              bot.emit("userLeave", ctx, adapter);
+            }
+            return;
+          }
+
+          // -----------------------------------------------------------------
+          // Regular messages
+          // -----------------------------------------------------------------
           if (event.type !== "message" && event.type !== "message_reply")
             return;
           if (!event.body?.trim()) return;
@@ -500,7 +552,6 @@ export default function buildFacebookAdapter(
       const { body, mentions, attachmentPaths } = resolveMessage(message);
       const info = await queuedSend(target, body, mentions, attachmentPaths);
 
-      // fix #7: use buildSelfContext to make intent explicit
       const ctx = await buildFacebookContext(
         false,
         buildSelfContext(api, target, body),
@@ -552,7 +603,6 @@ export default function buildFacebookAdapter(
             attachmentPaths,
           );
 
-          // fix #7: use buildSelfContext
           const ctx = await buildFacebookContext(
             false,
             buildSelfContext(api, thread.threadID, body),
@@ -573,6 +623,7 @@ export default function buildFacebookAdapter(
 
       return first;
     })
+
     .setUserResolver(async (userId) => {
       try {
         const { displayName, username, avatarURL } =

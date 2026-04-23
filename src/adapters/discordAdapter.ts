@@ -2,6 +2,7 @@ import {
   Client,
   EmbedBuilder,
   GatewayIntentBits,
+  GuildMember,
   Message,
   Options,
   Partials,
@@ -70,6 +71,23 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
     .setLoginManager(async () => {
       await client.login(token);
 
+      client.on("guildMemberAdd", (member) => {
+        const isAdmin =
+          bot.getConfig().adminIds?.some((id) => id.discordId === member.id) ??
+          false;
+
+        const ctx = buildDiscordContext(client, isAdmin, member);
+        bot.emit("userJoin", ctx, adapter);
+      });
+
+      client.on("guildMemberRemove", (member) => {
+        const isAdmin =
+          bot.getConfig().adminIds?.some((id) => id.discordId === member.id) ??
+          false;
+
+        const ctx = buildDiscordContext(client, isAdmin, member as GuildMember);
+        bot.emit("userLeave", ctx, adapter);
+      });
       client.on("messageCreate", async (message) => {
         const msg = message as Message;
 
@@ -246,40 +264,71 @@ function discordWaitReply(client: Client, sentMessageId: string) {
 function buildDiscordContext(
   client: Client,
   isAdmin: boolean,
-  msg: Message,
+  raw: unknown,
 ): TXIContext {
+  if (raw && raw instanceof Message) {
+    let msg = raw as Message;
+    return {
+      platform: TXPlatform.Discord,
+      content: msg.content,
+      author: {
+        id: msg.author.id,
+        displayName: msg.member?.displayName ?? msg.author.username,
+        username: msg.author.username,
+        isAdmin,
+        isSelf: client.user?.id === msg.author.id,
+        avatarURL: msg.author.avatarURL() ?? undefined,
+        isEveryone: msg.mentions.everyone,
+      },
+      mentions: msg.mentions.users.map((user) => {
+        const member = msg.guild?.members.cache.get(user.id);
+        return {
+          id: user.id,
+          displayName: member?.displayName ?? user.username,
+          username: user.username,
+          isAdmin:
+            instance
+              .getConfig()
+              .adminIds?.some((a) => a.discordId === user.id) ?? false,
+          isSelf: client.user?.id === user.id,
+          avatarURL: user.avatarURL() ?? undefined,
+          isEveryone: false,
+        };
+      }),
+      channelId: msg.channelId,
+      serverId: msg.guildId ?? "0",
+      timestamp: msg.createdAt,
+      metadata: {},
+      replied: false,
+      raw,
+    };
+  }
+  let member = raw as GuildMember;
+  const welcomeChannel =
+    member.guild.systemChannel?.id ??
+    member.guild.channels.cache.find((c) => c.isTextBased() && c.isSendable())
+      ?.id ??
+    "";
+
   return {
     platform: TXPlatform.Discord,
-    content: msg.content,
+    content: "",
     author: {
-      id: msg.author.id,
-      displayName: msg.member?.displayName ?? msg.author.username,
-      username: msg.author.username,
+      id: member.id,
+      displayName: member.displayName,
+      username: member.user.username,
       isAdmin,
-      isSelf: client.user?.id === msg.author.id,
-      avatarURL: msg.author.avatarURL() ?? undefined,
-      isEveryone: msg.mentions.everyone,
+      isSelf: client.user?.id === member.id,
+      avatarURL: member.user.avatarURL() ?? undefined,
+      isEveryone: false,
     },
-    mentions: msg.mentions.users.map((user) => {
-      const member = msg.guild?.members.cache.get(user.id);
-      return {
-        id: user.id,
-        displayName: member?.displayName ?? user.username,
-        username: user.username,
-        isAdmin:
-          instance.getConfig().adminIds?.some((a) => a.discordId === user.id) ??
-          false,
-        isSelf: client.user?.id === user.id,
-        avatarURL: user.avatarURL() ?? undefined,
-        isEveryone: false,
-      };
-    }),
-    channelId: msg.channelId,
-    serverId: msg.guildId ?? "0",
-    timestamp: msg.createdAt,
+    mentions: [],
+    channelId: welcomeChannel,
+    serverId: member.guild.id,
+    timestamp: new Date(),
     metadata: {},
     replied: false,
-    raw: msg,
+    raw,
   };
 }
 
