@@ -30,7 +30,7 @@ const instance = new TheophilusX({
   platforms: {
     cli: true,
     discord: true,
-    facebookMessenger: false,
+    facebookMessenger: true,
   },
 
   // Admin IDs for each platform.
@@ -47,7 +47,7 @@ const instance = new TheophilusX({
   // If you change this, your tokens will not be loaded and your bot will not work.
   token: {
     discordToken: process.env.DISCORD_TOKEN || "",
-    facebookAppstate: readFileSync("./appstate.json", "utf8") || "",
+    facebookAppstate: process.env.FACEBOOK_APPSTATE || "",
   },
 
   mongoDbURI: process.env.MONGODB_URI || "",
