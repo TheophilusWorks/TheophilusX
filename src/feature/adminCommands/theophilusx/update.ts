@@ -5,13 +5,15 @@ import TXICommandArgument from "../../../types/TXICommandArgument.js";
 export default new TXCommand({
   name: "update",
   description: "Fetches latest source from repo, compiles, and restarts",
-  usage: "update",
+  usage: "update {--quick}",
   minimumArguments: 0,
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   minimumMentions: 0,
+  usedBooleanFlags: ["quick"],
   execute: async (ctx, cmdQuery) => {
     const { adapter } = cmdQuery;
+    const isQuick = cmdQuery.booleanFlags?.["quick"] ?? false;
 
     // TODO: add a way to not hardcode this.
     const time = new Date(Date.now() + 5 * 60_000).toLocaleTimeString("en-PH", {
@@ -44,7 +46,12 @@ latest changes and restarts.
     };
 
     instance.executeAdminCommand(ctx, announcementQuery);
-    await adapter.reply(ctx, "Successfully announced an update...");
-    await instance.updateTheophilusX(adapter, ctx);
+
+    if (isQuick) {
+      instance.quickUpdate(adapter, ctx);
+    } else {
+      await adapter.reply(ctx, "Successfully announced an update...");
+      await instance.updateTheophilusX(adapter, ctx);
+    }
   },
 });
