@@ -51,11 +51,13 @@ export default new TXCommand({
       let slotResult = slotSpin();
       let oldBalance = user.economy.coins;
       let matches = getMatches(slotResult);
-      let coinDelta = round2(bet * getMultiplier(matches));
+      let multiplier = getMultiplier(matches);
+      let coinDelta = round2(bet * multiplier);
       let newBalance = await updateUserCoins(coinDelta, ctx);
       let formatResult = formatSlotResult(
         slotResult,
         bet,
+        multiplier,
         coinDelta,
         oldBalance,
         newBalance,
@@ -120,13 +122,15 @@ function getFooter(matches: number): string {
 function formatSlotResult(
   reel: string[],
   betAmount: number,
+  multiplier: number,
   coinDelta: number,
   oldBalance: number,
   newBalance: number,
 ): string {
   let bet = round2(betAmount);
   let matches = getMatches(reel);
-  let winAmount = coinDelta >= 0 ? `+${coinDelta}` : `${coinDelta}`;
+  let multiplierDisplay = multiplier > 0 ? ` ×${multiplier}` : "";
+  let winAmount = coinDelta >= 0 ? `+${coinDelta*multiplier}` : `${coinDelta}`;
 
   return `  ↳ ❝ [ Slot Machine ] ¡! ❞
 ⁀➷ ${getHeader(matches)}
@@ -139,7 +143,7 @@ function formatSlotResult(
 ╭┈ Result : ̗̀➛
 ┊ 🎯 Outcome:  ${getOutcomeLabel(matches)}
 ┊ 💰 Bet:      ${bet} coins
-┊ 🪙 ${oldBalance} → ${newBalance} (${winAmount})
+┊ 🪙 ${oldBalance} → ${newBalance} (${winAmount}${multiplierDisplay})
 ╰────────────┈➤
 
 𓆩⟡𓆪 ${getFooter(matches)}`;
