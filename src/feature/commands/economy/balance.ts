@@ -23,10 +23,10 @@ export default new TXCommand({
       adapter.reply(ctx, "I don't any form of data.");
       return;
     }
-    
+
     if (ctx.author.isEveryone) {
       await adapter.reply(ctx, "@everyone don't any form of data.");
-      return
+      return;
     }
 
     let parts: TXMessagePart[] = [];
@@ -48,10 +48,32 @@ export default new TXCommand({
 async function inspectSelf(target: string, platform: TXPlatform) {
   let user = await Users.findOneAndUpdate(
     queryUser(platform, target),
-    {
-      $setOnInsert: { economy: initializeUserEconomy() },
-    },
-    { upsert: true, returnDocument: "after" },
+    [
+      {
+        $set: {
+          economy: {
+            $cond: {
+              if: { $eq: ["$economy", null] },
+              then: initializeUserEconomy(),
+              else: {
+                $mergeObjects: [
+                  "$economy",
+                  {
+                    totalBalance: {
+                      $add: [
+                        { $ifNull: ["$economy.coins", 0] },
+                        { $ifNull: ["$economy.bankBalance", 0] },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+    { upsert: true, returnDocument: "after", updatePipeline: true },
   );
 
   return [
@@ -59,7 +81,8 @@ async function inspectSelf(target: string, platform: TXPlatform) {
     text(`Your Balance`),
     text("\n﹌﹌﹌﹌﹌﹌﹌﹌﹌\n"),
     text(`⛃⛂ Coins: ${user.economy?.coins}\n`),
-    text(`🏦💸 Bank balance: ${user.economy?.bankBalance}\n`),
+    text(`🏦 Bank balance: ${user.economy?.bankBalance}\n`),
+    text(`💰 Total balance: ${user.economy?.totalBalance}\n`),
   ];
 }
 
@@ -70,10 +93,32 @@ async function inspectUser(
 ) {
   let user = await Users.findOneAndUpdate(
     queryUser(platform, target),
-    {
-      $setOnInsert: { economy: initializeUserEconomy() },
-    },
-    { upsert: true, returnDocument: "after" },
+    [
+      {
+        $set: {
+          economy: {
+            $cond: {
+              if: { $eq: ["$economy", null] },
+              then: initializeUserEconomy(),
+              else: {
+                $mergeObjects: [
+                  "$economy",
+                  {
+                    totalBalance: {
+                      $add: [
+                        { $ifNull: ["$economy.coins", 0] },
+                        { $ifNull: ["$economy.bankBalance", 0] },
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
+    { upsert: true, returnDocument: "after", updatePipeline: true },
   );
 
   return [
@@ -83,5 +128,6 @@ async function inspectUser(
     text("\n﹌﹌﹌﹌﹌﹌﹌﹌﹌\n"),
     text(`⛃⛂ Coins: ${user.economy?.coins}\n`),
     text(`🏦💸 Bank balance: ${user.economy?.bankBalance}\n`),
+    text(`💰 Total balance: ${user.economy?.totalBalance}\n`),
   ];
 }

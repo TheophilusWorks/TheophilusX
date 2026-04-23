@@ -8,6 +8,10 @@ const userSchema = new Schema(
       enum: Object.values(TXPlatform),
       required: true,
     },
+    username: {
+      type: String,
+      required: true,
+    },
     userId: {
       type: String,
       required: true,
@@ -15,6 +19,10 @@ const userSchema = new Schema(
 
     economy: {
       coins: {
+        type: Number,
+        default: 0,
+      },
+      totalBalance: {
         type: Number,
         default: 0,
       },
@@ -69,6 +77,7 @@ export function initializeUserEconomy(): UserEconomy {
   return {
     coins: 0,
     bankBalance: 0,
+    totalBalance: 0,
     nextDaily: null,
     nextWork: null,
     level: 1,

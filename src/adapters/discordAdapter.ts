@@ -160,6 +160,32 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       }
 
       return first;
+    })
+
+    .setUserResolver(async (userId) => {
+      try {
+        const user = await client.users.fetch(userId);
+
+        // try to find a guild member entry for the display name
+        const member = client.guilds.cache
+          .map((g) => g.members.cache.get(userId))
+          .find(Boolean);
+
+        return {
+          id: user.id,
+          displayName: member?.displayName ?? user.username,
+          username: user.username,
+          avatarURL: user.avatarURL() ?? undefined,
+          isAdmin:
+            instance
+              .getConfig()
+              .adminIds?.some((a) => a.discordId === user.id) ?? false,
+          isSelf: client.user?.id === user.id,
+          isEveryone: false,
+        };
+      } catch {
+        return null;
+      }
     });
 
   return adapter;
@@ -245,7 +271,7 @@ function buildDiscordContext(
           false,
         isSelf: client.user?.id === user.id,
         avatarURL: user.avatarURL() ?? undefined,
-        isEveryone: false
+        isEveryone: false,
       };
     }),
     channelId: msg.channelId,

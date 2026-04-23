@@ -1,4 +1,4 @@
-import { TXIContext } from "../context/TXContext.js";
+import { TXIAuthor, TXIContext } from "../context/TXContext.js";
 import TXMessageOptions from "../message/TXMessageOptions.js";
 import TXSentMessage from "../message/TXSentMessage.js";
 
@@ -16,6 +16,7 @@ export default class TXAdapterBuilder {
     ctx: TXIContext,
     message: TXMessageOptions | string,
   ) => Promise<TXSentMessage | null>;
+  public userResolver: (userId: string) => Promise<TXIAuthor | null>;
 
   constructor() {
     this.loginManager = async () => {
@@ -28,7 +29,10 @@ export default class TXAdapterBuilder {
       throw new Error("replySender not set");
     };
     this.announcementSender = async () => {
-      throw new Error("replySender not set");
+      throw new Error("announcementSender not set");
+    };
+    this.userResolver = async () => {
+      throw new Error("userResolver not set");
     };
   }
 
@@ -67,6 +71,13 @@ export default class TXAdapterBuilder {
     return this;
   }
 
+  public setUserResolver(
+    callback: (userId: string) => Promise<TXIAuthor | null>,
+  ) {
+    this.userResolver = callback;
+    return this;
+  }
+
   public async login() {
     await this.loginManager();
   }
@@ -96,5 +107,9 @@ export default class TXAdapterBuilder {
     const sent = await this.announcementSender(ctx, message);
     if (!sent) throw new Error("Failed to send reply");
     return sent;
+  }
+
+  public async resolveUser(userId: string): Promise<TXIAuthor | null> {
+    return this.userResolver(userId);
   }
 }

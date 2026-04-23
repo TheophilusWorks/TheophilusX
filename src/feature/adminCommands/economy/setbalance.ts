@@ -23,7 +23,7 @@ export default new TXCommand({
 
     if (ctx.author.isEveryone) {
       await adapter.reply(ctx, "@everyone don't any form of data.");
-      return
+      return;
     }
 
     if (!["coins", "bank"].includes(targetStorage)) {
@@ -33,8 +33,6 @@ export default new TXCommand({
       );
       return;
     }
-
-    console.log(targetStorage);
 
     if (isNaN(amount) || amount < 0) {
       await adapter.reply(

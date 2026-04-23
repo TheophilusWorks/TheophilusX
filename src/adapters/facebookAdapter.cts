@@ -317,7 +317,7 @@ export default function buildFacebookAdapter(
         isAdmin,
         isSelf: selfID === event.senderID,
         avatarURL,
-        isEveryone: event.body?.includes("@everyone") ?? false,  // <-- add this
+        isEveryone: event.body?.includes("@everyone") ?? false, // <-- add this
       },
       mentions: Object.entries(event.mentions ?? {}).map(([id, name]) => ({
         id,
@@ -328,7 +328,7 @@ export default function buildFacebookAdapter(
           false,
         isSelf: selfID === id,
         avatarURL,
-        isEveryone: false
+        isEveryone: false,
       })),
       serverId: event.threadID,
       timestamp: event.timestamp ? new Date(event.timestamp) : new Date(),
@@ -572,6 +572,28 @@ export default function buildFacebookAdapter(
       }
 
       return first;
+    })
+    .setUserResolver(async (userId) => {
+      try {
+        const { displayName, username, avatarURL } =
+          await resolveUserInfo(userId);
+        const selfID: string = api?.getCurrentUserID?.() ?? "";
+
+        return {
+          id: userId,
+          displayName,
+          username,
+          avatarURL,
+          isAdmin:
+            bot
+              .getConfig()
+              .adminIds?.some((a: any) => a.facebookId === userId) ?? false,
+          isSelf: selfID === userId,
+          isEveryone: false,
+        };
+      } catch {
+        return null;
+      }
     });
 
   return adapter;
