@@ -6,6 +6,9 @@ import { ensurePath } from "../../../utils/ensurePath.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
+import { getDirname } from "../../../utils/path.js";
+
+let __dirname = getDirname(import.meta.url);
 
 export default new TXCommand({
   name: "billboard",
