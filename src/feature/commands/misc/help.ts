@@ -7,7 +7,7 @@ export default new TXCommand({
   description: "Shows the help menu",
   usage: "help (--cmd=<command name>) (--page=<page number>)",
   minimumArguments: 0,
-  cooldown: 5_000, // 5s
+  cooldown: 10_000, // 10s
   minimumGroupedArguments: 0,
   aliases: ["h"],
   usedStringFlags: ["cmd", "page"],

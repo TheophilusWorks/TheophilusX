@@ -12,7 +12,7 @@ export default new TXCommand({
   description: "Claim your daily rewards here",
   usage: "daily",
   minimumArguments: 0,
-  cooldown: 5_000, // 5s
+  cooldown: 10_000, // 10s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {

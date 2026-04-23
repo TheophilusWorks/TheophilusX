@@ -12,7 +12,7 @@ export default new TXCommand({
   description: "View the top users in the economy",
   usage: "top",
   minimumArguments: 0,
-  cooldown: 5_000, // 5s
+  cooldown: 10_000, // 5s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {

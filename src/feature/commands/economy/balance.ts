@@ -13,7 +13,7 @@ export default new TXCommand({
   usage: "balance",
   minimumArguments: 0,
   aliases: ["bal"],
-  cooldown: 5_000, // 5s
+  cooldown: 10_000, // 10s
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
