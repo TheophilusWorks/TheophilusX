@@ -21,7 +21,10 @@ import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./item-manager/TXItemManager.js";
 import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
+import fs from "fs";
+import os from "os";
 
+export const CACHE_DIR = path.join(os.tmpdir(), "cache");
 const __dirname = getDirname(import.meta.url);
 GlobalFonts.registerFromPath(
   path.resolve(__dirname, "../../assets/Montserrat-Bold.ttf"),
@@ -228,6 +231,9 @@ export default class TheophilusX {
   public async start() {
     this.logger.log("Starting TheophilusX...", DebugLevel.Info);
 
+    // setup cache directory
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+
     try {
       await this.databaseManager.connect();
       await this.itemManager.load();
@@ -306,10 +312,14 @@ export default class TheophilusX {
     }
 
     if (platforms.facebookMessenger) {
-      if (!token.facebookAppstate)
-        throw new Error(
-          "Facebook appstate path is required for Facebook Messenger platform",
+      if (!token.facebookAppstate) {
+        this.logger.log(
+          "No appstate found for Facebook Messenger. Assuming it's currently in development mode. Skipping Registration.",
+          DebugLevel.Warn,
         );
+        return;
+      }
+
       this.adapterRegistry.add(
         buildFacebookAdapter.default(this, token.facebookAppstate),
         TXPlatform.FacebookMessenger,

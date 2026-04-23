@@ -1,6 +1,7 @@
 import "dotenv/config";
 import TheophilusX from "./core/TheophilusX.js";
-import { readFileSync } from "fs";
+import os from "os";
+import path from "path";
 
 const instance = new TheophilusX({
   // Where commands and events are located.
@@ -10,7 +11,7 @@ const instance = new TheophilusX({
   adminCommandsPath: "./dist/feature/adminCommands/",
   eventsPath: "./dist/feature/events/",
   itemsPath: "./dist/feature/items/",
-  cachePath: "./cache/tx-state.json",
+  cachePath: path.resolve(os.tmpdir(), "tx-state.json"),
   debugLogs: true,
 
   // The prefix(es) that will trigger commands.

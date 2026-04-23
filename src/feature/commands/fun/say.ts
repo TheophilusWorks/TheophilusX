@@ -3,6 +3,7 @@ import { getDirname } from "../../../utils/path.js";
 import path from "node:path";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import fs from "fs/promises";
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 const __dirname = getDirname(import.meta.url);
 const headers: Record<string, string> = {
@@ -35,10 +36,7 @@ export default new TXCommand({
       ? stringFlags["lang"].toLowerCase()
       : "en";
 
-    let filepath = path.resolve(
-      __dirname,
-      `../../../../cache/say_${crypto.randomUUID()}.mp3`,
-    );
+    let filepath = path.resolve(CACHE_DIR, `say_${crypto.randomUUID()}.mp3`);
     await downloadFile(
       `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(msg)}&tl=${language}&client=tw-ob`,
       filepath,

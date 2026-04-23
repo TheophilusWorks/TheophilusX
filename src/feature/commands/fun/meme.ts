@@ -5,6 +5,7 @@ import path from "node:path";
 import { getDirname } from "../../../utils/path.js";
 import fs from "fs/promises";
 import { downloadFile } from "../../../utils/downloadFile.js";
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -42,8 +43,8 @@ Post link: ${postLink}
 `.trim();
 
     let filepath = path.resolve(
-      __dirname,
-      `../../../../cache/meme_${crypto.randomUUID()}.${extension}`,
+      CACHE_DIR,
+      `meme_${crypto.randomUUID()}.${extension}`,
     );
     await downloadFile(url as string, filepath);
     await adapter.reply(ctx, {

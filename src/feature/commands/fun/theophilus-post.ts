@@ -6,9 +6,9 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { fitText } from "../../../utils/fitText.js";
 import { getDirname } from "../../../utils/path.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 const __dirname = getDirname(import.meta.url);
-const CACHE_DIR = path.resolve(__dirname, "../../../../cache/");
 
 export default new TXCommand({
   name: "theophilus-post",

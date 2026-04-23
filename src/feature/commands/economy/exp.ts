@@ -8,6 +8,7 @@ import fs from "fs/promises";
 import path from "path";
 import { getDirname } from "../../../utils/path.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 Font.loadDefault();
 let __dirname = getDirname(import.meta.url);
@@ -28,10 +29,10 @@ export default new TXCommand({
       await adapter.reply(ctx, "I don't have any economy data.");
       return;
     }
-    
+
     if (ctx.author.isEveryone) {
       await adapter.reply(ctx, "@everyone don't any form of data.");
-      return
+      return;
     }
 
     await Users.findOneAndUpdate(
@@ -67,8 +68,8 @@ export default new TXCommand({
 
     const image = await card.build({ format: "png" });
     const tmpPath = path.join(
-      __dirname,
-      `../../../../cache/rank_${targetUser.id}_${Date.now()}.png`,
+      CACHE_DIR,
+      `rank_${targetUser.id}_${Date.now()}.png`,
     );
 
     try {

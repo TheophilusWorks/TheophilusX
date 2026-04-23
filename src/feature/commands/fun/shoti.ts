@@ -6,6 +6,7 @@ import path from "node:path";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import { unlink } from "node:fs/promises";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -39,8 +40,8 @@ export default new TXCommand({
     const video = videos[rng];
 
     const filepath = path.resolve(
-      __dirname,
-      `../../../../cache/shoti_${crypto.randomUUID()}.mp4`,
+      CACHE_DIR,
+      `shoti_${crypto.randomUUID()}.mp4`,
     );
 
     await downloadFile(video.play, filepath);

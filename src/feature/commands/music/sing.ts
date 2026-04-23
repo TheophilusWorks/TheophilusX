@@ -1,13 +1,11 @@
 import TXCommand from "../../../core/command/TXCommand.js";
 import axios from "axios";
 import { ensurePath } from "../../../utils/ensurePath.js";
-import { getDirname } from "../../../utils/path.js";
-import path from "node:path";
 import crypto from "node:crypto";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import fs from "node:fs/promises";
-
-const __dirname = getDirname(import.meta.url);
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
+import path from "node:path";
 
 type MusicItem = {
   id: string;
@@ -75,30 +73,29 @@ export default new TXCommand({
 
     const safeName: string = query.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
     const filepath: string = path.resolve(
-      __dirname,
-      `../../../../cache/${safeName}_${crypto.randomUUID()}.mp3`,
+      CACHE_DIR,
+      `${safeName}_${crypto.randomUUID()}.mp3`,
     );
 
     try {
+      await ensurePath(filepath);
 
-    await ensurePath(filepath);
+      const { data: dl }: { data: { download?: string } } = await axios.get(
+        `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(link)}`,
+      );
 
-    const { data: dl }: { data: { download?: string } } = await axios.get(
-      `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(link)}`,
-    );
+      if (!dl?.download) {
+        await res.reply("Download service failed.");
+        return;
+      }
 
-    if (!dl?.download) {
-      await res.reply("Download service failed.");
-      return;
-    }
+      await downloadFile(dl.download, filepath);
 
-    await downloadFile(dl.download, filepath);
-
-    await res.reply({
-      attachments: [filepath],
-    });
+      await res.reply({
+        attachments: [filepath],
+      });
     } finally {
-      await fs.unlink(filepath)
+      await fs.unlink(filepath);
     }
   },
 });

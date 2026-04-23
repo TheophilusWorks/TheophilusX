@@ -3,12 +3,9 @@ import fs from "fs/promises";
 import path from "path";
 import { fitText } from "../../../utils/fitText.js";
 import { ensurePath } from "../../../utils/ensurePath.js";
-import { getDirname } from "../../../utils/path.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-
-const __dirname = getDirname(import.meta.url);
-const CACHE_DIR = path.resolve(__dirname, "../../../../cache");
+import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
 export default new TXCommand({
   name: "billboard",
