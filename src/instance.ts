@@ -30,7 +30,7 @@ const instance = new TheophilusX({
   platforms: {
     cli: true,
     discord: true,
-    facebookMessenger: true,
+    facebookMessenger: false,
   },
 
   // Admin IDs for each platform.
