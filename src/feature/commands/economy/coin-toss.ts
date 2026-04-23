@@ -3,8 +3,7 @@ import Users, {
   queryUser,
   initializeUserEconomy,
 } from "../../../core/database/model/Users.js";
-import { TXIContext } from "../../../core/context/TXContext.js";
-import mongoose from "mongoose";
+import { updateUserCoins } from "../../utils/database/updateUserCoins.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -74,27 +73,6 @@ export default new TXCommand({
   },
 });
 
-async function updateUserCoins(amount: number, ctx: TXIContext) {
-  let session = await mongoose.startSession();
-  let newBalance = 0;
-
-  try {
-    await session.withTransaction(async () => {
-      let user = await Users.findOneAndUpdate(
-        queryUser(ctx.platform, ctx.author.id),
-        { $inc: { "economy.coins": amount } },
-        { session, returnDocument: "after" },
-      );
-
-      newBalance = user?.economy?.coins || 0;
-    });
-  } finally {
-    session.endSession();
-  }
-
-  return newBalance;
-}
-
 function answerIsCorrect(userSide: string, computedSide: string) {
   return userSide === computedSide;
 }
@@ -128,7 +106,7 @@ function loseMessage(
   oldBalance: number,
   newBalance: number,
 ) {
-  let bet = round2(betAmount)
+  let bet = round2(betAmount);
   return `  ↳ ❝ [ Coin Toss ] ¡! ❞
 ⁀➷ The coin has spoken... luck wasn't on your side. 😔
         ◇─◇───◇─◇
