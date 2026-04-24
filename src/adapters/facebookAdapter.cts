@@ -221,15 +221,17 @@ export default function buildFacebookAdapter(
   let api: any = null;
 
   // stopListening is the function returned by api.listenMqtt() — calling it
-  // shuts down the MQTT connection cleanly.
+  // shuts down the MQTT connection cleanly before reconnecting.
   let stopListening: (() => void) | null = null;
 
-  // All active waitReply handlers subscribe here. The main onMessage loop
-  // fans events out to them, replacing the old mqttEmitter.on("message") pattern.
+  // All active waitReply handlers subscribe here.
   const replyListeners = new Set<(event: FcaEvent) => void>();
 
   const rateLimiter = new TXRateLimiter(options.rateLimit);
   const queue = new TXMessageQueue(options.queue);
+
+  // Appstate auto-save interval handle — cleared on shutdown
+  let appStateSaveInterval: ReturnType<typeof setInterval> | null = null;
 
   function queuedSend(
     threadID: string,
@@ -297,8 +299,6 @@ export default function buildFacebookAdapter(
   ): Promise<TXIContext> {
     const selfID: string = api?.getCurrentUserID?.() ?? "";
 
-    // For log:subscribe / log:unsubscribe, senderID may be a newly added user
-    // that getUserInfo might not resolve cleanly — fallback gracefully
     const { displayName, username, avatarURL } = await resolveUserInfo(
       event.senderID,
     ).catch(() => ({
@@ -307,7 +307,6 @@ export default function buildFacebookAdapter(
       avatarURL: undefined,
     }));
 
-    // Build explicit mentions from the event
     const mentionsMap = new Map<
       string,
       {
@@ -335,7 +334,6 @@ export default function buildFacebookAdapter(
       });
     }
 
-    // Implicit mention: if this is a reply, add the replied-to sender
     if (event.type === "message_reply") {
       const repliedSenderID: string | undefined = (event as any).messageReply
         ?.senderID;
@@ -393,7 +391,7 @@ export default function buildFacebookAdapter(
   }
 
   // ---------------------------------------------------------------------------
-  // Central event handler — every MQTT event flows through here
+  // Central event handler
   // ---------------------------------------------------------------------------
 
   async function onMqttEvent(event: FcaEvent) {
@@ -497,28 +495,62 @@ export default function buildFacebookAdapter(
 
   // ---------------------------------------------------------------------------
   // MQTT connection with exponential backoff reconnect
+  //
+  // FIX: stopListening() MUST be called before starting a new listenMqtt()
+  // call. Without this, the old MQTT connection lingers and fights the new
+  // one, causing the "Connection refused: Server unavailable" loop you were
+  // seeing — Facebook rejects a second simultaneous MQTT connection from the
+  // same session.
   // ---------------------------------------------------------------------------
 
   const MQTT_RECONNECT_BASE_MS = 2_000;
   const MQTT_RECONNECT_MAX_MS = 60_000;
   let reconnectAttempt = 0;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let mqttStopped = false; // guard against reconnect after intentional shutdown
 
   function startMqtt() {
-    stopListening = api.listenMqtt(async (err: any, event: FcaEvent) => {
-      if (err) {
-        console.error("[FB] MQTT error:", err);
-        scheduleReconnect();
-        return;
-      }
-      await onMqttEvent(event);
-    });
+    if (mqttStopped) return;
 
-    console.log("[FB] MQTT listening started.");
-    reconnectAttempt = 0;
+    // Always tear down the previous listener before starting a new one.
+    // Per fca-unofficial docs: calling stopListening() when an error occurs
+    // prevents the old listen loop from continuing.
+    if (stopListening) {
+      try {
+        stopListening();
+      } catch {
+        // ignore — old connection may already be dead
+      }
+      stopListening = null;
+    }
+
+    try {
+      stopListening = api.listenMqtt(async (err: any, event: FcaEvent) => {
+        if (err) {
+          console.error("[FB] MQTT error:", err?.message ?? err);
+          // Call stopListening immediately on error per fca docs — this
+          // prevents the old listener from firing again.
+          if (stopListening) {
+            try { stopListening(); } catch { /* ignore */ }
+            stopListening = null;
+          }
+          scheduleReconnect();
+          return;
+        }
+
+        reconnectAttempt = 0; // reset backoff on successful event
+        await onMqttEvent(event);
+      });
+
+      console.log("[FB] MQTT listening started.");
+    } catch (err) {
+      console.error("[FB] listenMqtt() threw synchronously:", err);
+      scheduleReconnect();
+    }
   }
 
   function scheduleReconnect() {
+    if (mqttStopped) return;
     if (reconnectTimer) return; // already scheduled
 
     const delay = Math.min(
@@ -533,13 +565,7 @@ export default function buildFacebookAdapter(
 
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
-      try {
-        startMqtt();
-        console.log("[FB] MQTT reconnected.");
-      } catch (err) {
-        console.error("[FB] MQTT reconnect failed:", err);
-        scheduleReconnect();
-      }
+      startMqtt();
     }, delay);
   }
 
@@ -649,9 +675,19 @@ export default function buildFacebookAdapter(
         });
       });
 
-      // Start MQTT using the callback pattern — this is the fix.
-      // api.listenMqtt(callback) delivers every event to our central
-      // onMqttEvent handler, including log:subscribe and log:unsubscribe.
+      // Periodically persist fresh appstate so sessions don't go stale.
+      // Stale appstate is the most common cause of "Server unavailable" errors.
+      if (appStateSaveInterval) clearInterval(appStateSaveInterval);
+      appStateSaveInterval = setInterval(() => {
+        try {
+          const fresh = api?.getAppState?.();
+          if (fresh) saveAppState(fresh);
+        } catch (err) {
+          console.warn("[FB] Appstate periodic save failed:", err);
+        }
+      }, 30 * 60 * 1000); // every 30 minutes
+
+      mqttStopped = false;
       startMqtt();
     })
 
@@ -756,3 +792,4 @@ export default function buildFacebookAdapter(
 
   return adapter;
 }
+
