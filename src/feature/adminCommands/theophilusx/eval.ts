@@ -8,8 +8,8 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   cooldown: 5_000,
   minimumMentions: 0,
-  execute: async (ctx, { adapter }) => {
-    let value = eval(ctx.content);
+  execute: async (ctx, { adapter, args }) => {
+    let value = eval(args.join(" "));
     await adapter.reply(ctx, `return value: ${value}`);
   },
 });
