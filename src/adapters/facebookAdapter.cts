@@ -55,6 +55,44 @@ interface FcaThread {
 }
 
 // ---------------------------------------------------------------------------
+// Appstate persistence
+// ---------------------------------------------------------------------------
+
+const APPSTATE_PATH =
+  process.env.APPSTATE_PATH ||
+  `${process.env.HOME}/appstate.json`;
+
+function loadAppState(fallbackRaw: string): any {
+  try {
+    if (fs.existsSync(APPSTATE_PATH)) {
+      const content = fs.readFileSync(APPSTATE_PATH, "utf-8");
+      console.log("[FB] Loaded appstate from file:", APPSTATE_PATH);
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.warn(
+      "[FB] Failed to read appstate file, falling back to env var:",
+      err,
+    );
+  }
+
+  // First run — seed from env var and persist immediately
+  console.log("[FB] No appstate file found, seeding from env var...");
+  const parsed = JSON.parse(fallbackRaw);
+  saveAppState(parsed);
+  return parsed;
+}
+
+function saveAppState(appState: any) {
+  try {
+    fs.writeFileSync(APPSTATE_PATH, JSON.stringify(appState), "utf-8");
+    console.log("[FB] Appstate saved to:", APPSTATE_PATH);
+  } catch (err) {
+    console.error("[FB] Failed to save appstate:", err);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Resolvers
 // ---------------------------------------------------------------------------
 
@@ -404,12 +442,16 @@ export default function buildFacebookAdapter(
 
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
-      const appState = JSON.parse(appStateRaw);
+      // Load appstate from file if available, otherwise seed from env var
+      const appState = loadAppState(appStateRaw);
 
       await new Promise<void>((resolve, reject) => {
         login({ appState }, (err: any, _api: any) => {
           if (err) return reject(err);
           api = _api;
+
+          // Save the refreshed appstate immediately after login
+          saveAppState(api.getAppState());
 
           api.setOptions({
             listenEvents: true,
@@ -422,9 +464,11 @@ export default function buildFacebookAdapter(
           api.on?.("sessionExpired", () =>
             console.warn("[FB] Session expired — attempting auto-login..."),
           );
-          api.on?.("autoLoginSuccess", () =>
-            console.log("[FB] Auto-login succeeded."),
-          );
+          api.on?.("autoLoginSuccess", () => {
+            console.log("[FB] Auto-login succeeded.");
+            // Save updated appstate after auto-login renews the session
+            saveAppState(api.getAppState());
+          });
           api.on?.("autoLoginFailed", () =>
             console.error(
               "[FB] Auto-login failed. Manual intervention needed.",
@@ -485,7 +529,8 @@ export default function buildFacebookAdapter(
               const isAdmin =
                 bot
                   .getConfig()
-                  .adminIds?.some((a: any) => a.facebookId === leftID) ?? false;
+                  .adminIds?.some((a: any) => a.facebookId === leftID) ??
+                false;
 
               const ctx = await buildFacebookContext(isAdmin, {
                 type: "log:unsubscribe",
@@ -515,7 +560,8 @@ export default function buildFacebookAdapter(
           const isAdmin =
             bot
               .getConfig()
-              .adminIds?.some((id: any) => id.facebookId === senderID) ?? false;
+              .adminIds?.some((id: any) => id.facebookId === senderID) ??
+            false;
 
           const ctx = await buildFacebookContext(isAdmin, event);
 
@@ -649,3 +695,4 @@ export default function buildFacebookAdapter(
 
   return adapter;
 }
+
