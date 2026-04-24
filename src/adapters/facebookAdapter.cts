@@ -76,7 +76,6 @@ function loadAppState(fallbackRaw: string): any {
     );
   }
 
-  // First run — seed from env var and persist immediately
   console.log("[FB] No appstate file found, seeding from env var...");
   const parsed = JSON.parse(fallbackRaw);
   saveAppState(parsed);
@@ -339,9 +338,79 @@ export default function buildFacebookAdapter(
     event: FcaEvent,
   ): Promise<TXIContext> {
     const selfID: string = api?.getCurrentUserID?.() ?? "";
+
+    // For log:subscribe / log:unsubscribe, senderID may be a newly added user
+    // that getUserInfo might not resolve cleanly — fallback gracefully
     const { displayName, username, avatarURL } = await resolveUserInfo(
       event.senderID,
-    );
+    ).catch(() => ({
+      displayName: event.senderID,
+      username: event.senderID,
+      avatarURL: undefined,
+    }));
+
+    // Build explicit mentions from the event
+    const mentionsMap = new Map<
+      string,
+      {
+        id: string;
+        displayName: string;
+        username: string;
+        isAdmin: boolean;
+        isSelf: boolean;
+        avatarURL?: string;
+        isEveryone: boolean;
+      }
+    >();
+
+    for (const [id, name] of Object.entries(event.mentions ?? {})) {
+      mentionsMap.set(id, {
+        id,
+        displayName: name,
+        username: name,
+        isAdmin:
+          bot.getConfig().adminIds?.some((a: any) => a.facebookId === id) ??
+          false,
+        isSelf: selfID === id,
+        avatarURL,
+        isEveryone: false,
+      });
+    }
+
+    // Implicit mention: if this is a reply, add the replied-to sender
+    if (event.type === "message_reply") {
+      const repliedSenderID: string | undefined = (event as any).messageReply
+        ?.senderID;
+      if (
+        repliedSenderID &&
+        repliedSenderID !== selfID &&
+        !mentionsMap.has(repliedSenderID)
+      ) {
+        const {
+          displayName: rDisplayName,
+          username: rUsername,
+          avatarURL: rAvatarURL,
+        } = await resolveUserInfo(repliedSenderID).catch(() => ({
+          displayName: repliedSenderID,
+          username: repliedSenderID,
+          avatarURL: undefined,
+        }));
+
+        mentionsMap.set(repliedSenderID, {
+          id: repliedSenderID,
+          displayName: rDisplayName,
+          username: rUsername,
+          isAdmin:
+            bot
+              .getConfig()
+              .adminIds?.some((a: any) => a.facebookId === repliedSenderID) ??
+            false,
+          isSelf: false,
+          avatarURL: rAvatarURL,
+          isEveryone: false,
+        });
+      }
+    }
 
     return {
       platform: TXPlatform.FacebookMessenger,
@@ -355,17 +424,7 @@ export default function buildFacebookAdapter(
         avatarURL,
         isEveryone: event.body?.includes("@everyone") ?? false,
       },
-      mentions: Object.entries(event.mentions ?? {}).map(([id, name]) => ({
-        id,
-        displayName: name,
-        username: name,
-        isAdmin:
-          bot.getConfig().adminIds?.some((a: any) => a.facebookId === id) ??
-          false,
-        isSelf: selfID === id,
-        avatarURL,
-        isEveryone: false,
-      })),
+      mentions: [...mentionsMap.values()],
       serverId: event.threadID,
       channelId: event.threadID,
       timestamp: event.timestamp ? new Date(event.timestamp) : new Date(),
@@ -444,7 +503,6 @@ export default function buildFacebookAdapter(
 
   const adapter = new TXAdapterBuilder()
     .setLoginManager(async () => {
-      // Load appstate from file if available, otherwise seed from env var
       const appState = loadAppState(appStateRaw);
 
       await new Promise<void>((resolve, reject) => {
@@ -452,7 +510,6 @@ export default function buildFacebookAdapter(
           if (err) return reject(err);
           api = _api;
 
-          // Save the refreshed appstate immediately after login
           saveAppState(api.getAppState());
 
           api.setOptions({
@@ -468,7 +525,6 @@ export default function buildFacebookAdapter(
           );
           api.on?.("autoLoginSuccess", () => {
             console.log("[FB] Auto-login succeeded.");
-            // Save updated appstate after auto-login renews the session
             saveAppState(api.getAppState());
           });
           api.on?.("autoLoginFailed", () =>
@@ -495,6 +551,7 @@ export default function buildFacebookAdapter(
         async (event: FcaEvent) => {
           // -----------------------------------------------------------------
           // userJoin — someone was added to the group
+          // NOTE: must come BEFORE the body guard below
           // -----------------------------------------------------------------
           if (event.type === "log:subscribe") {
             const addedIDs: string[] =
@@ -511,7 +568,7 @@ export default function buildFacebookAdapter(
               const ctx = await buildFacebookContext(isAdmin, {
                 type: "log:subscribe",
                 threadID: event.threadID,
-                senderID: uid,
+                senderID: uid, // ← the joined user, not the adder
                 timestamp: event.timestamp,
               });
 
@@ -522,6 +579,7 @@ export default function buildFacebookAdapter(
 
           // -----------------------------------------------------------------
           // userLeave — someone left or was removed from the group
+          // NOTE: must come BEFORE the body guard below
           // -----------------------------------------------------------------
           if (event.type === "log:unsubscribe") {
             const leftID: string =
@@ -546,7 +604,8 @@ export default function buildFacebookAdapter(
           }
 
           // -----------------------------------------------------------------
-          // Regular messages
+          // Regular messages — body guard is safe here since log events
+          // already returned above
           // -----------------------------------------------------------------
           if (event.type !== "message" && event.type !== "message_reply")
             return;
