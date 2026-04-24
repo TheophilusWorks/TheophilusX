@@ -11,7 +11,15 @@ type MusicItem = {
   id: string;
   title: string;
   artist: string;
+  duration?: string;
 };
+
+function parseDurationSeconds(duration: string): number {
+  const parts = duration.split(":").map(Number);
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return 0;
+}
 
 export default new TXCommand({
   name: "sing",
@@ -40,8 +48,18 @@ export default new TXCommand({
       return;
     }
 
-    const LIMIT: number = Math.min(5, data.length);
-    const videos: MusicItem[] = data.slice(0, LIMIT);
+    const filtered = data.filter((item) => {
+      if (!item.duration) return true;
+      return parseDurationSeconds(item.duration) <= 600;
+    });
+
+    if (filtered.length === 0) {
+      await adapter.reply(ctx, "No results found under 10 minutes.");
+      return;
+    }
+
+    const LIMIT: number = Math.min(5, filtered.length);
+    const videos: MusicItem[] = filtered.slice(0, LIMIT);
 
     const formatted = formatMusicResult(query, videos);
 
@@ -107,7 +125,7 @@ function formatMusicResult(query: string, result: MusicItem[]): string {
 
   return `
 ‗   ↳ ❝ [ Search Results ] ¡! ❞
-ೃ⁀➷ Found matches for “${query}”.
+ೃ⁀➷ Found matches for "${query}".
 Reply with the index number to download.
 
 ╭┈ results ̗̀➛
