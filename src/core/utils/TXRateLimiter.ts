@@ -12,7 +12,7 @@ export default class TXRateLimiter {
 
   constructor(options: TXRateLimiterOptions = {}) {
     this.windowMs = options.windowMs ?? 60_000;
-    this.maxRequests = options.maxRequests ?? 10;
+    this.maxRequests = options.maxRequests ?? 5;
     this.store = new Map();
 
     this.cleanupTimer = setInterval(

@@ -14,8 +14,8 @@ export default class TXMessageQueue {
   private running: boolean;
 
   constructor(options: TXMessageQueueOptions = {}) {
-    this.minDelayMs = options.minDelayMs ?? 1000;
-    this.maxDelayMs = options.maxDelayMs ?? 2000;
+    this.minDelayMs = options.minDelayMs ?? 1500;
+    this.maxDelayMs = options.maxDelayMs ?? 2500;
     this.queue = [];
     this.running = false;
   }
