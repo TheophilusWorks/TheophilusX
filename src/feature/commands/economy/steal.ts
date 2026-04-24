@@ -195,9 +195,15 @@ export default new TXCommand({
 });
 
 function getSuccessChance(amount: number, isAdmin: boolean): number {
-  if (isAdmin) return 0.7;
-  const chance = 0.9 - 0.1 * Math.log10(Math.max(1, amount));
-  return Math.min(0.7, Math.max(0.1, chance));
+  if (isAdmin) return 0.65;
+
+  // ≤50:    ~55%
+  // ~200:   ~45%
+  // ~500:   ~38%
+  // ~1500:  ~28%
+  // ~3500:  ~20%
+  const chance = 0.75 - 0.13 * Math.log10(Math.max(1, amount));
+  return Math.min(0.55, Math.max(0.1, chance));
 }
 
 function stealSuccessMessage(
