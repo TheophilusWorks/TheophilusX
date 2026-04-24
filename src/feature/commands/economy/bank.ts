@@ -1,9 +1,7 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 import mongoose from "mongoose";
 
 const TAX_RATE = 0.05;
@@ -25,13 +23,13 @@ export default new TXCommand({
     if (bankOperation !== "withdraw" && bankOperation !== "deposit") {
       await adapter.reply(
         ctx,
-        "Invalid bank bank operation. Use `deposit` or `withdraw`.",
+        "Invalid bank operation. Use `deposit` or `withdraw`.",
       );
       return;
     }
 
     if (isNaN(amount) || amount <= 0) {
-      await adapter.reply(ctx, `Invalid amount, enter a positive number`);
+      await adapter.reply(ctx, "Invalid amount, enter a positive number.");
       return;
     }
 
@@ -40,17 +38,13 @@ export default new TXCommand({
 
     try {
       await session.withTransaction(async () => {
-        await Users.findOneAndUpdate(
-          queryUser(ctx.platform, ctx.author.id),
-          { $setOnInsert: { economy: initializeUserEconomy() } },
-          { upsert: true, session },
-        );
+        await initializeUser(ctx, { session });
 
-        const user = await Users.findOne(
-          queryUser(ctx.platform, ctx.author.id),
-        ).session(session);
+        const user = await Users.findOne(queryUser(ctx.platform, ctx.author.id))
+          .session(session)
+          .lean();
 
-        if (!user || !user.economy) return;
+        if (!user?.economy) throw new Error("Could not load your account.");
 
         const { coins, bankBalance } = user.economy;
 
@@ -61,24 +55,25 @@ export default new TXCommand({
             );
           }
 
-          user.economy.coins = round2(coins - amount);
-          user.economy.bankBalance = round2(bankBalance + amount);
-          await user.save({ session });
+          const updated = await Users.findOneAndUpdate(
+            queryUser(ctx.platform, ctx.author.id),
+            {
+              $inc: { "economy.coins": -amount, "economy.bankBalance": amount },
+            },
+            { session, returnDocument: "after", lean: true },
+          );
 
           replyParts = [
-            text(`‗   ↳ ❝ [ Bank ] ¡! ❞
-⁀➷ Deposit successful, `),
+            text(`‗   ↳ ❝ [ Bank ] ¡! ❞\nೃ⁀➷ Deposit successful, `),
             mention(author.id, author.displayName),
-            text(
-              `
+            text(`
 ◇─◇───◇─◇
 
 ╭┈  ̗̀➛
 ┊ 💰 Deposited  : ${amount}
-┊ 🏦 Bank       : ${user.economy.bankBalance}
-┊ 🪙 Coins      : ${user.economy.coins}
-╰─────────┈➤`,
-            ),
+┊ 🏦 Bank       : ${updated?.economy?.bankBalance ?? 0}
+┊ 🪙 Coins      : ${updated?.economy?.coins ?? 0}
+╰─────────┈➤`),
           ];
         } else {
           if (bankBalance < amount) {
@@ -90,40 +85,44 @@ export default new TXCommand({
           const tax = round2(amount * TAX_RATE);
           const received = round2(amount - tax);
 
-          user.economy.coins = round2(coins + received);
-          user.economy.bankBalance = round2(bankBalance - amount);
-          await user.save({ session });
+          const updated = await Users.findOneAndUpdate(
+            queryUser(ctx.platform, ctx.author.id),
+            {
+              $inc: {
+                "economy.coins": received,
+                "economy.bankBalance": -amount,
+              },
+            },
+            { session, returnDocument: "after", lean: true },
+          );
 
           replyParts = [
             text(`‗   ↳ ❝ [ Bank ] ¡! ❞\nೃ⁀➷ Withdrawal successful, `),
             mention(author.id, author.displayName),
-            text(
-              `
+            text(`
 ◇─◇───◇─◇
 
 ╭┈  ̗̀➛
 ┊ 💸 Withdrew   : ${amount}
-┊ 🧾 Tax (5%)   : ${tax}\n┊ ✅ Received   : ${received}
-┊ 🏦 Bank       : ${user.economy.bankBalance}\n┊ 🪙 Coins      : ${user.economy.coins}
-╰─────────┈➤`,
-            ),
+┊ 🧾 Tax (5%)   : ${tax}
+┊ ✅ Received   : ${received}
+┊ 🏦 Bank       : ${updated?.economy?.bankBalance ?? 0}
+┊ 🪙 Coins      : ${updated?.economy?.coins ?? 0}
+╰─────────┈➤`),
           ];
         }
       });
     } catch (err) {
       console.error("Bank transaction error:", err);
       replyParts = [
-        text(`‗   ↳ ❝ [ Bank ] ¡! ❞
-⁀➷ Transaction failed, `),
+        text(`‗   ↳ ❝ [ Bank ] ¡! ❞\nೃ⁀➷ Transaction failed, `),
         mention(author.id, author.displayName),
-        text(
-          `
+        text(`
 ◇─◇───◇─◇
 
 ╭┈  ̗̀➛
 ┊ ⚠️ ${(err as Error).message}
-╰─────────┈➤`,
-        ),
+╰─────────┈➤`),
       ];
     } finally {
       session.endSession();

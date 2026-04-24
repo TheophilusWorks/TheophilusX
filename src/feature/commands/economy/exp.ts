@@ -9,9 +9,9 @@ import path from "path";
 import { getDirname } from "../../../utils/path.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 Font.loadDefault();
-let __dirname = getDirname(import.meta.url);
 
 export default new TXCommand({
   name: "exp",
@@ -35,11 +35,7 @@ export default new TXCommand({
       return;
     }
 
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, targetUser.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
+    await initializeUser(ctx);
 
     const userData = await Users.findOne(
       queryUser(ctx.platform, targetUser.id),

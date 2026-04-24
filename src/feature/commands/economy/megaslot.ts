@@ -5,6 +5,7 @@ import Users, {
 } from "../../../core/database/model/Users.js";
 import { updateUserCoins } from "../../utils/database/updateUserCoins.js";
 import { randomRange } from "../../../utils/randomRange.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const SLOT_EMOJIS = [
@@ -39,12 +40,7 @@ export default new TXCommand({
       return;
     }
 
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
-
+    await initializeUser(ctx);
     let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
     // unreachable

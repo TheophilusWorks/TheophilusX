@@ -5,6 +5,7 @@ import Users, {
 } from "../../../core/database/model/Users.js";
 import { randomRange } from "../../../utils/randomRange.js";
 import mongoose from "mongoose";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 export default new TXCommand({
   name: "roulette",
@@ -41,17 +42,12 @@ export default new TXCommand({
       guessNumber = n;
     }
 
-    await Users.findOneAndUpdate(
-      queryUser(platform, author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
-
     const session = await mongoose.startSession();
     let resultData: TXRouletteResultData | null = null;
 
     try {
       await session.withTransaction(async () => {
+        await initializeUser(ctx, { session });
         const user = await Users.findOne(queryUser(platform, author.id), null, {
           session,
         });

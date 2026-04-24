@@ -5,6 +5,7 @@ import Users, {
 } from "../../../core/database/model/Users.js";
 import { randomRange } from "../../../utils/randomRange.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 import ms from "ms";
 
 export default new TXCommand({
@@ -23,16 +24,8 @@ export default new TXCommand({
     const expReward = Math.round(randomRange(300, 500, true));
 
     // ensure user exists first
-    await Users.findOneAndUpdate(
-      queryUser(platform, author.id),
-      {
-        $setOnInsert: {
-          economy: initializeUserEconomy(),
-        },
-      },
-      { upsert: true },
-    );
-
+    await initializeUser(ctx);
+    
     let result = await Users.findOneAndUpdate(
       {
         ...queryUser(platform, author.id),

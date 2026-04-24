@@ -1,9 +1,6 @@
 import mongoose from "mongoose";
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import {
   TXIAuthor,
@@ -11,6 +8,7 @@ import {
   TXPlatform,
 } from "../../../core/context/TXContext.js";
 import TXAdapterBuilder from "../../../core/adapter/TXAdapterBuilder.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 type TXTicTacToePlayer = "X" | "O";
 type TXTicTacToeCell = TXTicTacToePlayer | number | string;
@@ -62,10 +60,10 @@ export default new TXCommand({
       await adapter.reply(ctx, `I don't have any data for you to play with!`);
       return;
     }
-    
+
     if (ctx.author.isEveryone) {
       await adapter.reply(ctx, "@everyone don't any form of data.");
-      return
+      return;
     }
 
     if (ctx.author.id === opponentUser.id) {
@@ -156,18 +154,8 @@ async function checkBalanceForBet(
   platform: TXPlatform,
   bet: number,
 ): Promise<boolean> {
-  await Users.findOneAndUpdate(
-    queryUser(platform, host.id),
-    { $setOnInsert: { economy: initializeUserEconomy() } },
-    { upsert: true },
-  );
-
-  await Users.findOneAndUpdate(
-    queryUser(platform, opponent.id),
-    { $setOnInsert: { economy: initializeUserEconomy() } },
-    { upsert: true },
-  );
-
+  await initializeUser(ctx, { targetId: host.id });
+  await initializeUser(ctx, { targetId: opponent.id });
   const hostData = await Users.findOne(queryUser(platform, host.id));
   if (!hostData || hostData.economy!.coins < bet) {
     await adapter.reply(ctx, {

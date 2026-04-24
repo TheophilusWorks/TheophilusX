@@ -1,9 +1,7 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { updateUserCoins } from "../../utils/database/updateUserCoins.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -25,11 +23,7 @@ export default new TXCommand({
       return;
     }
 
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
+    await initializeUser(ctx);
 
     let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 

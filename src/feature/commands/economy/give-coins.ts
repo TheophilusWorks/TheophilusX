@@ -5,6 +5,7 @@ import Users, {
   initializeUserEconomy,
 } from "../../../core/database/model/Users.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 export default new TXCommand({
   name: "give-coins",
@@ -22,10 +23,10 @@ export default new TXCommand({
       await adapter.reply(ctx, "I don't any form of data.");
       return;
     }
-    
+
     if (ctx.author.isEveryone) {
       await adapter.reply(ctx, "@everyone don't any form of data.");
-      return
+      return;
     }
 
     if (targetUser.id == ctx.author.id) {
@@ -44,17 +45,8 @@ export default new TXCommand({
     }
 
     // init both author && target
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
-
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, targetUser.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
+    await initializeUser(ctx);
+    await initializeUser(ctx, { targetId: targetUser.id });
 
     let authorData = await Users.findOne(
       queryUser(ctx.platform, ctx.author.id),

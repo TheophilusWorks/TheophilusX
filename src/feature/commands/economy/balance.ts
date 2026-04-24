@@ -6,6 +6,8 @@ import Users, {
 } from "../../../core/database/model/Users.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { TXMessagePart } from "../../../core/message/TXMessagePart.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
+import { TXIContext } from "../../../core/context/TXContext.js";
 
 export default new TXCommand({
   name: "balance",
@@ -32,9 +34,10 @@ export default new TXCommand({
     let parts: TXMessagePart[] = [];
 
     if (targetUser.id == ctx.author.id) {
-      parts = await inspectSelf(ctx.author.id, ctx.platform);
+      parts = await inspectSelf(ctx, ctx.author.id, ctx.platform);
     } else {
       parts = await inspectUser(
+        ctx,
         targetUser.id,
         targetUser.displayName,
         ctx.platform,
@@ -45,7 +48,12 @@ export default new TXCommand({
   },
 });
 
-async function inspectSelf(target: string, platform: TXPlatform) {
+async function inspectSelf(
+  ctx: TXIContext,
+  target: string,
+  platform: TXPlatform,
+) {
+  await initializeUser(ctx);
   let user = await Users.findOneAndUpdate(
     queryUser(platform, target),
     [
@@ -87,10 +95,12 @@ async function inspectSelf(target: string, platform: TXPlatform) {
 }
 
 async function inspectUser(
+  ctx: TXIContext,
   target: string,
   displayName: string,
   platform: TXPlatform,
 ) {
+  await initializeUser(ctx);
   let user = await Users.findOneAndUpdate(
     queryUser(platform, target),
     [

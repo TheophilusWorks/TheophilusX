@@ -5,6 +5,7 @@ import Users, {
 } from "../../../core/database/model/Users.js";
 import { updateUserCoins } from "../../utils/database/updateUserCoins.js";
 import { randomRange } from "../../../utils/randomRange.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const SLOT_EMOJIS = ["🍒", "🍋", "⭐", "✨", "💎"];
@@ -28,11 +29,7 @@ export default new TXCommand({
       return;
     }
 
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
+    await initializeUser(ctx);
 
     let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
@@ -130,7 +127,8 @@ function formatSlotResult(
   let bet = round2(betAmount);
   let matches = getMatches(reel);
   let multiplierDisplay = multiplier > 0 ? ` ×${multiplier}` : "";
-  let winAmount = coinDelta >= 0 ? `+${coinDelta*multiplier}` : `${coinDelta}`;
+  let winAmount =
+    coinDelta >= 0 ? `+${coinDelta * multiplier}` : `${coinDelta}`;
 
   return `  ↳ ❝ [ Slot Machine ] ¡! ❞
 ⁀➷ ${getHeader(matches)}

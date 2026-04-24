@@ -7,6 +7,7 @@ import { randomRange } from "../../../utils/randomRange.js";
 import mongoose from "mongoose";
 import wordleWords from "../../../../assets/wordleWords.json" with { type: "json" };
 import nonWordleWords from "../../../../assets/nonWordleWords.json" with { type: "json" };
+import { initializeUser } from "../../utils/database/initializeUser.js";
 
 enum TXWordleColor {
   Green = "🟩",
@@ -40,13 +41,7 @@ export default new TXCommand({
       return;
     }
 
-    // ── upsert + balance check (no transaction needed here) ──────────────────
-    await Users.findOneAndUpdate(
-      queryUser(ctx.platform, ctx.author.id),
-      { $setOnInsert: { economy: initializeUserEconomy() } },
-      { upsert: true },
-    );
-
+    await initializeUser(ctx);
     let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
     if (!user) return;

@@ -1,10 +1,8 @@
 import TXCommand from "../../../core/command/TXCommand.js";
 import { randomRange } from "../../../utils/randomRange.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
 import ms from "ms";
 
 interface TXWork {
@@ -29,17 +27,7 @@ export default new TXCommand({
     let reward = Math.round(work.pay);
     let expReward = Math.round(work.exp);
 
-    // ensure user exists first
-    await Users.findOneAndUpdate(
-      queryUser(platform, author.id),
-      {
-        $setOnInsert: {
-          economy: initializeUserEconomy(),
-        },
-      },
-      { upsert: true },
-    );
-
+    await initializeUser(ctx);
     let result = await Users.findOneAndUpdate(
       {
         ...queryUser(platform, author.id),
