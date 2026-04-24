@@ -16,6 +16,7 @@ import TXRateLimiter, {
 import TXMessageQueue, {
   TXMessageQueueOptions,
 } from "../core/utils/TXMessageQueue.js";
+import path from "path";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,8 +60,7 @@ interface FcaThread {
 // ---------------------------------------------------------------------------
 
 const APPSTATE_PATH =
-  process.env.APPSTATE_PATH ||
-  `${process.env.HOME}/appstate.json`;
+  process.env.APPSTATE_PATH || `${process.env.HOME}/appstate.json`;
 
 function loadAppState(fallbackRaw: string): any {
   try {
@@ -85,6 +85,8 @@ function loadAppState(fallbackRaw: string): any {
 
 function saveAppState(appState: any) {
   try {
+    const dir = path.dirname(APPSTATE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(APPSTATE_PATH, JSON.stringify(appState), "utf-8");
     console.log("[FB] Appstate saved to:", APPSTATE_PATH);
   } catch (err) {
@@ -529,8 +531,7 @@ export default function buildFacebookAdapter(
               const isAdmin =
                 bot
                   .getConfig()
-                  .adminIds?.some((a: any) => a.facebookId === leftID) ??
-                false;
+                  .adminIds?.some((a: any) => a.facebookId === leftID) ?? false;
 
               const ctx = await buildFacebookContext(isAdmin, {
                 type: "log:unsubscribe",
@@ -560,8 +561,7 @@ export default function buildFacebookAdapter(
           const isAdmin =
             bot
               .getConfig()
-              .adminIds?.some((id: any) => id.facebookId === senderID) ??
-            false;
+              .adminIds?.some((id: any) => id.facebookId === senderID) ?? false;
 
           const ctx = await buildFacebookContext(isAdmin, event);
 
@@ -695,4 +695,3 @@ export default function buildFacebookAdapter(
 
   return adapter;
 }
-
