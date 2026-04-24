@@ -402,62 +402,57 @@ export default function buildFacebookAdapter(
       listener(event);
     }
 
-    // -----------------------------------------------------------------
-    // userJoin — someone was added to the group
-    // NOTE: must come BEFORE the body guard below
-    // -----------------------------------------------------------------
-    if (event.type === "log:subscribe") {
-      const addedIDs: string[] =
-        event.logMessageData?.addedParticipants
-          ?.map((p) => p.userFbId ?? p.id)
-          .filter((id): id is string => Boolean(id)) ?? [];
+    if (event.type === "event") {
+      const logType = (event as any).logMessageType as string | undefined;
 
-      for (const uid of addedIDs) {
-        const isAdmin =
-          bot.getConfig().adminIds?.some((a: any) => a.facebookId === uid) ??
-          false;
+      if (logType === "log:subscribe") {
+        const addedIDs: string[] =
+          event.logMessageData?.addedParticipants
+            ?.map((p) => p.userFbId ?? p.id)
+            .filter((id): id is string => Boolean(id)) ?? [];
 
-        const ctx = await buildFacebookContext(isAdmin, {
-          type: "log:subscribe",
-          threadID: event.threadID,
-          senderID: uid, // ← the joined user, not the adder
-          timestamp: event.timestamp,
-        });
+        for (const uid of addedIDs) {
+          const isAdmin =
+            bot.getConfig().adminIds?.some((a: any) => a.facebookId === uid) ??
+            false;
 
-        bot.emit("userJoin", ctx, adapter);
+          const ctx = await buildFacebookContext(isAdmin, {
+            type: "log:subscribe",
+            threadID: event.threadID,
+            senderID: uid,
+            timestamp: event.timestamp,
+          });
+
+          bot.emit("userJoin", ctx, adapter);
+        }
+        return;
       }
+
+      if (logType === "log:unsubscribe") {
+        const leftID: string =
+          event.logMessageData?.leftParticipantFbId ?? event.senderID;
+
+        if (leftID) {
+          const isAdmin =
+            bot
+              .getConfig()
+              .adminIds?.some((a: any) => a.facebookId === leftID) ?? false;
+
+          const ctx = await buildFacebookContext(isAdmin, {
+            type: "log:unsubscribe",
+            threadID: event.threadID,
+            senderID: leftID,
+            timestamp: event.timestamp,
+          });
+
+          bot.emit("userLeave", ctx, adapter);
+        }
+        return;
+      }
+
       return;
     }
 
-    // -----------------------------------------------------------------
-    // userLeave — someone left or was removed from the group
-    // NOTE: must come BEFORE the body guard below
-    // -----------------------------------------------------------------
-    if (event.type === "log:unsubscribe") {
-      const leftID: string =
-        event.logMessageData?.leftParticipantFbId ?? event.senderID;
-
-      if (leftID) {
-        const isAdmin =
-          bot.getConfig().adminIds?.some((a: any) => a.facebookId === leftID) ??
-          false;
-
-        const ctx = await buildFacebookContext(isAdmin, {
-          type: "log:unsubscribe",
-          threadID: event.threadID,
-          senderID: leftID,
-          timestamp: event.timestamp,
-        });
-
-        bot.emit("userLeave", ctx, adapter);
-      }
-      return;
-    }
-
-    // -----------------------------------------------------------------
-    // Regular messages — body guard is safe here since log events
-    // already returned above
-    // -----------------------------------------------------------------
     if (event.type !== "message" && event.type !== "message_reply") return;
     if (!event.body?.trim()) return;
 
