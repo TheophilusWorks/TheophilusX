@@ -35,7 +35,6 @@ ${instance.prefixes.map((v, i) => `┊ ${i + 1}: "${v}"`).join("\n")}
 
 𓆩⟡𓆪 Type \`%help\` to see all available commands!
 `;
-      return;
     }
 
     await adapter.sendMessage(ctx.channelId, msg.trim());

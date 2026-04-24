@@ -196,55 +196,6 @@ function fetchAllGroupThreads(api: any): Promise<FcaThread[]> {
 }
 
 // ---------------------------------------------------------------------------
-// MQTT reconnect with exponential backoff
-// ---------------------------------------------------------------------------
-
-const MQTT_RECONNECT_BASE_MS = 2_000;
-const MQTT_RECONNECT_MAX_MS = 60_000;
-
-function attachMqttReconnect(
-  api: any,
-  getMqttEmitter: () => any,
-  setMqttEmitter: (e: any) => void,
-  onMessage: (event: FcaEvent) => void,
-) {
-  let attempt = 0;
-
-  function attach(emitter: any) {
-    emitter.on("error", (err: any) => {
-      console.error("[FB] MQTT error:", err);
-    });
-
-    emitter.on("close", () => {
-      const delay = Math.min(
-        MQTT_RECONNECT_BASE_MS * 2 ** attempt,
-        MQTT_RECONNECT_MAX_MS,
-      );
-      attempt++;
-      console.warn(
-        `[FB] MQTT connection closed. Reconnecting in ${delay}ms (attempt ${attempt})...`,
-      );
-      setTimeout(() => {
-        try {
-          const newEmitter = api.listenMqtt();
-          setMqttEmitter(newEmitter);
-          attach(newEmitter);
-          attempt = 0;
-          console.log("[FB] MQTT reconnected.");
-        } catch (err) {
-          console.error("[FB] MQTT reconnect failed:", err);
-          getMqttEmitter()?.emit("close");
-        }
-      }, delay);
-    });
-
-    emitter.on("message", onMessage);
-  }
-
-  attach(getMqttEmitter());
-}
-
-// ---------------------------------------------------------------------------
 // Self-context builder for outbound messages
 // ---------------------------------------------------------------------------
 
@@ -268,7 +219,14 @@ export default function buildFacebookAdapter(
   options: TXFacebookAdapterOptions = {},
 ) {
   let api: any = null;
-  let mqttEmitter: any = null;
+
+  // stopListening is the function returned by api.listenMqtt() — calling it
+  // shuts down the MQTT connection cleanly.
+  let stopListening: (() => void) | null = null;
+
+  // All active waitReply handlers subscribe here. The main onMessage loop
+  // fans events out to them, replacing the old mqttEmitter.on("message") pattern.
+  const replyListeners = new Set<(event: FcaEvent) => void>();
 
   const rateLimiter = new TXRateLimiter(options.rateLimit);
   const queue = new TXMessageQueue(options.queue);
@@ -435,7 +393,163 @@ export default function buildFacebookAdapter(
   }
 
   // ---------------------------------------------------------------------------
-  // waitReply
+  // Central event handler — every MQTT event flows through here
+  // ---------------------------------------------------------------------------
+
+  async function onMqttEvent(event: FcaEvent) {
+    // Fan out to any active waitReply listeners first
+    for (const listener of replyListeners) {
+      listener(event);
+    }
+
+    // -----------------------------------------------------------------
+    // userJoin — someone was added to the group
+    // NOTE: must come BEFORE the body guard below
+    // -----------------------------------------------------------------
+    if (event.type === "log:subscribe") {
+      const addedIDs: string[] =
+        event.logMessageData?.addedParticipants
+          ?.map((p) => p.userFbId ?? p.id)
+          .filter((id): id is string => Boolean(id)) ?? [];
+
+      for (const uid of addedIDs) {
+        const isAdmin =
+          bot.getConfig().adminIds?.some((a: any) => a.facebookId === uid) ??
+          false;
+
+        const ctx = await buildFacebookContext(isAdmin, {
+          type: "log:subscribe",
+          threadID: event.threadID,
+          senderID: uid, // ← the joined user, not the adder
+          timestamp: event.timestamp,
+        });
+
+        bot.emit("userJoin", ctx, adapter);
+      }
+      return;
+    }
+
+    // -----------------------------------------------------------------
+    // userLeave — someone left or was removed from the group
+    // NOTE: must come BEFORE the body guard below
+    // -----------------------------------------------------------------
+    if (event.type === "log:unsubscribe") {
+      const leftID: string =
+        event.logMessageData?.leftParticipantFbId ?? event.senderID;
+
+      if (leftID) {
+        const isAdmin =
+          bot.getConfig().adminIds?.some((a: any) => a.facebookId === leftID) ??
+          false;
+
+        const ctx = await buildFacebookContext(isAdmin, {
+          type: "log:unsubscribe",
+          threadID: event.threadID,
+          senderID: leftID,
+          timestamp: event.timestamp,
+        });
+
+        bot.emit("userLeave", ctx, adapter);
+      }
+      return;
+    }
+
+    // -----------------------------------------------------------------
+    // Regular messages — body guard is safe here since log events
+    // already returned above
+    // -----------------------------------------------------------------
+    if (event.type !== "message" && event.type !== "message_reply") return;
+    if (!event.body?.trim()) return;
+
+    const senderID = event.senderID;
+    const selfID: string = api.getCurrentUserID?.() ?? "";
+
+    if (senderID === selfID) return;
+    if (!rateLimiter.isAllowed(senderID)) return;
+
+    const isAdmin =
+      bot.getConfig().adminIds?.some((id: any) => id.facebookId === senderID) ??
+      false;
+
+    const ctx = await buildFacebookContext(isAdmin, event);
+
+    const usedPrefix = bot.prefixes.find((p: string) =>
+      event.body!.startsWith(p),
+    );
+    const usedAdminPrefix = bot.adminPrefixes.find((p: string) =>
+      event.body!.startsWith(p),
+    );
+
+    if (usedPrefix) {
+      const args = new TXCommandArgumentParser(
+        usedPrefix,
+        event.body!,
+        adapter,
+        undefined,
+      ).parse();
+      bot.emit("commandCreate", ctx, args);
+    } else if (usedAdminPrefix) {
+      const args = new TXCommandArgumentParser(
+        usedAdminPrefix,
+        event.body!,
+        adapter,
+      ).parse();
+      bot.emit("adminCommandCreate", ctx, args);
+    } else {
+      bot.emit("messageCreate", ctx, adapter);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // MQTT connection with exponential backoff reconnect
+  // ---------------------------------------------------------------------------
+
+  const MQTT_RECONNECT_BASE_MS = 2_000;
+  const MQTT_RECONNECT_MAX_MS = 60_000;
+  let reconnectAttempt = 0;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function startMqtt() {
+    stopListening = api.listenMqtt(async (err: any, event: FcaEvent) => {
+      if (err) {
+        console.error("[FB] MQTT error:", err);
+        scheduleReconnect();
+        return;
+      }
+      await onMqttEvent(event);
+    });
+
+    console.log("[FB] MQTT listening started.");
+    reconnectAttempt = 0;
+  }
+
+  function scheduleReconnect() {
+    if (reconnectTimer) return; // already scheduled
+
+    const delay = Math.min(
+      MQTT_RECONNECT_BASE_MS * 2 ** reconnectAttempt,
+      MQTT_RECONNECT_MAX_MS,
+    );
+    reconnectAttempt++;
+
+    console.warn(
+      `[FB] MQTT disconnected. Reconnecting in ${delay}ms (attempt ${reconnectAttempt})...`,
+    );
+
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      try {
+        startMqtt();
+        console.log("[FB] MQTT reconnected.");
+      } catch (err) {
+        console.error("[FB] MQTT reconnect failed:", err);
+        scheduleReconnect();
+      }
+    }, delay);
+  }
+
+  // ---------------------------------------------------------------------------
+  // waitReply — uses replyListeners set instead of EventEmitter
   // ---------------------------------------------------------------------------
 
   function makeFacebookReplyFn(incoming: TXIContext, rawMessageID: string) {
@@ -462,7 +576,7 @@ export default function buildFacebookAdapter(
     ): Promise<TXMessage | null> {
       return new Promise((resolve) => {
         const timer = setTimeout(() => {
-          mqttEmitter?.off("message", handler);
+          replyListeners.delete(handler);
           resolve(null);
         }, options.timeout);
 
@@ -482,7 +596,7 @@ export default function buildFacebookAdapter(
           if (options.filter && !options.filter(incoming)) return;
 
           clearTimeout(timer);
-          mqttEmitter?.off("message", handler);
+          replyListeners.delete(handler);
 
           resolve(
             new TXMessage(
@@ -492,7 +606,7 @@ export default function buildFacebookAdapter(
           );
         }
 
-        mqttEmitter?.on("message", handler);
+        replyListeners.add(handler);
       });
     };
   }
@@ -540,117 +654,10 @@ export default function buildFacebookAdapter(
         });
       });
 
-      mqttEmitter = api.listenMqtt();
-
-      attachMqttReconnect(
-        api,
-        () => mqttEmitter,
-        (e) => {
-          mqttEmitter = e;
-        },
-        async (event: FcaEvent) => {
-          // -----------------------------------------------------------------
-          // userJoin — someone was added to the group
-          // NOTE: must come BEFORE the body guard below
-          // -----------------------------------------------------------------
-          if (event.type === "log:subscribe") {
-            const addedIDs: string[] =
-              event.logMessageData?.addedParticipants
-                ?.map((p) => p.userFbId ?? p.id)
-                .filter((id): id is string => Boolean(id)) ?? [];
-
-            for (const uid of addedIDs) {
-              const isAdmin =
-                bot
-                  .getConfig()
-                  .adminIds?.some((a: any) => a.facebookId === uid) ?? false;
-
-              const ctx = await buildFacebookContext(isAdmin, {
-                type: "log:subscribe",
-                threadID: event.threadID,
-                senderID: uid, // ← the joined user, not the adder
-                timestamp: event.timestamp,
-              });
-
-              bot.emit("userJoin", ctx, adapter);
-            }
-            return;
-          }
-
-          // -----------------------------------------------------------------
-          // userLeave — someone left or was removed from the group
-          // NOTE: must come BEFORE the body guard below
-          // -----------------------------------------------------------------
-          if (event.type === "log:unsubscribe") {
-            const leftID: string =
-              event.logMessageData?.leftParticipantFbId ?? event.senderID;
-
-            if (leftID) {
-              const isAdmin =
-                bot
-                  .getConfig()
-                  .adminIds?.some((a: any) => a.facebookId === leftID) ?? false;
-
-              const ctx = await buildFacebookContext(isAdmin, {
-                type: "log:unsubscribe",
-                threadID: event.threadID,
-                senderID: leftID,
-                timestamp: event.timestamp,
-              });
-
-              bot.emit("userLeave", ctx, adapter);
-            }
-            return;
-          }
-
-          // -----------------------------------------------------------------
-          // Regular messages — body guard is safe here since log events
-          // already returned above
-          // -----------------------------------------------------------------
-          if (event.type !== "message" && event.type !== "message_reply")
-            return;
-          if (!event.body?.trim()) return;
-
-          const senderID = event.senderID;
-          const selfID: string = api.getCurrentUserID?.() ?? "";
-
-          if (senderID === selfID) return;
-          if (!rateLimiter.isAllowed(senderID)) return;
-
-          const isAdmin =
-            bot
-              .getConfig()
-              .adminIds?.some((id: any) => id.facebookId === senderID) ?? false;
-
-          const ctx = await buildFacebookContext(isAdmin, event);
-
-          const usedPrefix = bot.prefixes.find((p: string) =>
-            event.body!.startsWith(p),
-          );
-          const usedAdminPrefix = bot.adminPrefixes.find((p: string) =>
-            event.body!.startsWith(p),
-          );
-
-          if (usedPrefix) {
-            const args = new TXCommandArgumentParser(
-              usedPrefix,
-              event.body!,
-              adapter,
-              undefined,
-            ).parse();
-            bot.emit("commandCreate", ctx, args);
-          } else if (usedAdminPrefix) {
-            const args = new TXCommandArgumentParser(
-              usedAdminPrefix,
-              event.body!,
-              adapter,
-            ).parse();
-            bot.emit("adminCommandCreate", ctx, args);
-          } else {
-            bot.emit("messageCreate", ctx, adapter);
-          }
-        },
-      );
+      // Start MQTT using the callback pattern — this is the fix.
+      // api.listenMqtt(callback) delivers every event to our central
+      // onMqttEvent handler, including log:subscribe and log:unsubscribe.
+      startMqtt();
     })
 
     .setMessageSender(async (target, message) => {
