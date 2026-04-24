@@ -2,42 +2,33 @@ import TXCommand from "../../../core/command/TXCommand.js";
 import Users from "../../../core/database/model/Users.js";
 import TXAdapterBuilder from "../../../core/adapter/TXAdapterBuilder.js";
 
-const PH_TIMEZONE = "Asia/Manila";
-
-let CACHED_TOP_USERS: Record<string, any>[] = [];
-let CACHE_DATE_KEY = "";
-
 export default new TXCommand({
   name: "top",
   description: "View the top users in the economy",
   usage: "top",
   minimumArguments: 0,
-  cooldown: 10_000, // 5s
+  cooldown: 20_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
-    if (isCacheStale()) {
-      CACHED_TOP_USERS = await Users.aggregate([
-        { $match: { platform: ctx.platform } },
-        {
-          $addFields: {
-            totalBalance: {
-              $add: [
-                { $ifNull: ["$economy.coins", 0] },
-                { $ifNull: ["$economy.bankBalance", 0] },
-              ],
-            },
+    const topUsers = await Users.aggregate([
+      { $match: { platform: ctx.platform } },
+      {
+        $addFields: {
+          totalBalance: {
+            $add: [
+              { $ifNull: ["$economy.coins", 0] },
+              { $ifNull: ["$economy.bankBalance", 0] },
+            ],
           },
         },
-        { $sort: { totalBalance: -1 } },
-        { $limit: 10 },
-      ]);
+      },
+      { $sort: { totalBalance: -1 } },
+      { $limit: 10 },
+    ]);
 
-      CACHE_DATE_KEY = getPHDateKey();
-    }
-
-    const topUsers = await formatTopUsers(adapter, CACHED_TOP_USERS);
-    await adapter.reply(ctx, topUsers);
+    const formatted = await formatTopUsers(adapter, topUsers);
+    await adapter.reply(ctx, formatted);
   },
 });
 
@@ -48,6 +39,16 @@ async function formatTopUsers(
   const users = await Promise.all(
     rawUsers.map((u) => adapter.resolveUser(u.userId)),
   );
+
+  const now = new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date());
 
   return [
     `   ↳ ❝ [ Top Users ] ¡! ❞`,
@@ -62,19 +63,6 @@ async function formatTopUsers(
     }),
     `╰─────────┈➤`,
     ``,
-    `𓆩⟡𓆪 Refreshes every 12:00 AM (PH Time)`,
+    `𓆩⟡𓆪 as of ${now}`,
   ].join("\n");
-}
-
-function getPHDateKey(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: PH_TIMEZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date()); // returns "YYYY-MM-DD" in PH time
-}
-
-function isCacheStale(): boolean {
-  return getPHDateKey() !== CACHE_DATE_KEY;
 }
