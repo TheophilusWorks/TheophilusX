@@ -26,6 +26,10 @@ const userSchema = new Schema(
         type: Number,
         default: 0,
       },
+      stealCount: {
+        type: Number,
+        default: 0,
+      },
       level: {
         type: Number,
         default: 0,
@@ -50,6 +54,10 @@ const userSchema = new Schema(
       nextWork: {
         type: Date,
         defUlt: null,
+      },
+      lastStealAt: {
+        type: Date,
+        default: null,
       },
     },
   },
@@ -76,10 +84,12 @@ export function queryUser(platform: TXPlatform, userId: string): UserQuery {
 export function initializeUserEconomy(): UserEconomy {
   return {
     coins: 0,
+    stealCount: 0,
     bankBalance: 0,
     totalBalance: 0,
     nextDaily: null,
     nextWork: null,
+    lastStealAt: null,
     level: 1,
     exp: 0,
     totalExp: 0,

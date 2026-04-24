@@ -1,5 +1,8 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, { queryUser } from "../../../core/database/model/Users.js";
+import Users, {
+  queryUser,
+  initializeUserEconomy,
+} from "../../../core/database/model/Users.js";
 import { updateUserCoins } from "../../utils/database/updateUserCoins.js";
 import { initializeUser } from "../../utils/database/initializeUser.js";
 
@@ -24,7 +27,6 @@ export default new TXCommand({
     }
 
     await initializeUser(ctx);
-
     let user = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
     // unreachable
