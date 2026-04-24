@@ -19,9 +19,9 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
-    let response = await axios.get("https://tikwm.com/api/feed/search", {
-      params: { keywords: "pinay shoti" },
-    });
+    let response = await axios.get(
+      "https://oreo.gleeze.com/api/shoti?stream=false",
+    );
 
     const { data, status } = response;
 
@@ -29,30 +29,27 @@ export default new TXCommand({
       throw new Error(`Cannot fetch shoti. HTTP status: ${status}`);
     }
 
-    const videos = data?.data?.videos;
-
-    if (!videos || videos.length === 0) {
-      throw new Error("Failed to fetch shoti... Please try again later");
-    }
-
-    const rng = Math.floor(randomRange(0, videos.length));
-
-    const video = videos[rng];
-
     const filepath = path.resolve(
       CACHE_DIR,
       `shoti_${crypto.randomUUID()}.mp4`,
     );
 
-    await downloadFile(video.play, filepath);
-    await adapter.reply(ctx, {
-      parts: [
-        text("Here's your shoti, "),
-        mention(ctx.author.id, ctx.author.displayName),
-      ],
-      attachments: [filepath],
-    });
-
-    await unlink(filepath);
+    try {
+      await downloadFile(data.link, filepath);
+      await adapter.reply(ctx, {
+        parts: [
+          text("Here's your shoti, "),
+          mention(ctx.author.id, ctx.author.displayName),
+          text("! Enjoy!"),
+          text("\n\n"),
+          text(`Title: ${data.title}\n`),
+          text(`Nickname: ${data.nickname}\n`),
+          text(`Region: ${data.region}\n`),
+        ],
+        attachments: [filepath],
+      });
+    } finally {
+      await unlink(filepath);
+    }
   },
 });
