@@ -110,6 +110,7 @@ export default new TXCommand({
             ctx,
             `${victim.displayName} only has ${victimCoins} coins — lower your steal amount.`,
           );
+          return;
         }
 
         if (authorCoins < penalty) {
