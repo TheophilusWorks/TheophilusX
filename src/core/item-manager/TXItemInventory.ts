@@ -12,18 +12,17 @@ export default class TXItemInventory implements TXIItemInventory {
     this.commands = [];
     this.items = [];
   }
-  
+
   public static hydrateInventory(raw: { commands: string[] }): TXItemInventory {
     const inv = new TXItemInventory();
-    raw.commands.forEach((cmd) => inv.addCommand(cmd));
-    raw.commands.forEach((cmd) => inv.addCommand(cmd));
+    inv.commands = raw.commands;
     return inv;
   }
 
   public addCommand(commandName: string): void {
     this.commands.push(commandName);
   }
-  
+
   public addItem(itemName: string): void {
     this.items.push(itemName);
   }

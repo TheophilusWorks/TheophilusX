@@ -18,8 +18,10 @@ export async function initializeUser(
   await Users.findOneAndUpdate(
     queryUser(ctx.platform, userId),
     {
-      $setOnInsert: {
+      $set: {
         username: ctx.author.username,
+      },
+      $setOnInsert: {
         economy: initializeUserEconomy(),
       },
     },

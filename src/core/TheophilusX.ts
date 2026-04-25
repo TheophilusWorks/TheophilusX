@@ -113,6 +113,10 @@ export default class TheophilusX {
     return this.commandRegistry.get(cmdName);
   }
 
+  public getItemManager() {
+    return this.itemManager;
+  }
+
   public getCommandAlias(alias: string): TXCommand | undefined {
     return this.commandRegistry.getAlias(alias);
   }

@@ -14,7 +14,7 @@ const REEL_SLOTS = 3;
 export default new TXCommand({
   name: "slot",
   description:
-    "Spin the slot machine and gamble some of your coins on the outcome.",
+    "Spin the slot machine and win prizes",
   usage: "slot <bet>",
   minimumArguments: 1,
   aliases: ["spin"],

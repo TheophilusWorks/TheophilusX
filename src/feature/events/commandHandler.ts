@@ -7,6 +7,7 @@ import { TXIContext } from "../../core/context/TXContext.js";
 import TXICommandArgument from "../../types/TXICommandArgument.js";
 import TXCooldownManager from "../../core/command/TXCooldownHandler.js";
 import instance from "../../instance.js";
+import TXCommandOwnershipCheckerMW from "../middlewares/TXCommandOwnershipCheckerMW.js";
 
 export const COOLDOWN_USERS = new TXCooldownManager();
 
@@ -18,6 +19,7 @@ export default new TXEventBuilder(
     instance.getCommands(),
     instance.getAllCommandAliases(),
   ).callback,
+  new TXCommandOwnershipCheckerMW().callback,
   new TXCommandValidatorMW().callback,
   async (ctx: TXIContext, cmdQuery: TXICommandArgument) => {
     let adapter = cmdQuery.adapter;

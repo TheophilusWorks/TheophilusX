@@ -20,6 +20,14 @@ export default class TXItemManager {
     this.itemsPath = itemsPath;
   }
 
+  public getCommand(name: string): TXCommand | undefined {
+    return this.commands.get(name);
+  }
+
+  public getItem(name: string): TXIItem | undefined {
+    return this.items.get(name)?.txitem;
+  }
+
   public getAllSellableCommands(): TXCommand[] {
     return Array.from(this.commands.values()).filter((cmd) => cmd.shopInfo);
   }
@@ -34,6 +42,7 @@ export default class TXItemManager {
 
     for (const [, command] of commands) {
       if (!command.shopInfo) continue;
+      this.commands.set(command.name, command);
       this.logger.log(`Loaded item command: '${command.name}'`);
       this.loadedCommands++;
     }

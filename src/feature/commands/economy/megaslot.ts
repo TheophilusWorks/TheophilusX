@@ -25,7 +25,7 @@ const REEL_SLOTS = 5;
 export default new TXCommand({
   name: "megaslot",
   description:
-    "Spin the mega slot machine and gamble some of your coins on the outcome. Higher risk, higher reward than the regular slot machine!",
+    "Spin the mega slot machine and win prizes",
   usage: "megaslot <bet>",
   minimumArguments: 1,
   aliases: ["megaspin", "ms"],

@@ -1,6 +1,9 @@
 import TXCommand from "../../../core/command/TXCommand.js";
 import { TXIContext } from "../../../core/context/TXContext.js";
 import instance from "../../../instance.js";
+import { initializeUser } from "../../utils/database/initializeUser.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
+import TXItemInventory from "../../../core/item-manager/TXItemInventory.js";
 
 const COMMANDS_PER_PAGE = 10;
 const DOT_WINDOW = 5;
@@ -23,40 +26,47 @@ export default new TXCommand({
   usedStringFlags: ["cmd", "page"],
   minimumMentions: 0,
   execute: async (ctx, { adapter, args, stringFlags }) => {
-    let buffer: string;
+    await initializeUser(ctx);
+    let userData = await Users.findOne(queryUser(ctx.platform, ctx.author.id));
 
-    let cmdName: string | undefined = stringFlags?.["cmd"];
+    // unreachable if initializeUser works correctly, but just in case
+    if (!userData) return;
+
+    let buffer: string;
+    let cmdName = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
       if (!cmd || cmd.blacklistedPlatform?.includes(ctx.platform)) {
         adapter.reply(ctx, `Command "${cmdName}" not found.`);
         return;
       }
-
-      buffer = inspectCommand(cmd);
+      let isOwned = userData.inventory.commands.includes(cmd.name) ?? false;
+      buffer = inspectCommand(cmd, isOwned);
     } else {
       // --page flag takes priority over positional arg
       const rawPage = stringFlags?.["page"] ?? args?.[0];
       const parsed = rawPage ? parseInt(rawPage, 10) : 1;
       const page = isNaN(parsed) || parsed < 1 ? 1 : parsed;
 
-      buffer = generateHelpMenu(ctx, page);
+      let inventory = TXItemInventory.hydrateInventory(userData.inventory);
+      buffer = generateHelpMenu(ctx, page, inventory);
     }
 
     adapter.reply(ctx, buffer);
   },
 });
 
-function inspectCommand(cmd: TXCommand): string {
+function inspectCommand(cmd: TXCommand, isOwned: boolean): string {
   let alias = "None";
   if (cmd.aliases && cmd.aliases.length > 0) {
     alias = cmd.aliases.join(" | ");
   }
-  return `
+  let msg = `
 ╭┈─ ${cmd.name} ◌ೄˊˎ
 ┊ Description: ${cmd.description}
 ┊ Category: ${cmd.category || "Uncategorized"}
 ┊ Usage: ${cmd.usage}
+┊ Is Owned: ${isOwned ? "Yes" : "No"}
 ┊ Aliases: ${alias}
 ┊ Cooldown: ${cmd.cooldown / 1000}s
 ╰──────┈➤ ❝ [ Info ]
@@ -69,10 +79,22 @@ function inspectCommand(cmd: TXCommand): string {
 ┊ Boolean flags: ${cmd.usedBooleanFlags?.join(" | ") || "None"}
 ╰──────┈➤ ❝ [ Flags ]
 `;
+
+  if (!isOwned) {
+    msg += `
+
+𓆩⟡𓆪 Type \`/shop commands ${cmd.name}\` to buy and unlock this command
+`;
+  }
+  return msg.trim();
 }
 
-function generateHelpMenu(ctx: TXIContext, page: number) {
-  const { pages, totalPages } = paginateCommands(ctx);
+function generateHelpMenu(
+  ctx: TXIContext,
+  page: number,
+  inventory: TXItemInventory,
+): string {
+  const { pages, totalPages } = paginateCommands(ctx, inventory);
 
   // clamp to valid range
   if (page > totalPages) page = totalPages;
@@ -89,7 +111,8 @@ ${pageContent}
 ┊
 ${pageIndicator}
 
-𓆩⟡𓆪 Type \`help <page>\` to turn pages or \`help --cmd=<name>\` to inspect a command
+𓆩⟡𓆪 Type \`%help <page>\` to turn pages or \`%help --cmd=<name>\` to inspect a command
+𓆩⟡𓆪 Type \`%shop commands <command name>\` to buy and unlock a command
 `.trim();
 }
 
@@ -130,7 +153,10 @@ function formatPageIndicator(current: number, total: number): string {
 // it becomes a performance issue, we can consider caching the sorted commands
 // and only recalculating when commands are added/removed.
 // plus we lowkey need a delay lol
-function paginateCommands(ctx: TXIContext): {
+function paginateCommands(
+  ctx: TXIContext,
+  inventory: TXItemInventory,
+): {
   pages: string[];
   totalPages: number;
 } {
@@ -153,7 +179,12 @@ function paginateCommands(ctx: TXIContext): {
   for (const [category, cmds] of Object.entries(categories)) {
     tokens.push({ kind: "header", category });
     for (let i = 0; i < cmds.length; i++) {
-      tokens.push({ kind: "command", text: `┊ ${i + 1}. ${cmds[i].name}` });
+      let text = `┊ ${i + 1}. ${cmds[i].name}`;
+      let isCmdForSale = cmds[i].shopInfo;
+      if (isCmdForSale && !inventory.hasCommand(cmds[i].name)) {
+        text += " <locked>";
+      }
+      tokens.push({ kind: "command", text });
     }
   }
 
