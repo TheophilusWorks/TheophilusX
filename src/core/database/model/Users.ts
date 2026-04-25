@@ -1,6 +1,16 @@
 import { Schema, model, InferSchemaType } from "mongoose";
 import { TXPlatform } from "../../context/TXContext.js";
 
+const inventorySchema = new Schema(
+  {
+    commands: {
+      type: [String],
+      default: [],
+    },
+  },
+  { _id: false },
+);
+
 const userSchema = new Schema(
   {
     platform: {
@@ -15,6 +25,11 @@ const userSchema = new Schema(
     userId: {
       type: String,
       required: true,
+    },
+
+    inventory: {
+      type: inventorySchema,
+      default: () => ({ commands: [] }),
     },
 
     economy: {
@@ -46,14 +61,13 @@ const userSchema = new Schema(
         type: Number,
         default: 0,
       },
-
       nextDaily: {
         type: Date,
         default: null,
       },
       nextWork: {
         type: Date,
-        defUlt: null,
+        default: null,
       },
       lastStealAt: {
         type: Date,
@@ -66,10 +80,11 @@ const userSchema = new Schema(
   },
 );
 
-userSchema.index({ platform: 1, userId: 1, serverId: 1 }, { unique: true });
+userSchema.index({ platform: 1, userId: 1 }, { unique: true });
 
 type UserDoc = InferSchemaType<typeof userSchema>;
 type UserEconomy = NonNullable<UserDoc["economy"]>;
+type UserInventory = NonNullable<UserDoc["inventory"]>;
 type UserQuery = Pick<UserDoc, "platform" | "userId">;
 
 export default model("users", userSchema);
@@ -93,5 +108,11 @@ export function initializeUserEconomy(): UserEconomy {
     level: 1,
     exp: 0,
     totalExp: 0,
+  };
+}
+
+export function initializeUserInventory(): UserInventory {
+  return {
+    commands: [],
   };
 }

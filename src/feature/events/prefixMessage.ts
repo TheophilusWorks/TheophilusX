@@ -1,10 +1,11 @@
-import { TXPlatform } from "../../core/context/TXContext.js";
+import TXAdapterBuilder from "../../core/adapter/TXAdapterBuilder.js";
+import { TXPlatform, TXIContext } from "../../core/context/TXContext.js";
 import TXEventBuilder from "../../core/event/TXEventBuilder.js";
 import instance from "../../instance.js";
 
 const MESSAGED_GROUPS = new Map<string, number>();
 
-export default new TXEventBuilder("messageCreate", async (ctx, adapter) => {
+export default new TXEventBuilder("messageCreate", async (ctx: TXIContext, adapter: TXAdapterBuilder) => {
   if (ctx.author.isSelf) return;
   if (!ctx.content.includes('prefix')) return;
 

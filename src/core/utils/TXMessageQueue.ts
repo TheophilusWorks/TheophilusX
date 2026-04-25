@@ -28,11 +28,11 @@ export default class TXMessageQueue {
   private async _run(): Promise<void> {
     this.running = true;
     while (this.queue.length > 0) {
+      const delay =
+        Math.random() * (this.maxDelayMs - this.minDelayMs) + this.minDelayMs;
       await sleep(delay);
       const job = this.queue.shift()!;
       await job().catch(console.error);
-      const delay =
-        Math.random() * (this.maxDelayMs - this.minDelayMs) + this.minDelayMs;
     }
     this.running = false;
   }
