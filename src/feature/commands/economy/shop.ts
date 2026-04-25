@@ -184,18 +184,18 @@ function generateShopMenu(page: number): string {
     pages[clampedPage - 1] ?? "No commands are available for sale right now.";
   const pageIndicator = formatPageIndicator(clampedPage, totalPages);
 
-  return `
-‗   ↳ ❝ [ Shop: Commands ] ¡! ❞
-ೃ⁀➷ Browse and unlock new commands below
-         ◇─◇───◇─◇
-
-${pageContent}
-┊
-${pageIndicator}
-
-𓆩⟡𓆪 To buy a command, type \`/shop commands <name>\`
-𓆩⟡𓆪 To change pages, type \`/shop commands --page=<number>\`
-`.trim();
+  return [
+    "‗   ↳ ❝ [ Shop: Commands ] ¡! ❞",
+    "ೃ⁀➷ Browse and unlock new commands below",
+    "         ◇─◇───◇─◇",
+    "",
+    pageContent,
+    "",
+    pageIndicator,
+    "",
+    "𓆩⟡𓆪 `/shop commands <name>` to buy",
+    "𓆩⟡𓆪 `/shop commands --page=<number>` to browse",
+  ].join("\n");
 }
 
 function paginateShopCommands(): { pages: string[]; totalPages: number } {
@@ -211,24 +211,28 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
       itemDependency = [],
     } = cmd.shopInfo!;
 
-    if (current.length === 0) {
-      current.push("╭┈ available commands : ̗̀➛");
-    }
+    if (current.length === 0) current.push("╭┈ available commands : ̗̀➛");
 
-    current.push(
-      `┊ ${i + 1}. ${cmd.name} — 🪙 ${price} coins`,
-      `┊    ↳ ${cmd.description}`,
-      `┊    Level ${requiredLevel}+ · ${requiredTotalExp} EXP needed`,
-    );
+    const meta = [
+      `🪙 ${price}`,
+      requiredLevel > 0 ? `Lv${requiredLevel}+` : null,
+      requiredTotalExp > 0 ? `${requiredTotalExp} EXP` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    current.push(`┊ ${i + 1}. ${cmd.name} — ${meta}`);
+    current.push(`┊    ↳ ${cmd.description}`);
 
     if (itemDependency.length > 0) {
       const deps = itemDependency
-        .map((dep) => {
-          if ("commandName" in dep) return `cmd:${dep.commandName}`;
-          if ("itemName" in dep) return `item:${dep.itemName}`;
-        })
+        .map((dep) =>
+          "commandName" in dep
+            ? `cmd:${dep.commandName}`
+            : `item:${dep.itemName}`,
+        )
         .join(", ");
-      current.push(`┊    Requires: ${deps}`);
+      current.push(`┊    needs: ${deps}`);
     }
 
     const isPageFull = (i + 1) % COMMANDS_PER_PAGE === 0;
@@ -238,6 +242,8 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
       current.push("╰─────────┈➤");
       pages.push(current.join("\n"));
       current = [];
+    } else {
+      current.push("┊ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄");
     }
   });
 
@@ -246,7 +252,7 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
 
 function formatPageIndicator(current: number, total: number): string {
   const dots = buildDots(current, total);
-  return `├┈ page navigation ◌ೄˊˎ\n┊ ${dots}\n╰──────┈➤ ❝ [ Page ${current} ]`;
+  return `┊ ${dots}  [ ${current} / ${total} ]`;
 }
 
 function buildDots(current: number, total: number): string {
@@ -276,18 +282,18 @@ function buildDots(current: number, total: number): string {
 }
 
 function formatBuyConfirmation(itemName: string, price: number): string {
-  return `
-‗   ↳ ❝ [ Shop: Confirm Purchase ] ¡! ❞
-ೃ⁀➷ You're about to buy the following command
-         ◇─◇───◇─◇
-
-╭┈ purchase details : ̗̀➛
-┊ Command  ›  ${itemName}
-┊ Price    ›  🪙 ${price} coins
-╰─────────┈➤
-
-𓆩⟡𓆪 Reply \`yes\` to confirm, or anything else to cancel
-`.trim();
+  return [
+    "‗   ↳ ❝ [ Shop: Confirm Purchase ] ¡! ❞",
+    "ೃ⁀➷ You're about to buy the following command",
+    "         ◇─◇───◇─◇",
+    "",
+    "╭┈ purchase details : ̗̀➛",
+    `┊ Command  ›  ${itemName}`,
+    `┊ Price    ›  🪙 ${price} coins`,
+    "╰─────────┈➤",
+    "",
+    "𓆩⟡𓆪 Reply `yes` to confirm, or anything else to cancel",
+  ].join("\n");
 }
 
 function formatDependencyError(
@@ -295,7 +301,7 @@ function formatDependencyError(
   unmetCommands: string[],
   unmetItems: string[],
 ): string {
-  const rows: string[] = ["╭┈ dependencies : ̗̀➛"];
+  const rows: string[] = ["╭┈ missing dependencies : ̗̀➛"];
 
   if (unmetCommands.length > 0) {
     rows.push(`┊ commands: ${unmetCommands.map((c) => `'${c}'`).join(", ")}`);
@@ -312,13 +318,13 @@ function formatDependencyError(
     ...unmetItems.map((i) => `\`${i}\``),
   ].join(", ");
 
-  return `
-‗   ↳ ❝ [ Shop: Confirm Purchase ] ¡! ❞
-ೃ⁀➷ You can't buy \`${name}\` yet! You haven't bought the required items yet.
-         ◇─◇───◇─◇
-
-${rows.join("\n")}
-
-𓆩⟡𓆪 Purchase ${allMissing} first
-`.trim();
+  return [
+    "‗   ↳ ❝ [ Shop: Missing Requirements ] ¡! ❞",
+    `ೃ⁀➷ You can't buy \`${name}\` yet!`,
+    "         ◇─◇───◇─◇",
+    "",
+    rows.join("\n"),
+    "",
+    `𓆩⟡𓆪 Purchase ${allMissing} first`,
+  ].join("\n");
 }

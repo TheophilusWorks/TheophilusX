@@ -182,7 +182,7 @@ function paginateCommands(
       let text = `┊ ${i + 1}. ${cmds[i].name}`;
       let isCmdForSale = cmds[i].shopInfo;
       if (isCmdForSale && !inventory.hasCommand(cmds[i].name)) {
-        text += " <locked>";
+        text += " (🔒)";
       }
       tokens.push({ kind: "command", text });
     }
