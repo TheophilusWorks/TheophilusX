@@ -11,16 +11,6 @@ const rainbowLevel = gradient(["#FFD700", "#FFA500", "#FF1493"]);
 const orangeFire = gradient(["#FF4500", "#FFA500", "#FFD700"]);
 const bloodRed = gradient(["#8B0000", "#FF0000", "#FF4500"]);
 
-// Message gradients
-const rainbowMsg = gradient([
-  "#FF0000",
-  "#FF7F00",
-  "#FFFF00",
-  "#00FF00",
-  "#0000FF",
-  "#8B00FF",
-]);
-
 function formatLevel(level: DebugLevel): string {
   let colored: string;
 

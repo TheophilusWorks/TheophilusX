@@ -74,11 +74,7 @@ export default class TheophilusX {
       config.mongoDbURI,
       this.logger,
     );
-    this.itemManager = new TXItemManager(
-      config.itemsPath,
-      this.databaseManager,
-      this.logger,
-    );
+    this.itemManager = new TXItemManager(config.itemsPath, this.logger);
     this.cache = new TXCacheManager({
       cachePath: config.cachePath,
       updateSchedule: new Date(0),

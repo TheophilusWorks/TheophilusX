@@ -1,5 +1,4 @@
 import TXCommand from "../command/TXCommand.js";
-import TXDatabaseManager from "../database/TXDatabaseManager.js";
 import TXItemBuilder from "./TXItemBuilder.js";
 import { TXIItem } from "./TXIItem.js";
 import TXLogger from "../logger/TXLogger.js";
@@ -10,19 +9,13 @@ import path from "path";
 export default class TXItemManager {
   private commands: Map<string, TXCommand> = new Map();
   private items: Map<string, TXItemBuilder> = new Map();
-  private database: TXDatabaseManager;
   private logger: TXLogger;
   private loadedItems = 0;
   private loadedCommands = 0;
 
   private itemsPath: string;
 
-  constructor(
-    itemsPath: string,
-    database: TXDatabaseManager,
-    logger: TXLogger,
-  ) {
-    this.database = database;
+  constructor(itemsPath: string, logger: TXLogger) {
     this.logger = logger;
     this.itemsPath = itemsPath;
   }
