@@ -15,7 +15,7 @@ export default new TXCommand({
   aliases: ["gc"],
   cooldown: 5_000,
   shopInfo: {
-    price: 1000,
+    price: 5500,
   },
   minimumGroupedArguments: 0,
   minimumMentions: 0,

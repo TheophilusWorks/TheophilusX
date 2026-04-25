@@ -19,7 +19,7 @@ export default new TXCommand({
   minimumArguments: 1,
   aliases: ["spin"],
   shopInfo: {
-    price: 2000,
+    price: 20000,
   },
   cooldown: 5_000,
   minimumGroupedArguments: 0,

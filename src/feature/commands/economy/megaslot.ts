@@ -30,7 +30,7 @@ export default new TXCommand({
   minimumArguments: 1,
   aliases: ["megaspin", "ms"],
   shopInfo: {
-    price: 5000,
+    price: 50000,
     itemDependency: [{ commandName: "slot" }],
   },
   cooldown: 5_000,

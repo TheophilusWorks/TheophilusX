@@ -13,7 +13,7 @@ export default new TXCommand({
   usage: "steal <user> <amount>",
   aliases: ["rob"],
   shopInfo: {
-    price: 2500,
+    price: 5000,
     requiredLevel: 2,
   },
   minimumArguments: 1,

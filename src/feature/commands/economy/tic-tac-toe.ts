@@ -51,7 +51,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   aliases: ["ttt", "xoxo"],
   shopInfo: {
-    price: 1000,
+    price: 3000,
   },
   cooldown: 5_000,
   execute: async (ctx, { adapter, booleanFlags }) => {

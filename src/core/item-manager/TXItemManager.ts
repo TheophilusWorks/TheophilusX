@@ -68,7 +68,7 @@ export default class TXItemManager {
         {
           label: `Items: ${this.loadedItems}`,
           children: Array.from(this.items.values(), (item) => ({
-            label: `${item.txitem.name} - ${item.txitem.description}`,
+            label: `${item.txitem.name}`,
             children: [],
           })),
         },
@@ -77,7 +77,7 @@ export default class TXItemManager {
           children: Array.from(this.commands.values())
             .filter((cmd) => cmd.shopInfo)
             .map((cmd) => ({
-              label: `${cmd.name} - ${cmd.description}`,
+              label: `${cmd.name}`,
               children: [],
             })),
         },

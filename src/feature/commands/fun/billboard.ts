@@ -17,7 +17,7 @@ export default new TXCommand({
   usage: "billboard <msg>",
   minimumArguments: 1,
   shopInfo: {
-    price: 500,
+    price: 1000,
   },
   cooldown: 5_000,
   minimumGroupedArguments: 0,

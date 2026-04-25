@@ -31,7 +31,7 @@ export default new TXCommand({
   minimumArguments: 0,
   cooldown: 5_000,
   shopInfo: {
-    price: 1500,
+    price: 10000,
   },
   minimumGroupedArguments: 0,
   minimumMentions: 0,
