@@ -12,6 +12,10 @@ export default new TXCommand({
   description: "Steal coins from another user. Chance to fail and lose coins!",
   usage: "steal <user> <amount>",
   aliases: ["rob"],
+  shopInfo: {
+    price: 2500,
+    requiredLevel: 2,
+  },
   minimumArguments: 1,
   minimumMentions: 1,
   minimumGroupedArguments: 0,

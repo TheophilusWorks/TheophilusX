@@ -16,6 +16,9 @@ export default new TXCommand({
   description: "Write something on the billboard.",
   usage: "billboard <msg>",
   minimumArguments: 1,
+  shopInfo: {
+    price: 500,
+  },
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,

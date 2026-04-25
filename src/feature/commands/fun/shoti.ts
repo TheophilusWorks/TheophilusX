@@ -16,6 +16,9 @@ export default new TXCommand({
   usage: "shoti",
   minimumArguments: 0,
   cooldown: 5_000,
+  shopInfo: {
+    price: 500,
+  },
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {

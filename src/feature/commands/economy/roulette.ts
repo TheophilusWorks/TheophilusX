@@ -13,6 +13,9 @@ export default new TXCommand({
   usage: "roulette <bet> <red | black | green> (number)",
   minimumArguments: 2,
   minimumMentions: 0,
+  shopInfo: {
+    price: 500,
+  },
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   execute: async (ctx, { adapter, args }) => {

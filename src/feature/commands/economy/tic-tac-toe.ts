@@ -50,6 +50,9 @@ export default new TXCommand({
   minimumArguments: 0,
   minimumGroupedArguments: 0,
   aliases: ["ttt", "xoxo"],
+  shopInfo: {
+    price: 1000,
+  },
   cooldown: 5_000,
   execute: async (ctx, { adapter, booleanFlags }) => {
     const opponentUser = ctx.mentions[0];

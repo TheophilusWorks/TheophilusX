@@ -29,6 +29,10 @@ export default new TXCommand({
   usage: "megaslot <bet>",
   minimumArguments: 1,
   aliases: ["megaspin", "ms"],
+  shopInfo: {
+    price: 5000,
+    itemDependency: [{ commandName: "slot" }],
+  },
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,

@@ -18,6 +18,9 @@ export default new TXCommand({
   usage: "slot <bet>",
   minimumArguments: 1,
   aliases: ["spin"],
+  shopInfo: {
+    price: 2000,
+  },
   cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
