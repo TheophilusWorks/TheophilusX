@@ -12,20 +12,21 @@ export default class TXCommandCanExecute extends TXMiddleware<
     cmdQuery: TXICommandArgument,
     next: TXNext,
   ) => {
-  if (instance.isUpdating()) return;
+    if (instance.isUpdating()) return;
+    if (instance.isTXMigrating) return;
 
-  let adapter = cmdQuery.adapter;
+    let adapter = cmdQuery.adapter;
 
-  if (instance.isReloading) {
-    await adapter.reply(
-      ctx,
-      [
-        `‗ ↳ ❝ Reloading ❞`,
-        `⁀➷ Cannot run \`${cmdQuery.command}\` right now — try again in a moment.`,
-      ].join("\n"),
-    );
-  }
+    if (instance.isReloading) {
+      await adapter.reply(
+        ctx,
+        [
+          `‗ ↳ ❝ Reloading ❞`,
+          `⁀➷ Cannot run \`${cmdQuery.command}\` right now — try again in a moment.`,
+        ].join("\n"),
+      );
+    }
 
-  await next();
-  }
+    await next();
+  };
 }

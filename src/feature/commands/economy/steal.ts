@@ -5,8 +5,8 @@ import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import mongoose from "mongoose";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-
 const MAX_DAILY_STEALS = 5;
+
 export default new TXCommand({
   name: "steal",
   description: "Steal coins from another user. Chance to fail and lose coins!",
@@ -43,12 +43,8 @@ export default new TXCommand({
     }
 
     const chance = getSuccessChance(amount, author.isAdmin);
-
-    // Penalty = 20% of wanted amount
     const penalty = round2(amount * 0.2);
-    // Fee = 10% of penalty, goes to victim
     const fee = round2(penalty * 0.1);
-
     const session = await mongoose.startSession();
 
     try {
@@ -61,7 +57,6 @@ export default new TXCommand({
         )
           .session(session)
           .lean();
-
         const victimData = await Users.findOne(
           queryUser(ctx.platform, victim.id),
         )
@@ -75,18 +70,14 @@ export default new TXCommand({
         const authorCoins = authorData.economy.coins;
         const victimCoins = victimData.economy.coins;
 
-        // 24h rolling window for steal count
         const now = Date.now();
-        const lastStealAt = authorData.economy.lastStealAt
-          ? new Date(authorData.economy.lastStealAt).getTime()
-          : null;
+        const lastStealAt = authorData.economy.lastStealAt ?? 0;
         const msSinceLastSteal = lastStealAt ? now - lastStealAt : Infinity;
         const windowExpired = msSinceLastSteal >= 24 * 60 * 60 * 1000;
         const effectiveStealCount = windowExpired
           ? 0
           : (authorData.economy.stealCount ?? 0);
 
-        // Check daily steal limit
         if (effectiveStealCount >= MAX_DAILY_STEALS) {
           const msUntilReset = 24 * 60 * 60 * 1000 - msSinceLastSteal;
           const hoursLeft = Math.floor(msUntilReset / (1000 * 60 * 60));
@@ -128,7 +119,7 @@ export default new TXCommand({
             {
               $set: {
                 "economy.stealCount": newStealCount,
-                "economy.lastStealAt": new Date(now),
+                "economy.lastStealAt": now,
               },
               $inc: { "economy.coins": amount },
             },
@@ -139,7 +130,6 @@ export default new TXCommand({
             { $inc: { "economy.coins": -amount } },
             { session },
           );
-
           await adapter.reply(
             ctx,
             stealSuccessMessage(
@@ -157,7 +147,7 @@ export default new TXCommand({
             {
               $set: {
                 "economy.stealCount": newStealCount,
-                "economy.lastStealAt": new Date(now),
+                "economy.lastStealAt": now,
               },
               $inc: { "economy.coins": -penalty },
             },
@@ -168,7 +158,6 @@ export default new TXCommand({
             { $inc: { "economy.coins": fee } },
             { session },
           );
-
           await adapter.reply(
             ctx,
             stealFailMessage(
@@ -197,12 +186,6 @@ export default new TXCommand({
 
 function getSuccessChance(amount: number, isAdmin: boolean): number {
   if (isAdmin) return 0.65;
-
-  // ≤50:    ~55%
-  // ~200:   ~45%
-  // ~500:   ~38%
-  // ~1500:  ~28%
-  // ~3500:  ~20%
   const chance = 0.75 - 0.13 * Math.log10(Math.max(1, amount));
   return Math.min(0.55, Math.max(0.1, chance));
 }
@@ -215,25 +198,7 @@ function stealSuccessMessage(
   chance: number,
   stealCount: number,
 ) {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ Slick hands, empty pockets... theirs! 🤑
-        ◇─◇───◇─◇
-
-╭┈ Result : ̗̀➛
-┊ 🎯 Target   : ${victimName}
-┊ 💰 Stolen   : ${stolen} coins
-┊ 🎲 Chance   : ${(chance * 100).toFixed(0)}%
-╰─────────┈➤
-
-╭┈ Balance : ̗̀➛
-┊ 🪙 ${oldBalance} → ${newBalance} (+${stolen})
-╰────────────┈➤
-
-╭┈ Daily Steals : ̗̀➛
-┊ 📊 ${stealCount}/${MAX_DAILY_STEALS} used
-╰────────────┈➤
-
-𓆩⟡𓆪 Crime pays... this time.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ Slick hands, empty pockets... theirs! 🤑\n        ◇─◇───◇─◇\n\n╭┈ Result : ̗̀➛\n┊ 🎯 Target   : ${victimName}\n┊ 💰 Stolen   : ${stolen} coins\n┊ 🎲 Chance   : ${(chance * 100).toFixed(0)}%\n╰─────────┈➤\n\n╭┈ Balance : ̗̀➛\n┊ 🪙 ${oldBalance} → ${newBalance} (+${stolen})\n╰────────────┈➤\n\n╭┈ Daily Steals : ̗̀➛\n┊ 📊 ${stealCount}/${MAX_DAILY_STEALS} used\n╰────────────┈➤\n\n𓆩⟡𓆪 Crime pays... this time.`;
 }
 
 function stealFailMessage(
@@ -245,60 +210,19 @@ function stealFailMessage(
   chance: number,
   stealCount: number,
 ) {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ Caught red-handed! You tripped on the way out. 😬
-        ◇─◇───◇─◇
-
-╭┈ Result : ̗̀➛
-┊ 🎯 Target   : ${victimName}
-┊ 💸 Penalty  : ${penalty} coins
-┊ 🧾 Fee (10%): ${fee} coins → returned to target
-┊ 🎲 Chance   : ${(chance * 100).toFixed(0)}%
-╰─────────┈➤
-
-╭┈ Balance : ̗̀➛
-┊ 🪙 ${oldBalance} → ${newBalance} (-${penalty})
-╰────────────┈➤
-
-╭┈ Daily Steals : ̗̀➛
-┊ 📊 ${stealCount}/${MAX_DAILY_STEALS} used
-╰────────────┈➤
-
-𓆩⟡𓆪 Better luck next time, clumsy.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ Caught red-handed! You tripped on the way out. 😬\n        ◇─◇───◇─◇\n\n╭┈ Result : ̗̀➛\n┊ 🎯 Target   : ${victimName}\n┊ 💸 Penalty  : ${penalty} coins\n┊ 🧾 Fee (10%): ${fee} coins → returned to target\n┊ 🎲 Chance   : ${(chance * 100).toFixed(0)}%\n╰─────────┈➤\n\n╭┈ Balance : ̗̀➛\n┊ 🪙 ${oldBalance} → ${newBalance} (-${penalty})\n╰────────────┈➤\n\n╭┈ Daily Steals : ̗̀➛\n┊ 📊 ${stealCount}/${MAX_DAILY_STEALS} used\n╰────────────┈➤\n\n𓆩⟡𓆪 Better luck next time, clumsy.`;
 }
 
 function stealBrokeMessage(victimName: string) {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ You reached into their pockets and found... lint.
-        ◇─◇───◇─◇
-
-╭┈ Result : ̗̀➛
-┊ 🎯 Target   : ${victimName}
-┊ 🪙 Balance  : 0 coins
-╰─────────┈➤
-
-𓆩⟡𓆪 Can't rob the already broke.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ You reached into their pockets and found... lint.\n        ◇─◇───◇─◇\n\n╭┈ Result : ̗̀➛\n┊ 🎯 Target   : ${victimName}\n┊ 🪙 Balance  : 0 coins\n╰─────────┈➤\n\n𓆩⟡𓆪 Can't rob the already broke.`;
 }
 
 function notEnoughMessage(penalty: number, authorCoins: number) {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ Hold on... you can't even afford to fail this heist.
-        ◇─◇───◇─◇
-
-╭┈ Info : ̗̀➛
-┊ 💸 Penalty if caught : ${penalty} coins
-┊ 🪙 Your balance      : ${authorCoins} coins
-╰─────────┈➤
-
-𓆩⟡𓆪 Get more coins before attempting this steal.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ Hold on... you can't even afford to fail this heist.\n        ◇─◇───◇─◇\n\n╭┈ Info : ̗̀➛\n┊ 💸 Penalty if caught : ${penalty} coins\n┊ 🪙 Your balance      : ${authorCoins} coins\n╰─────────┈➤\n\n𓆩⟡𓆪 Get more coins before attempting this steal.`;
 }
 
 function stealSelfMessage() {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ You attempt to steal from yourself...
-        ◇─◇───◇─◇
-
-𓆩⟡𓆪 That's just called moving money around, genius.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ You attempt to steal from yourself...\n        ◇─◇───◇─◇\n\n𓆩⟡𓆪 That's just called moving money around, genius.`;
 }
 
 function stealLimitMessage(
@@ -306,14 +230,5 @@ function stealLimitMessage(
   hoursLeft: number,
   minutesLeft: number,
 ) {
-  return `‗   ↳ ❝ [ Steal ] ¡! ❞
-ೃ⁀➷ Slow down, you've been busy today...
-        ◇─◇───◇─◇
-
-╭┈ Daily Limit : ̗̀➛
-┊ 📊 Steals used : ${stealCount}/${MAX_DAILY_STEALS}
-┊ ⏳ Resets in   : ${hoursLeft}h ${minutesLeft}m
-╰─────────┈➤
-
-𓆩⟡𓆪 Come back later, klepto.`;
+  return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ Slow down, you've been busy today...\n        ◇─◇───◇─◇\n\n╭┈ Daily Limit : ̗̀➛\n┊ 📊 Steals used : ${stealCount}/${MAX_DAILY_STEALS}\n┊ ⏳ Resets in   : ${hoursLeft}h ${minutesLeft}m\n╰─────────┈➤\n\n𓆩⟡𓆪 Come back later, klepto.`;
 }

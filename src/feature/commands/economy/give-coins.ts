@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { initializeUser } from "../../utils/database/initializeUser.js";
+
+const MAX_COINS_ACCEPT = 5;
+const COOLDOWN_HOURS = 24;
 
 export default new TXCommand({
   name: "give-coins",
@@ -13,7 +13,7 @@ export default new TXCommand({
   usage: "give-coins <user> <amount>",
   minimumArguments: 1,
   aliases: ["gc"],
-  cooldown: 5_000, // 5s
+  cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
@@ -30,7 +30,7 @@ export default new TXCommand({
     }
 
     if (targetUser.id == ctx.author.id) {
-      await adapter.reply(ctx, "You cannot give money to youself.");
+      await adapter.reply(ctx, "You cannot give money to yourself.");
       return;
     }
 
@@ -44,16 +44,17 @@ export default new TXCommand({
       return;
     }
 
-    // init both author && target
     await initializeUser(ctx);
     await initializeUser(ctx, { targetId: targetUser.id });
 
     let authorData = await Users.findOne(
       queryUser(ctx.platform, ctx.author.id),
     );
+    let targetData = await Users.findOne(
+      queryUser(ctx.platform, targetUser.id),
+    );
 
-    // unreachable, only so typescripr shuts up
-    if (!authorData) return;
+    if (!authorData || !targetData) return;
 
     if (authorData.economy!.coins < amount) {
       await adapter.reply(ctx, {
@@ -65,6 +66,35 @@ export default new TXCommand({
       });
       return;
     }
+
+    const now = Date.now();
+    const nextCoinsAccept = targetData.economy!.nextCoinsAccept ?? 0;
+    const coinsAcceptCount = targetData.economy!.coinsAcceptCount ?? 0;
+
+    if (coinsAcceptCount >= MAX_COINS_ACCEPT) {
+      const remaining = nextCoinsAccept - now;
+
+      if (remaining > 0) {
+        const hours = Math.floor(remaining / 3_600_000);
+        const minutes = Math.floor((remaining % 3_600_000) / 60_000);
+        await adapter.reply(ctx, {
+          parts: [
+            mention(targetUser.id, targetUser.displayName),
+            text(
+              ` can't accept more coins right now. Try again in ${hours}h ${minutes}m.`,
+            ),
+          ],
+        });
+        return;
+      }
+
+      // cooldown passed, reset
+      await Users.findOneAndUpdate(queryUser(ctx.platform, targetUser.id), {
+        $set: { "economy.coinsAcceptCount": 0, "economy.nextCoinsAccept": 0 },
+      });
+    }
+
+    const isFirstAccept = coinsAcceptCount === 0 || nextCoinsAccept === 0;
 
     let session = await mongoose.startSession();
     try {
@@ -91,7 +121,17 @@ export default new TXCommand({
 
         await Users.findOneAndUpdate(
           queryUser(ctx.platform, targetUser.id),
-          { $inc: { "economy.coins": amount } },
+          {
+            $inc: {
+              "economy.coins": amount,
+              "economy.coinsAcceptCount": 1,
+            },
+            ...(isFirstAccept && {
+              $set: {
+                "economy.nextCoinsAccept": now + COOLDOWN_HOURS * 3_600_000,
+              },
+            }),
+          },
           { session },
         );
 
@@ -118,6 +158,7 @@ export default new TXCommand({
     }
   },
 });
+
 function formatError(msg: string): string {
   return [`‗   ↳ ❝ [ Give Coins ] ¡! ❞`, `ೃ⁀➷ ${msg}`].join("\n");
 }

@@ -3,10 +3,8 @@ import { TXPlatform } from "../../context/TXContext.js";
 
 const inventorySchema = new Schema(
   {
-    commands: {
-      type: [String],
-      default: [],
-    },
+    commands: { type: [String], default: [] },
+    items: { type: [String], default: [] },
   },
   { _id: false },
 );
@@ -29,55 +27,27 @@ const userSchema = new Schema(
 
     inventory: {
       type: inventorySchema,
-      default: () => ({ commands: [] }),
+      default: () => ({ commands: [], items: [] }),
     },
 
     economy: {
-      coins: {
-        type: Number,
-        default: 0,
-      },
-      totalBalance: {
-        type: Number,
-        default: 0,
-      },
-      stealCount: {
-        type: Number,
-        default: 0,
-      },
-      level: {
-        type: Number,
-        default: 0,
-      },
-      exp: {
-        type: Number,
-        default: 0,
-      },
-      totalExp: {
-        type: Number,
-        default: 0,
-      },
-      bankBalance: {
-        type: Number,
-        default: 0,
-      },
-      nextDaily: {
-        type: Date,
-        default: null,
-      },
-      nextWork: {
-        type: Date,
-        default: null,
-      },
-      lastStealAt: {
-        type: Date,
-        default: null,
-      },
+      coins: { type: Number, default: 0 },
+      totalBalance: { type: Number, default: 0 },
+      stealCount: { type: Number, default: 0 },
+      coinsAcceptCount: { type: Number, default: 0 },
+      wordleBetCount: { type: Number, default: 0 },
+      level: { type: Number, default: 0 },
+      exp: { type: Number, default: 0 },
+      totalExp: { type: Number, default: 0 },
+      bankBalance: { type: Number, default: 0 },
+      nextDaily: { type: Number, default: 0 },
+      nextWordleBet: { type: Number, default: 0 },
+      nextCoinsAccept: { type: Number, default: 0 },
+      nextWork: { type: Number, default: 0 },
+      lastStealAt: { type: Number, default: 0 },
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 userSchema.index({ platform: 1, userId: 1 }, { unique: true });
@@ -90,21 +60,22 @@ type UserQuery = Pick<UserDoc, "platform" | "userId">;
 export default model("users", userSchema);
 
 export function queryUser(platform: TXPlatform, userId: string): UserQuery {
-  return {
-    platform,
-    userId,
-  };
+  return { platform, userId };
 }
 
 export function initializeUserEconomy(): UserEconomy {
   return {
     coins: 0,
     stealCount: 0,
+    coinsAcceptCount: 0,
+    wordleBetCount: 0,
     bankBalance: 0,
     totalBalance: 0,
-    nextDaily: null,
-    nextWork: null,
-    lastStealAt: null,
+    nextDaily: 0,
+    nextWork: 0,
+    lastStealAt: 0,
+    nextWordleBet: 0,
+    nextCoinsAccept: 0,
     level: 1,
     exp: 0,
     totalExp: 0,
@@ -114,5 +85,6 @@ export function initializeUserEconomy(): UserEconomy {
 export function initializeUserInventory(): UserInventory {
   return {
     commands: [],
+    items: [],
   };
 }

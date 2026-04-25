@@ -7,12 +7,14 @@ import Users, {
 import { randomRange } from "../../utils/randomRange.js";
 import { text, mention } from "../../core/message/TXMessageBuilder.js";
 import { TXPlatform } from "../../core/context/TXContext.js";
+import instance from "../../instance.js";
 
 let COOLDOWN_USERS = new TXCooldownManager();
 let NEXT_EXP_COOLDOWN = 60 * 1000;
 
 export default new TXEventBuilder("messageCreate", async (ctx, adapter) => {
   if (ctx.author.isSelf) return;
+  if (instance.isTXMigrating) return
 
   let key = TXCooldownManager.getCooldownKey("exp", ctx, false);
   let cd = COOLDOWN_USERS.getRemainingCooldown(key);

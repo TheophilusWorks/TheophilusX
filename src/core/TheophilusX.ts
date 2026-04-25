@@ -39,6 +39,7 @@ export default class TheophilusX {
   public adminPrefixes: string[];
 
   public isReloading: boolean = false;
+  public isTXMigrating: boolean = false;
   public updateSchedule: Date | undefined = undefined;
 
   private logger: TXLogger;
@@ -90,6 +91,10 @@ export default class TheophilusX {
     ...args: Parameters<TXEvents[K]>
   ) {
     this.eventRegistry.emit(event, ...args);
+  }
+
+  public isMigrating(value: boolean) {
+    this.isTXMigrating = value;
   }
 
   public executeCommand(ctx: TXIContext, cmdQuery: TXICommandArgument) {

@@ -14,9 +14,10 @@ export default new TXEventBuilder(
   "commandCreate",
   TXCommandCanExecute.callback,
   new TXCommandCooldownHandlerMW(
-    COOLDOWN_USERS, 
-    instance.getCommands(), 
-    instance.getAllCommandAliases()).callback,
+    COOLDOWN_USERS,
+    instance.getCommands(),
+    instance.getAllCommandAliases(),
+  ).callback,
   new TXCommandValidatorMW().callback,
   async (ctx: TXIContext, cmdQuery: TXICommandArgument) => {
     let adapter = cmdQuery.adapter;

@@ -16,13 +16,13 @@ export default new TXCommand({
   description: "Work a part-time job and claim your rewards",
   usage: "work",
   minimumArguments: 0,
-  cooldown: 5_000, // 5s
+  cooldown: 5_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
     let { platform, author } = ctx;
-    let now = new Date();
-    const nextWork = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+    let now = Date.now();
+    const nextWork = now + 6 * 60 * 60 * 1000;
     let work = getRandomWork();
     let reward = Math.round(work.pay);
     let expReward = Math.round(work.exp);
@@ -31,10 +31,7 @@ export default new TXCommand({
     let result = await Users.findOneAndUpdate(
       {
         ...queryUser(platform, author.id),
-        $or: [
-          { "economy.nextWork": null },
-          { "economy.nextWork": { $lt: now } },
-        ],
+        $or: [{ "economy.nextWork": 0 }, { "economy.nextWork": { $lt: now } }],
       },
       {
         $inc: {
@@ -44,49 +41,35 @@ export default new TXCommand({
         },
         $set: { "economy.nextWork": nextWork },
       },
+      { returnDocument: "before" },
     );
 
     if (!result) {
       const user = await Users.findOne(queryUser(platform, author.id));
-      const timeLeft =
-        (user?.economy?.nextWork?.getTime() ?? 0) - now.getTime();
+      const timeLeft = (user?.economy?.nextWork ?? 0) - now;
 
       await adapter.reply(ctx, {
         parts: [
-          text(`
-🌙 ❝ On Break ❞
-⌯ You're still resting, `),
+          text(`\n🌙 ❝ On Break ❞\n⌯ You're still resting, `),
           mention(author.id, author.displayName),
-          text(`
-
-◈ Next shift : ${ms(timeLeft)}
-
-𓆩⟡𓆪 Go touch some grass in the meantime.
-`),
+          text(
+            `\n\n◈ Next shift : ${ms(timeLeft)}\n\n𓆩⟡𓆪 Go touch some grass in the meantime.\n`,
+          ),
         ],
       });
       return;
     }
 
-    const oldCoins = result?.economy?.coins ?? 0;
+    const oldCoins = result.economy?.coins ?? 0;
     const newCoins = oldCoins + reward;
-
-    const oldExp = result?.economy?.exp ?? 0;
+    const oldExp = result.economy?.exp ?? 0;
     const newExp = oldExp + expReward;
 
     await adapter.reply(ctx, {
       parts: [
-        text(`
-💼 ❝ Work Rewards ❞
-⌯ ${work.work}
-
-╭┈ reward : ̗̀➛
-┊ 🪙 Coins: ${oldCoins} ➜ ${newCoins}
-┊ ⭐ Exp: ${oldExp} ➜ ${newExp}
-╰─────────┈➤
-
-𓆩⟡𓆪 Next shift in 6 hours.
-`),
+        text(
+          `\n💼 ❝ Work Rewards ❞\n⌯ ${work.work}\n\n╭┈ reward : ̗̀➛\n┊ 🪙 Coins: ${oldCoins} ➜ ${newCoins}\n┊ ⭐ Exp: ${oldExp} ➜ ${newExp}\n╰─────────┈➤\n\n𓆩⟡𓆪 Next shift in 6 hours.\n`,
+        ),
       ],
     });
   },
