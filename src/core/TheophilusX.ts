@@ -272,13 +272,13 @@ export default class TheophilusX {
 
     try {
       await this.databaseManager.connect();
-      await this.itemManager.load();
       await this.cache.load();
       this.restoreUpdateSchedule();
 
       await this.eventRegistry.load();
       await this.commandRegistry.load();
       await this.commandRegistry.loadAdmin();
+      await this.itemManager.load(this.commandRegistry.getAll());
       this.registerPlatforms();
       this.adapterRegistry.check();
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);

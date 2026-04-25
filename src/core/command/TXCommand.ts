@@ -1,4 +1,4 @@
-import TXICommand from "../../types/TXICommand.js";
+import TXICommand, { TXIShopInfo } from "../../types/TXICommand.js";
 import { TXPlatform } from "../context/TXContext.js";
 import { TXIContext } from "../context/TXContext.js";
 import TXICommandArgument from "../../types/TXICommandArgument.js";
@@ -8,6 +8,8 @@ export default class TXCommand {
   public description: string;
   public usage: string;
   public cooldown: number;
+
+  public shopInfo?: TXIShopInfo;
 
   public aliases?: string[];
   public blacklistedPlatform?: TXPlatform[];
@@ -28,6 +30,7 @@ export default class TXCommand {
 
     this.aliases = context.aliases;
     this.cooldown = context.cooldown;
+    this.shopInfo = context.shopInfo;
 
     this.minimumArguments = context.minimumArguments;
     this.minimumMentions = context.minimumMentions;
