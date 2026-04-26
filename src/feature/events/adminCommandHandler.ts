@@ -21,6 +21,7 @@ export default new TXEventBuilder(
   new TXCommandValidatorMW().callback,
   async (ctx: TXIContext, cmdQuery: TXICommandArgument) => {
     let adapter = cmdQuery.adapter;
+    if (!ctx.author.isAdmin) return;
 
     try {
       let cmd = ctx.metadata["cmd"] as TXCommand;
