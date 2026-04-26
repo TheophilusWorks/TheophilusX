@@ -22,12 +22,11 @@ const WORDLE_NOTIFY = new Set<string>();
 const WORDLE_ROWS = 6;
 const WIN_MULTIPLIER = 2.5;
 const MAX_DAILY_BET_GAMES = 5;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default new TXCommand({
   name: "wordle",
   description: "Play wordle",
-  usage: "wordle [bet]",
+  usage: "wordle (bet)",
   minimumArguments: 0,
   cooldown: 5_000,
   shopInfo: {
@@ -66,7 +65,6 @@ export default new TXCommand({
       const nextWordleBet = user.economy!.nextWordleBet ?? 0;
       const wordleBetCount = user.economy!.wordleBetCount ?? 0;
 
-      // Active cooldown — already stamped
       if (nextWordleBet > now) {
         const remaining = nextWordleBet - now;
         const hours = Math.floor(remaining / 3_600_000);
@@ -80,18 +78,17 @@ export default new TXCommand({
         return;
       }
 
-      // Hit the limit — stamp the cooldown now
       if (wordleBetCount >= MAX_DAILY_BET_GAMES) {
         await Users.updateOne(queryUser(ctx.platform, ctx.author.id), {
           $set: {
-            "economy.nextWordleBet": now + DAY_MS,
+            "economy.nextWordleBet": getNextMidnightPHT(),
             "economy.wordleBetCount": 0,
           },
         });
         await adapter.reply(
           ctx,
           formatError(
-            `You've used all ${MAX_DAILY_BET_GAMES} betted games for today.\n⏳ Come back in 24h.\n\nYou can still play without a bet!`,
+            `You've used all ${MAX_DAILY_BET_GAMES} betted games for today.\n⏳ Resets at 00:00 PHT.\n\nYou can still play without a bet!`,
           ),
         );
         return;
@@ -182,7 +179,6 @@ export default new TXCommand({
             return;
           }
 
-          // Deduct bet + increment count
           await Users.updateOne(
             queryUser(ctx.platform, ctx.author.id),
             {
@@ -239,6 +235,27 @@ export default new TXCommand({
     }
   },
 });
+
+function getNextMidnightPHT(): number {
+  const now = new Date();
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+
+  const year = parseInt(parts.find((p) => p.type === "year")!.value);
+  const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
+  const day = parseInt(parts.find((p) => p.type === "day")!.value);
+
+  // Midnight of next day in Asia/Manila, converted back to UTC ms
+  return (
+    new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0)).getTime() -
+    8 * 60 * 60 * 1000
+  );
+}
 
 function formatError(msg: string): string {
   return [`‗   ↳ ❝ [ Wordle ] ¡! ❞`, `ೃ⁀➷ ${msg}`].join("\n");
