@@ -39,6 +39,10 @@ export default class TXAdapterRegistry {
     }
   }
 
+  public getAdapters(): TXAdapterBuilder[] {
+    return this.adapters
+  }
+
   public toSummaryNode(): TXLoggerNode {
     return {
       label: `Adapters (${this.adapters.length})`,

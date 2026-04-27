@@ -265,11 +265,12 @@ export default class TheophilusX {
     process.exit(0);
   }
 
-  public async reloadModules() {
+  public async reloadModules(adapter: TXAdapterBuilder) {
     this.logger.log("Reloading TheophilusX...", DebugLevel.Info);
     this.isReloading = true;
     await this.itemManager.reloadModules();
     await this.eventRegistry.reloadModules();
+    await this.timedEventRegistry.reloadModules([adapter])
     await this.commandRegistry.reloadModules();
     this.isReloading = false;
     this.logger.log("Reloaded TheophilusX...", DebugLevel.Ok);
@@ -295,6 +296,7 @@ export default class TheophilusX {
       this.adapterRegistry.check();
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);
       this.adapterRegistry.login();
+      this.timedEventRegistry.start(this.adapterRegistry.getAdapters())
 
       this.logger.collect(this.itemManager.toSummaryNode());
       this.logger.collect(this.eventRegistry.toSummaryNode());

@@ -11,7 +11,7 @@ export default new TXCommand({
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
     await adapter.reply(ctx, "Reloading modules");
-    await instance.reloadModules();
+    await instance.reloadModules(adapter);
     await adapter.reply(ctx, "Modules successfully reloaded.");
   },
 });

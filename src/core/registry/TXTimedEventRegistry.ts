@@ -46,11 +46,12 @@ export default class TXTimedEventRegistry {
     }
   }
 
-  public start(adapter: TXAdapterBuilder): void {
-    for (const event of this.events) {
-      event.start(adapter);
-
-      this.logger.log(`Started timed event "${event.name}"`, DebugLevel.Ok);
+  public start(adapters: TXAdapterBuilder[]): void {
+    for (const adapter of adapters) {
+      for (const event of this.events) {
+        event.start(adapter);
+        this.logger.log(`Started timed event "${event.name}"`, DebugLevel.Ok);
+      }
     }
   }
 
@@ -59,10 +60,10 @@ export default class TXTimedEventRegistry {
     this.eventCount = 0;
   }
 
-  public async reloadModules(adapter: TXAdapterBuilder): Promise<void> {
+  public async reloadModules(adapters: TXAdapterBuilder[]): Promise<void> {
     this.clear();
     await this.load();
-    this.start(adapter);
+    this.start(adapters);
   }
 
   public toSummaryNode(): TXLoggerNode {
