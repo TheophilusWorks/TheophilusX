@@ -8,7 +8,7 @@ import { randomRange } from "../../../utils/randomRange.js";
 import { initializeUser } from "../../utils/database/initializeUser.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
-const SLOT_EMOJIS = ["🍒", "🍋", "⭐", "✨", "💎"];
+const SLOT_EMOJIS = ["🍒", "🍋", "⭐", "✨", "💎", "🍇", "🔔", "🍀"];
 const REEL_SLOTS = 3;
 
 export default new TXCommand({

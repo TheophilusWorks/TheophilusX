@@ -19,6 +19,11 @@ const SLOT_EMOJIS = [
   "🔔",
   "💰",
   "💎",
+  "🍍",
+  "🍓",
+  "🎰",
+  "🪙",
+  "🍊",
 ];
 const REEL_SLOTS = 5;
 
