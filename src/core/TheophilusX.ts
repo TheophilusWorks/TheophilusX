@@ -21,6 +21,7 @@ import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./item-manager/TXItemManager.js";
 import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
+import TXTimedEventRegistry from "./registry/TXTimedEventRegistry.js";
 import fs from "fs";
 import os from "os";
 
@@ -48,6 +49,7 @@ export default class TheophilusX {
 
   private commandRegistry: TXCommandRegistry;
   private eventRegistry: TXEventRegistry;
+  private timedEventRegistry: TXTimedEventRegistry;
   private adapterRegistry: TXAdapterRegistry;
 
   private databaseManager: TXDatabaseManager;
@@ -67,6 +69,10 @@ export default class TheophilusX {
     this.commandRegistry = new TXCommandRegistry(
       config.commandsPath,
       config.adminCommandsPath,
+      this.logger,
+    );
+    this.timedEventRegistry = new TXTimedEventRegistry(
+      config.timedEventsPath,
       this.logger,
     );
     this.eventRegistry = new TXEventRegistry(config.eventsPath, this.logger);
@@ -281,6 +287,7 @@ export default class TheophilusX {
       this.restoreUpdateSchedule();
 
       await this.eventRegistry.load();
+      await this.timedEventRegistry.load();
       await this.commandRegistry.load();
       await this.commandRegistry.loadAdmin();
       await this.itemManager.load(this.commandRegistry.getAll());
@@ -291,6 +298,7 @@ export default class TheophilusX {
 
       this.logger.collect(this.itemManager.toSummaryNode());
       this.logger.collect(this.eventRegistry.toSummaryNode());
+      this.logger.collect(this.timedEventRegistry.toSummaryNode());
       this.logger.collect(this.commandRegistry.toSummaryNode());
       this.logger.collect(this.adapterRegistry.toSummaryNode());
       this.logger.printSummary(`TheophilusX v${TheophilusX.version}`);
