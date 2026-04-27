@@ -2,6 +2,7 @@ import ms from "ms";
 import TXCommand from "../../../core/command/TXCommand.js";
 import TheophilusX from "../../../core/TheophilusX.js";
 import instance from "../../../instance.js";
+import { TXPlatform } from "../../../core/context/TXContext.js";
 
 export default new TXCommand({
   name: "info",
@@ -31,6 +32,10 @@ export default new TXCommand({
   ⦇ owner ─┄  Theophilus
   ⦇ dev   ─┄  Theophilus
 `;
+
+    if (ctx.platform == TXPlatform.FacebookMessenger) {
+      info += `・・・・・\n  𔔁 account owned by sextape`;
+    }
     await adapter.reply(ctx, info.trim());
   },
 });
