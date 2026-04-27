@@ -16,26 +16,37 @@ export default class TXTimedEvent {
     const jobs = this.schedule(adapter);
     const fired = new Set<number>();
 
-    const now = new Date();
-    const msFromMidnight =
-      now.getHours() * 3_600_000 +
-      now.getMinutes() * 60_000 +
-      now.getSeconds() * 1_000;
+    function getManilaMs(): {
+      msFromMidnight: number;
+      hours: number;
+      minutes: number;
+    } {
+      const now = new Date();
+      const manila = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Manila" }),
+      );
+      return {
+        msFromMidnight:
+          manila.getHours() * 3_600_000 +
+          manila.getMinutes() * 60_000 +
+          manila.getSeconds() * 1_000,
+        hours: manila.getHours(),
+        minutes: manila.getMinutes(),
+      };
+    }
 
+    const { msFromMidnight: currentMs } = getManilaMs();
     for (const key of Object.keys(jobs)) {
-      if (Number(key) <= msFromMidnight) {
+      if (Number(key) <= currentMs) {
         fired.add(Number(key));
       }
     }
 
     setInterval(() => {
-      const now = new Date();
-      const msFromMidnight =
-        now.getHours() * 3_600_000 +
-        now.getMinutes() * 60_000 +
-        now.getSeconds() * 1_000;
+      const { msFromMidnight, hours, minutes } = getManilaMs();
 
-      if (now.getHours() === 0 && now.getMinutes() === 0) fired.clear();
+      // reset at PH midnight
+      if (hours === 0 && minutes === 0) fired.clear();
 
       for (const [key, job] of Object.entries(jobs)) {
         const targetMs = Number(key);
