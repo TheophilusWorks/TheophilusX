@@ -789,7 +789,7 @@ export default function buildFacebookAdapter(
       return new TXSentMessage(ctx, facebookWaitReply(info.messageID));
     })
 
-    .setAnnouncementSender(async (_ctx, message) => {
+    .setAnnouncementSender(async (message) => {
       const { body, mentions, attachmentPaths } = resolveMessage(message);
 
       let groupThreads: FcaThread[];

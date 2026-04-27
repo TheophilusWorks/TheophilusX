@@ -143,7 +143,7 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       ctx.replied = true;
       return new TXSentMessage(ctx, discordWaitReply(client, sent.id));
     })
-    .setAnnouncementSender(async (_ctx, message) => {
+    .setAnnouncementSender(async (message) => {
       const { content, files } = resolveMessage(message);
       let first: TXSentMessage | null = null;
 

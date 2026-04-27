@@ -13,7 +13,6 @@ export default class TXAdapterBuilder {
     message: TXMessageOptions | string,
   ) => Promise<TXSentMessage | null>;
   public announcementSender: (
-    ctx: TXIContext,
     message: TXMessageOptions | string,
   ) => Promise<TXSentMessage | null>;
   public userResolver: (userId: string) => Promise<TXIAuthor | null>;
@@ -43,7 +42,6 @@ export default class TXAdapterBuilder {
 
   public setAnnouncementSender(
     callback: (
-      ctx: TXIContext,
       message: TXMessageOptions | string,
     ) => Promise<TXSentMessage | null>,
   ) {
@@ -101,10 +99,9 @@ export default class TXAdapterBuilder {
   }
 
   public async announce(
-    ctx: TXIContext,
     message: string | TXMessageOptions,
   ): Promise<TXSentMessage> {
-    const sent = await this.announcementSender(ctx, message);
+    const sent = await this.announcementSender(message);
     if (!sent) throw new Error("Failed to send reply");
     return sent;
   }

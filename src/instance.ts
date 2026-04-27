@@ -10,6 +10,7 @@ const instance = new TheophilusX({
   commandsPath: "./dist/feature/commands/",
   adminCommandsPath: "./dist/feature/adminCommands/",
   eventsPath: "./dist/feature/events/",
+  timedEventsPath: "./dist/feature/timedEvents/",
   itemsPath: "./dist/feature/items/",
   cachePath: path.resolve(os.tmpdir(), "tx-state.json"),
   debugLogs: true,
