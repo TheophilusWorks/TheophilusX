@@ -34,7 +34,7 @@ export default new TXCommand({
 `;
 
     if (ctx.platform == TXPlatform.FacebookMessenger) {
-      info += `・・・・・\n  𔔁 account owned by sextape`;
+      info += `\n\t・・・・・\n  𔔁 account owned by sextape`;
     }
     await adapter.reply(ctx, info.trim());
   },
