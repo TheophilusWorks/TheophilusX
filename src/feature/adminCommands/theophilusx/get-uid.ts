@@ -3,8 +3,8 @@ import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 
 export default new TXCommand({
   name: "get-uid",
-  description: "Sends the context of the message as a JSON string",
-  usage: "reload",
+  description: "Sends the target user's UID",
+  usage: "get-uid <user>",
   minimumArguments: 0,
   minimumGroupedArguments: 0,
   aliases: ["uid"],
