@@ -233,6 +233,12 @@ export default function buildFacebookAdapter(
   // Appstate auto-save interval handle — cleared on shutdown
   let appStateSaveInterval: ReturnType<typeof setInterval> | null = null;
 
+  // Group logger interval handle — cleared on shutdown
+  let groupLoggerInterval: ReturnType<typeof setTimeout> | null = null;
+
+  // Tracks the last time any message was sent out (used by the group logger)
+  let lastActivityMs = 0;
+
   function queuedSend(
     threadID: string,
     body: string,
@@ -255,6 +261,7 @@ export default function buildFacebookAdapter(
             attachmentPaths,
             replyToMessageID,
           );
+          lastActivityMs = Date.now();
           resolve(info);
         } catch (err) {
           reject(err);
@@ -531,7 +538,11 @@ export default function buildFacebookAdapter(
           // Call stopListening immediately on error per fca docs — this
           // prevents the old listener from firing again.
           if (stopListening) {
-            try { stopListening(); } catch { /* ignore */ }
+            try {
+              stopListening();
+            } catch {
+              /* ignore */
+            }
             stopListening = null;
           }
           scheduleReconnect();
@@ -633,6 +644,52 @@ export default function buildFacebookAdapter(
   }
 
   // ---------------------------------------------------------------------------
+  // Group logger — sends a keepalive ping to a Facebook group every 8–10
+  // minutes when the bot hasn't sent any message in that window, preventing
+  // Facebook from flagging the session as inactive.
+  // ---------------------------------------------------------------------------
+
+  function startGroupLogger(groupId: string) {
+    if (groupLoggerInterval) {
+      clearTimeout(groupLoggerInterval);
+      groupLoggerInterval = null;
+    }
+
+    function scheduleNext() {
+      // Random delay between 8 and 10 minutes (in ms)
+      const delayMs = (8 + Math.random() * 2) * 60 * 1000;
+
+      groupLoggerInterval = setTimeout(async () => {
+        const idleSinceMs = Date.now() - lastActivityMs;
+
+        // Only ping if we haven't sent anything within this window
+        if (lastActivityMs === 0 || idleSinceMs >= 8 * 60 * 1000) {
+          try {
+            console.log(
+              `[FB][GroupLogger] No activity for ${Math.round(idleSinceMs / 1000)}s — sending keepalive to group ${groupId}`,
+            );
+            await fcaSend(api, groupId, ".", [], []);
+            lastActivityMs = Date.now();
+          } catch (err) {
+            console.warn("[FB][GroupLogger] Keepalive send failed:", err);
+          }
+        } else {
+          console.log(
+            `[FB][GroupLogger] Recent activity detected (${Math.round(idleSinceMs / 1000)}s ago) — skipping keepalive.`,
+          );
+        }
+
+        scheduleNext();
+      }, delayMs);
+    }
+
+    scheduleNext();
+    console.log(
+      `[FB][GroupLogger] Started. Keepalive target group: ${groupId}`,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Adapter
   // ---------------------------------------------------------------------------
 
@@ -678,17 +735,30 @@ export default function buildFacebookAdapter(
       // Periodically persist fresh appstate so sessions don't go stale.
       // Stale appstate is the most common cause of "Server unavailable" errors.
       if (appStateSaveInterval) clearInterval(appStateSaveInterval);
-      appStateSaveInterval = setInterval(() => {
-        try {
-          const fresh = api?.getAppState?.();
-          if (fresh) saveAppState(fresh);
-        } catch (err) {
-          console.warn("[FB] Appstate periodic save failed:", err);
-        }
-      }, 30 * 60 * 1000); // every 30 minutes
+      if (groupLoggerInterval) {
+        clearTimeout(groupLoggerInterval);
+        groupLoggerInterval = null;
+      }
+      appStateSaveInterval = setInterval(
+        () => {
+          try {
+            const fresh = api?.getAppState?.();
+            if (fresh) saveAppState(fresh);
+          } catch (err) {
+            console.warn("[FB] Appstate periodic save failed:", err);
+          }
+        },
+        30 * 60 * 1000,
+      ); // every 30 minutes
 
       mqttStopped = false;
       startMqtt();
+
+      // Start group logger if configured
+      const groupLogger = bot.getConfig().groupLogger;
+      if (groupLogger?.enabled && groupLogger?.facebookGroupId) {
+        startGroupLogger(groupLogger.facebookGroupId);
+      }
     })
 
     .setMessageSender(async (target, message) => {
@@ -792,4 +862,3 @@ export default function buildFacebookAdapter(
 
   return adapter;
 }
-

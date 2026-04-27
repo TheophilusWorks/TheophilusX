@@ -34,6 +34,15 @@ const instance = new TheophilusX({
     facebookMessenger: true,
   },
 
+  // NOTE: Facebook-only option
+  // Sends a message to the group logger every 10 minutes
+  // when theres no requests/response being sent to avoid
+  // inactivity related errors
+  groupLogger: {
+    enabled: true,
+    facebookGroupId: "9522558064445812",
+  },
+
   // Admin IDs for each platform.
   // these users will have access to admin-only commands.
   adminIds: [

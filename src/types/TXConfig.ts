@@ -12,6 +12,11 @@ export default interface TXConfig {
     cli: boolean;
   };
 
+  groupLogger: {
+    enabled: boolean,
+    facebookGroupId: string,
+  }
+
   prefix: string | string[];
   adminPrefix: string | string[];
   adminIds?: TXAdminId[];
