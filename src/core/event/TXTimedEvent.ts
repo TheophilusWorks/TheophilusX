@@ -16,6 +16,18 @@ export default class TXTimedEvent {
     const jobs = this.schedule(adapter);
     const fired = new Set<number>();
 
+    const now = new Date();
+    const msFromMidnight =
+      now.getHours() * 3_600_000 +
+      now.getMinutes() * 60_000 +
+      now.getSeconds() * 1_000;
+
+    for (const key of Object.keys(jobs)) {
+      if (Number(key) <= msFromMidnight) {
+        fired.add(Number(key));
+      }
+    }
+
     setInterval(() => {
       const now = new Date();
       const msFromMidnight =
