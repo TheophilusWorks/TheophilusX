@@ -8,7 +8,7 @@ export default new TXCommand({
   usage: "giveaway <winners count> <title>",
   minimumArguments: 1,
   minimumMentions: 0,
-  cooldown: 5_000, // 5s
+  cooldown: 5_000,
   minimumGroupedArguments: 0,
   execute: async (ctx, { adapter, args }) => {
     let winnersCount = parseInt(args[0]);
@@ -25,11 +25,13 @@ export default new TXCommand({
     let contestants: string[] = [];
     let giveawayEnded = false;
 
+
     while (!giveawayEnded) {
       let announcementMsg = formatAnnouncementMsg(
         winnersCount,
         title,
         contestants,
+        ctx.author.displayName,
       );
       let reply = await adapter.reply(ctx, announcementMsg);
       let shouldReannounce = false;
@@ -63,7 +65,7 @@ export default new TXCommand({
     }
 
     await adapter.reply(ctx, "And the winner(s) is/are...");
-    await sleep(0, 5000);
+    await sleep(2000, 5000);
     let winners = getWinners(contestants, winnersCount);
     let winnerMsg = formatWinnersMsg(title, winners);
     await adapter.reply(ctx, winnerMsg);
@@ -71,25 +73,31 @@ export default new TXCommand({
 });
 
 function getWinners(contestants: string[], winnersCount: number) {
-  let winners: string[] = [];
+  const count = Math.min(winnersCount, contestants.length);
 
-  for (let i = 0; i < winnersCount; i++) {
-    let winnerIndex = randomRange(0, contestants.length);
-    winners.push(contestants[winnerIndex]);
+  const pool = [...contestants];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(randomRange(0, i, true));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
 
-  return winners;
+  return pool.slice(0, count);
 }
 
 function formatAnnouncementMsg(
   winnersCount: number,
   title: string,
   contestants: string[],
+  hostName: string,
 ) {
-  let c = contestants.map((u, i) => `┊ 👥 ${i + 1}. ${u}`).join("\n");
+  const c =
+    contestants.length > 0
+      ? contestants.map((u, i) => `┊ 👥 ${i + 1}. ${u}`).join("\n")
+      : "┊ 🕳️ No contestants yet — be the first!";
+
   return `
 ‗   ↳ ❝ [ Giveaway ] ¡! ❞
-ೃ⁀➷ {user} is hosting a giveaway!
+ೃ⁀➷ ${hostName} is hosting a giveaway!
          ◇─◇───◇─◇
 
 ╭┈ prize ̗̀➛
