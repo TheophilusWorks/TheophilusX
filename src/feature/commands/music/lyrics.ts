@@ -18,9 +18,6 @@ export default new TXCommand({
   minimumArguments: 1,
   cooldown: 15_000, // lyrics is spammy
   minimumGroupedArguments: 0,
-  shopInfo: {
-    price: 1000,
-  },
   usedStringFlags: ["artist", "album"],
   usedBooleanFlags: ["synced"],
   minimumMentions: 0,

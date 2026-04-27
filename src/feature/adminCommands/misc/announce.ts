@@ -13,7 +13,7 @@ export default new TXCommand({
     let tag = stringFlags?.["tag"] ? stringFlags["tag"] : "admin";
 
     let msg = createAnnouncementMsg(args.join(" "), tag);
-    await adapter.announce(ctx, msg);
+    await adapter.announce(msg);
   },
 });
 

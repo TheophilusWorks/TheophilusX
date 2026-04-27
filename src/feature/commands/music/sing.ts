@@ -26,10 +26,7 @@ export default new TXCommand({
   description: "Queries a song on YT Music and sends it as a voice message",
   usage: "sing <song name>",
   minimumArguments: 1,
-  shopInfo: {
-    price: 1000,
-  },
-  cooldown: 5_000,
+  cooldown: 25_000, // spammy
   minimumGroupedArguments: 0,
   minimumMentions: 0,
 

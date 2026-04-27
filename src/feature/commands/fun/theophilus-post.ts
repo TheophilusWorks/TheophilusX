@@ -17,9 +17,6 @@ export default new TXCommand({
   usage: "theophilus <msg>",
   minimumArguments: 1,
   cooldown: 5_000,
-  shopInfo: {
-    price: 1000,
-  },
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
