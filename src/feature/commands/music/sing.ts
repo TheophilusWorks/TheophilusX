@@ -2,8 +2,8 @@ import TXCommand from "../../../core/command/TXCommand.js";
 import axios from "axios";
 import { ensurePath } from "../../../utils/ensurePath.js";
 import crypto from "node:crypto";
-import { downloadFile } from "../../../utils/downloadFile.js";
-import fs from "node:fs/promises";
+import fs from "node:fs";
+import fsp from "node:fs/promises";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 import path from "node:path";
 
@@ -21,12 +21,43 @@ function parseDurationSeconds(duration: string): number {
   return 0;
 }
 
+async function downloadMp3(url: string, dest: string): Promise<void> {
+  const response = await axios.get(url, {
+    responseType: "stream",
+    maxRedirects: 10,
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+      Accept: "audio/mpeg, audio/*, */*",
+    },
+  });
+
+  const contentType: string = response.headers["content-type"] ?? "";
+  if (contentType.includes("text/html")) {
+    throw new Error(
+      `Download URL returned HTML instead of audio (content-type: ${contentType})`,
+    );
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    response.data
+      .pipe(fs.createWriteStream(dest))
+      .on("finish", resolve)
+      .on("error", reject);
+  });
+
+  const stat = await fsp.stat(dest);
+  if (stat.size === 0) {
+    throw new Error("Downloaded file is 0 bytes — download likely failed.");
+  }
+}
+
 export default new TXCommand({
   name: "sing",
   description: "Queries a song on YT Music and sends it as a voice message",
   usage: "sing <song name>",
   minimumArguments: 1,
-  cooldown: 25_000, // spammy
+  cooldown: 25_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
 
@@ -58,11 +89,9 @@ export default new TXCommand({
       return;
     }
 
-    const LIMIT: number = Math.min(5, filtered.length);
-    const videos: MusicItem[] = filtered.slice(0, LIMIT);
-
+    const LIMIT = Math.min(5, filtered.length);
+    const videos = filtered.slice(0, LIMIT);
     const formatted = formatMusicResult(query, videos);
-
     const reply = await adapter.reply(ctx, formatted);
 
     const res = await reply.waitReply({
@@ -73,31 +102,31 @@ export default new TXCommand({
     if (!res) return;
 
     const content: string = res.context.content;
-    const idx: number = Number(content.trim()) - 1;
+    const idx = Number(content.trim()) - 1;
 
     if (!Number.isInteger(idx) || idx < 0 || idx >= videos.length) {
       await res.reply(`Invalid index. Choose between 1 and ${videos.length}.`);
       return;
     }
 
-    const video: MusicItem = videos[idx];
+    const video = videos[idx];
 
     if (!video?.id) {
       await res.reply("Selected item is invalid.");
       return;
     }
 
-    const link: string = `https://www.youtube.com/watch?v=${video.id}`;
-
-    const safeName: string = query.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
-    const filepath: string = path.resolve(
+    const link = `https://www.youtube.com/watch?v=${video.id}`;
+    const safeName = query.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
+    const filepath = path.resolve(
       CACHE_DIR,
       `${safeName}_${crypto.randomUUID()}.mp3`,
     );
 
-    try {
-      await ensurePath(filepath);
+    await ensurePath(filepath);
 
+    let filepath_created = false;
+    try {
       const { data: dl }: { data: { download?: string } } = await axios.get(
         `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(link)}`,
       );
@@ -107,13 +136,17 @@ export default new TXCommand({
         return;
       }
 
-      await downloadFile(dl.download, filepath);
+      await downloadMp3(dl.download, filepath);
+      filepath_created = true;
 
-      await res.reply({
-        attachments: [filepath],
-      });
+      await res.reply({ attachments: [filepath] });
+    } catch (err) {
+      await res.reply("Failed to download or send the song. Try again.");
+      throw err;
     } finally {
-      await fs.unlink(filepath);
+      if (filepath_created) {
+        await fsp.unlink(filepath).catch(() => {});
+      }
     }
   },
 });

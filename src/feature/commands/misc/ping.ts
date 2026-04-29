@@ -9,9 +9,6 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
-    await adapter.reply(
-      ctx,
-      `Pong! Current platform: "${ctx.platform}"`,
-    );
+    await adapter.reply(ctx, `Pong! Current platform: "${ctx.platform}"`);
   },
 });

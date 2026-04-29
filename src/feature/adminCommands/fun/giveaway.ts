@@ -25,7 +25,6 @@ export default new TXCommand({
     let contestants: string[] = [];
     let giveawayEnded = false;
 
-
     while (!giveawayEnded) {
       let announcementMsg = formatAnnouncementMsg(
         winnersCount,
