@@ -18,6 +18,7 @@ import TXMessageQueue, {
 } from "../core/utils/TXMessageQueue.js";
 import path from "path";
 import { sleep } from "../utils/sleep.js";
+import { randomRange } from "../utils/randomRange.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -674,8 +675,8 @@ export default function buildFacebookAdapter(
     }
 
     function scheduleNext() {
-      // Random delay between 8 and 10 minutes (in ms)
-      const delayMs = (8 + Math.random() * 2) * 60 * 1000;
+      // Random delay between 4 and 6 minutes (in ms)
+      const delayMs = randomRange(4000, 6000);
 
       groupLoggerInterval = setTimeout(async () => {
         const idleSinceMs = Date.now() - lastActivityMs;
@@ -686,7 +687,17 @@ export default function buildFacebookAdapter(
             console.log(
               `[FB][GroupLogger] No activity for ${Math.round(idleSinceMs / 1000)}s — sending keepalive to group ${groupId}`,
             );
-            await fcaSend(api, groupId, ".", [], []);
+
+            let logMessages = [
+              "Hello, just loggin'",
+              "Dot dot dot",
+              `Random string here: ${crypto.randomUUID()}`,
+              "No requests/responses received yet :⁫(",
+              "Hellow",
+              "log log log",
+            ];
+            let randomLogMsg = logMessages[Math.floor(randomRange(0, logMessages.length))];
+            await fcaSend(api, groupId, randomLogMsg, [], []);
             lastActivityMs = Date.now();
           } catch (err) {
             console.warn("[FB][GroupLogger] Keepalive send failed:", err);
