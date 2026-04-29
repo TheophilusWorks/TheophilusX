@@ -1,15 +1,12 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import Users, {
-  queryUser,
-  initializeUserEconomy,
-} from "../../../core/database/model/Users.js";
+import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { RankCardBuilder, Font } from "canvacord";
 import fs from "fs/promises";
 import path from "path";
-import { getDirname } from "../../../utils/path.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 import { initializeUser } from "../../utils/database/initializeUser.js";
+import { Emoji } from "../../constants/emojis.js";
 
 Font.loadDefault();
 
@@ -23,6 +20,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading);
     let targetUser = ctx.mentions.length !== 0 ? ctx.mentions[0] : ctx.author;
 
     if (targetUser.isSelf) {
@@ -70,6 +68,7 @@ export default new TXCommand({
 
     try {
       await fs.writeFile(tmpPath, image);
+      await adapter.reactEmoji(ctx, Emoji.Done);
       await adapter.reply(ctx, {
         attachments: [tmpPath],
         parts: [

@@ -17,6 +17,7 @@ import TXMessageQueue, {
   TXMessageQueueOptions,
 } from "../core/utils/TXMessageQueue.js";
 import path from "path";
+import { sleep } from "../utils/sleep.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -171,6 +172,23 @@ function fcaSend(
       replyToMessageID,
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// fca react
+// ---------------------------------------------------------------------------
+
+async function fcaReact(
+  api: any,
+  emoji: string,
+  messageID: string,
+  threadID: string,
+): Promise<void> {
+  const STANDARD = new Set(["👍", "❤️", "😮", "😢", "😆", "😠"]);
+  const force = !STANDARD.has(emoji);
+
+  await sleep(1000, 2000);
+  return api.setMessageReaction(emoji, messageID, threadID, force);
 }
 
 // ---------------------------------------------------------------------------
@@ -858,6 +876,15 @@ export default function buildFacebookAdapter(
       } catch {
         return null;
       }
+    })
+
+    .setEmojiReactor(async (ctx, emoji) => {
+      const raw = ctx.raw as FcaEvent;
+      if (!raw?.messageID) {
+        console.warn("[FB] emojiReactor: no messageID on ctx.raw, skipping");
+        return;
+      }
+      await fcaReact(api, emoji, raw.messageID, ctx.serverId);
     });
 
   return adapter;

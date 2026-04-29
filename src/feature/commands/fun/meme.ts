@@ -6,6 +6,7 @@ import { getDirname } from "../../../utils/path.js";
 import fs from "fs/promises";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
+import { Emoji } from "../../constants/emojis.js";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -19,6 +20,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, stringFlags }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading);
     let subreddit = stringFlags?.["subreddit"] || "";
     let data: Record<string, unknown>;
 
@@ -47,6 +49,7 @@ Post link: ${postLink}
       `meme_${crypto.randomUUID()}.${extension}`,
     );
     await downloadFile(url as string, filepath);
+    await adapter.reactEmoji(ctx, Emoji.Done);
     await adapter.reply(ctx, {
       parts: [text(meme)],
       attachments: [filepath],

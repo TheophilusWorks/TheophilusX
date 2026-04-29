@@ -7,6 +7,7 @@ import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 import { getDirname } from "../../../utils/path.js";
+import { Emoji } from "../../constants/emojis.js";
 
 let __dirname = getDirname(import.meta.url);
 
@@ -20,10 +21,12 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading);
     const txt = args.join(" ");
     const filepath = await makeBillboard(txt);
 
     try {
+      await adapter.reactEmoji(ctx, Emoji.Done);
       await adapter.reply(ctx, {
         parts: [
           text("Here's your billboard, "),

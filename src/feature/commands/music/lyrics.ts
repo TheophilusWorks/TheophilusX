@@ -1,5 +1,6 @@
 import TXCommand from "../../../core/command/TXCommand.js";
 import axios from "axios";
+import { Emoji } from "../../constants/emojis.js";
 
 interface TXLyricsResult {
   name: string;
@@ -22,6 +23,8 @@ export default new TXCommand({
   usedBooleanFlags: ["synced"],
   minimumMentions: 0,
   execute: async (ctx, { adapter, args, stringFlags, booleanFlags }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading)
+
     const query = args.join(" ");
     const artist = stringFlags?.["artist"];
     const album = stringFlags?.["album"];
@@ -73,6 +76,7 @@ export default new TXCommand({
     }
 
     const lyrics = results[idx - 1];
+    await adapter.reactEmoji(ctx, Emoji.Done)
     await adapter.reply(ctx, formattedLyrics(lyrics, isSynced));
   },
 });

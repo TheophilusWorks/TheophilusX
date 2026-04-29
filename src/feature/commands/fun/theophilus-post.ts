@@ -7,6 +7,7 @@ import { fitText } from "../../../utils/fitText.js";
 import { getDirname } from "../../../utils/path.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
+import { Emoji } from "../../constants/emojis.js";
 
 const __dirname = getDirname(import.meta.url);
 
@@ -20,6 +21,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading)
     let txt = args.join(" ");
 
     if (txt.length > 450) {
@@ -29,6 +31,7 @@ export default new TXCommand({
 
     let filepath = await makeTheophilusPost(txt);
     try {
+      await adapter.reactEmoji(ctx, Emoji.Done)
       await adapter.reply(ctx, {
         parts: [
           text("Here's your Theophilus post, "),

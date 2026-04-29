@@ -1,14 +1,11 @@
 import axios from "axios";
 import TXCommand from "../../../core/command/TXCommand.js";
-import { randomRange } from "../../../utils/randomRange.js";
-import { getDirname } from "../../../utils/path.js";
 import path from "node:path";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import { unlink } from "node:fs/promises";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
-
-const __dirname = getDirname(import.meta.url);
+import { Emoji } from "../../constants/emojis.js";
 
 export default new TXCommand({
   name: "shoti",
@@ -19,6 +16,7 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading);
     let response = await axios.get(
       "https://oreo.gleeze.com/api/shoti?stream=false",
     );
@@ -36,6 +34,7 @@ export default new TXCommand({
 
     try {
       await downloadFile(data.link, filepath);
+      await adapter.reactEmoji(ctx, Emoji.Done);
       await adapter.reply(ctx, {
         parts: [
           text("Here's your shoti, "),

@@ -6,6 +6,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 import path from "node:path";
+import { Emoji } from "../../constants/emojis.js";
 
 type MusicItem = {
   id: string;
@@ -62,6 +63,7 @@ export default new TXCommand({
   minimumMentions: 0,
 
   execute: async (ctx, { adapter, args }) => {
+    await adapter.reactEmoji(ctx, Emoji.Loading)
     const query: string = args.join(" ").trim();
 
     const { data: raw } = await axios.post(
@@ -139,6 +141,7 @@ export default new TXCommand({
       await downloadMp3(dl.download, filepath);
       filepath_created = true;
 
+      await adapter.reactEmoji(ctx, Emoji.Done)
       await res.reply({ attachments: [filepath] });
     } catch (err) {
       await res.reply("Failed to download or send the song. Try again.");

@@ -204,6 +204,11 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
       } catch {
         return null;
       }
+    })
+  
+    .setEmojiReactor(async (ctx, emoji) => {
+      const raw = ctx.raw as Message;
+      await raw.react(emoji);
     });
 
   return adapter;
