@@ -51,6 +51,9 @@ const instance = new TheophilusX({
       discordId: "1264839050427367570",
       facebookId: "61555836246766",
     },
+    {
+      facebookId: "61552922702107",
+    },
   ],
 
   // WARN: DO NOT TOUCH THIS PART! dotenv already injects your tokens
