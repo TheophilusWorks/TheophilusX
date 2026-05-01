@@ -67,7 +67,7 @@ export default new TXCommand({
     const query: string = args.join(" ").trim();
 
     const { data: raw } = await axios.post(
-      `https://www.techcover.fr/explore/${encodeURIComponent(query)}/`,
+      `https://www.holistic-fitness.ca/explore/${encodeURIComponent(query)}/`,
     );
 
     const data: MusicItem[] = Array.isArray(raw)
