@@ -13,6 +13,7 @@ export default class TXCommand {
 
   public aliases?: string[];
   public blacklistedPlatform?: TXPlatform[];
+  public exclusivePlatform?: TXPlatform[];
   public category?: string; // injected by the main loader
 
   public minimumArguments: number;
@@ -38,6 +39,7 @@ export default class TXCommand {
     this.usedStringFlags = context.usedStringFlags;
     this.usedBooleanFlags = context.usedBooleanFlags;
     this.blacklistedPlatform = context.blacklistedPlatforms;
+    this.exclusivePlatform = context.exclusivePlatforms
 
     this.execute = context.execute;
   }

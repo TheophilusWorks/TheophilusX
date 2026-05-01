@@ -44,6 +44,11 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
 
       ctx.metadata["cmd"] = cmd;
       if (cmd.blacklistedPlatform?.includes(ctx.platform)) return;
+      if (
+        cmd.exclusivePlatform &&
+        !cmd.exclusivePlatform.includes(ctx.platform)
+      )
+        return;
 
       let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
 

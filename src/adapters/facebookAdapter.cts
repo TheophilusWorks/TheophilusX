@@ -696,7 +696,8 @@ export default function buildFacebookAdapter(
               "Hellow",
               "log log log",
             ];
-            let randomLogMsg = logMessages[Math.floor(randomRange(0, logMessages.length))];
+            let randomLogMsg =
+              logMessages[Math.floor(randomRange(0, logMessages.length))];
             await fcaSend(api, groupId, randomLogMsg, [], []);
             lastActivityMs = Date.now();
           } catch (err) {

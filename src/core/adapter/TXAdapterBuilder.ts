@@ -80,7 +80,9 @@ export default class TXAdapterBuilder {
     return this;
   }
 
-  public setEmojiReactor(callback: (ctx: TXIContext, emoji: string) => Promise<void>) {
+  public setEmojiReactor(
+    callback: (ctx: TXIContext, emoji: string) => Promise<void>,
+  ) {
     this.emojiReactor = callback;
     return this;
   }

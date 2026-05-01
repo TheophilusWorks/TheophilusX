@@ -7,7 +7,7 @@ export interface TXIShopInfo {
   price?: number;
   requiredLevel?: number;
   requiredTotalExp?: number;
-  itemDependency?: TXIItemDependency[]
+  itemDependency?: TXIItemDependency[];
 }
 
 export default interface TXICommand {
@@ -18,6 +18,7 @@ export default interface TXICommand {
 
   aliases?: string[];
   blacklistedPlatforms?: TXPlatform[];
+  exclusivePlatforms?: TXPlatform[];
   cooldown: number;
 
   minimumArguments: number;

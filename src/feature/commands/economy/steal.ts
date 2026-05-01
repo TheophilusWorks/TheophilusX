@@ -3,6 +3,7 @@ import Users, { queryUser } from "../../../core/database/model/Users.js";
 import { initializeUser } from "../../utils/database/initializeUser.js";
 import { text, mention } from "../../../core/message/TXMessageBuilder.js";
 import mongoose from "mongoose";
+import TXItemInventory from "../../../core/item-manager/TXItemInventory.js";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const MAX_DAILY_STEALS = 5;
@@ -110,6 +111,28 @@ export default new TXCommand({
 
         if (authorCoins < penalty) {
           await adapter.reply(ctx, notEnoughMessage(penalty, authorCoins));
+          return;
+        }
+
+        let inventory = TXItemInventory.hydrateInventory(victimData.inventory);
+        if (inventory.hasItem("steal-protection")) {
+          const newStealCount = effectiveStealCount + 2;
+          await Users.updateOne(
+            queryUser(ctx.platform, author.id),
+            {
+              $set: {
+                "economy.stealCount": newStealCount,
+                "economy.lastStealAt": now,
+              },
+              $inc: { "economy.coins": amount },
+            },
+            { session },
+          );
+
+          await adapter.reply(
+            ctx,
+            stealProtectedMessage(newStealCount, victim.displayName),
+          );
           return;
         }
 
@@ -235,4 +258,16 @@ function stealLimitMessage(
   minutesLeft: number,
 ) {
   return `‗   ↳ ❝ [ Steal ] ¡! ❞\nೃ⁀➷ Slow down, you've been busy today...\n        ◇─◇───◇─◇\n\n╭┈ Daily Limit : ̗̀➛\n┊ 📊 Steals used : ${stealCount}/${MAX_DAILY_STEALS}\n┊ ⏳ Resets in   : ${hoursLeft}h ${minutesLeft}m\n╰─────────┈➤\n\n𓆩⟡𓆪 Come back later, klepto.`;
+}
+function stealProtectedMessage(newStealCount: number, targetUserName: string) {
+  return `
+‗   ↳ ❝ [ Steal ] ¡! ❞
+⁀➷ Oops! Looks like ${targetUserName} has a steal protection
+    ◇─◇───◇─◇
+
+╭┈ Steal failed : ̗̀➛
+┊ 📊 Steals used : ${newStealCount}/${MAX_DAILY_STEALS}
+╰─────────┈➤
+
+𓆩⟡𓆪 Your steal count incremented by 2.`;
 }

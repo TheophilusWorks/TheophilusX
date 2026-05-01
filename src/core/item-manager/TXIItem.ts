@@ -1,9 +1,12 @@
+import { TXIItemDependency } from "../../types/TXICommand.js";
+
 export interface TXIItem {
   name: string;
   description: string;
   duration: Date | null,
   expiresAt: Date | null,
-  levelRequirement: number;
-  totalExpRequirement: number;
+  requiredLevel: number;
+  requiredTotalExp: number;
   price: number;
+  itemDependency: TXIItemDependency[]
 }

@@ -36,7 +36,11 @@ export default new TXCommand({
     let cmdName = stringFlags?.["cmd"];
     if (cmdName) {
       let cmd = instance.getCommand(cmdName);
-      if (!cmd || cmd.blacklistedPlatform?.includes(ctx.platform)) {
+      if (
+        !cmd ||
+        cmd.blacklistedPlatform?.includes(ctx.platform) ||
+        (cmd.exclusivePlatform && !cmd.exclusivePlatform.includes(ctx.platform))
+      ) {
         adapter.reply(ctx, `Command "${cmdName}" not found.`);
         return;
       }
@@ -164,6 +168,8 @@ function paginateCommands(
 
   for (const cmd of instance.getCommands().values()) {
     if (cmd.blacklistedPlatform?.includes(ctx.platform)) continue;
+    if (cmd.exclusivePlatform && !cmd.exclusivePlatform.includes(ctx.platform))
+      continue;
 
     const category = cmd.category || "Uncategorized";
 

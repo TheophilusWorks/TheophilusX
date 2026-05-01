@@ -5,16 +5,27 @@ import { initializeUser } from "../../utils/database/initializeUser.js";
 import TXItemInventory from "../../../core/item-manager/TXItemInventory.js";
 import { TXIContext } from "../../../core/context/TXContext.js";
 import TXAdapterBuilder from "../../../core/adapter/TXAdapterBuilder.js";
+import { TXIItemDependency } from "../../../types/TXICommand.js";
 import mongoose from "mongoose";
 
 const COMMANDS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 4;
 const DOT_WINDOW = 5;
 const DOT_THRESHOLD = 6;
+
+interface ShopEntry {
+  name: string;
+  description: string;
+  price?: number;
+  requiredLevel?: number;
+  requiredTotalExp?: number;
+  itemDependency?: Array<TXIItemDependency>;
+}
 
 export default new TXCommand({
   name: "shop",
   description: "Buy items and commands from the shop",
-  usage: "shop <commands | items> (name) (--page=<page number>)",
+  usage: "shop <commands | items> (--page=<page number>)",
   aliases: ["store", "buy"],
   cooldown: 5_000,
   minimumArguments: 1,
@@ -25,41 +36,88 @@ export default new TXCommand({
     const category = args[0].toLowerCase();
     const name = args[1];
 
-    switch (category) {
-      case "commands": {
-        if (!name) {
-          const rawPage = stringFlags?.["page"];
-          const parsed = rawPage ? parseInt(rawPage, 10) : NaN;
-          const page = !isNaN(parsed) && parsed >= 1 ? parsed : 1;
-          await adapter.reply(ctx, generateShopMenu(page));
-        } else {
-          await buyCommand(ctx, adapter, name);
-        }
-        break;
-      }
+    const parsePage = () => {
+      const raw = stringFlags?.["page"];
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      return !isNaN(parsed) && parsed >= 1 ? parsed : 1;
+    };
 
-      case "items": {
+    switch (category) {
+      case "commands":
+        await (name
+          ? buyCommand(ctx, adapter, name)
+          : adapter.reply(ctx, generateShopMenu("commands", parsePage())));
+        break;
+
+      case "items":
+        // TODO: add a better way to store items
         await adapter.reply(
           ctx,
-          "🔨 The item shop is under construction — check back in the next update!",
+          "⚒️ Item shop is under construction — Wait for the next update 🚧",
         );
-        break;
-      }
+        return;
+      // await (name
+      //   ? buyItem(ctx, adapter, name)
+      //   : adapter.reply(ctx, generateShopMenu("items", parsePage())));
+      // break;
 
-      default: {
+      default:
         await adapter.reply(
           ctx,
           "❓ Unknown category. Try `/shop commands` or `/shop items`.",
         );
-      }
     }
   },
 });
+
+async function buyItem(
+  ctx: TXIContext,
+  adapter: TXAdapterBuilder,
+  name: string,
+): Promise<void> {
+  const item = instance.getItemManager().getItem(name);
+
+  if (!item) {
+    await adapter.reply(ctx, `❌ Item \`${name}\` wasn't found in the shop.`);
+    return;
+  }
+
+  await runPurchase(ctx, adapter, name, "item", item);
+}
 
 async function buyCommand(
   ctx: TXIContext,
   adapter: TXAdapterBuilder,
   name: string,
+): Promise<void> {
+  const cmd = instance.getItemManager().getCommand(name);
+
+  if (!cmd?.shopInfo) {
+    await adapter.reply(
+      ctx,
+      `❌ Command \`${name}\` wasn't found in the shop.`,
+    );
+    return;
+  }
+
+  const { price, itemDependency, requiredLevel, requiredTotalExp } =
+    cmd.shopInfo!;
+  await runPurchase(ctx, adapter, name, "command", {
+    name: cmd.name,
+    description: cmd.description,
+    price,
+    itemDependency,
+    requiredLevel,
+    requiredTotalExp,
+  });
+}
+
+async function runPurchase(
+  ctx: TXIContext,
+  adapter: TXAdapterBuilder,
+  name: string,
+  kind: "item" | "command",
+  entry: ShopEntry,
 ): Promise<void> {
   const session = await mongoose.startSession();
 
@@ -73,36 +131,25 @@ async function buyCommand(
 
       if (!userData?.economy) return;
 
-      const cmd = instance.getItemManager().getCommand(name);
-
-      if (!cmd?.shopInfo) {
-        await adapter.reply(
-          ctx,
-          `❌ Command \`${name}\` wasn't found in the shop.`,
-        );
-        return;
-      }
-
-      const inventory = TXItemInventory.hydrateInventory(userData.inventory);
-
-      if (inventory.hasCommand(name)) {
-        await adapter.reply(ctx, `✅ You already own the \`${name}\` command!`);
-        return;
-      }
-
       const {
         price = 0,
         requiredLevel = 0,
         requiredTotalExp = 0,
         itemDependency = [],
-      } = cmd.shopInfo;
+      } = entry;
 
       const { economy } = userData;
+      const inventory = TXItemInventory.hydrateInventory(userData.inventory);
+
+      if (kind === "command" && inventory.hasCommand(name)) {
+        await adapter.reply(ctx, `✅ You already own the \`${name}\` command!`);
+        return;
+      }
 
       if (economy.coins < price) {
         await adapter.reply(
           ctx,
-          `🪙 You need **${price} coins** to buy \`${name}\`, but you only have **${economy.coins}**.\nEarn more coins and come back!`,
+          `🪙 You need ${price} coins to buy \`${name}\`, but you only have ${economy.coins}.\nEarn more coins and come back!`,
         );
         return;
       }
@@ -110,7 +157,7 @@ async function buyCommand(
       if (economy.level < requiredLevel) {
         await adapter.reply(
           ctx,
-          `📈 \`${name}\` requires **Level ${requiredLevel}**, but you're only **Level ${economy.level}**.\nKeep leveling up!`,
+          `📈 \`${name}\` requires Level ${requiredLevel}, but you're only Level ${economy.level}.\nKeep leveling up!`,
         );
         return;
       }
@@ -118,7 +165,7 @@ async function buyCommand(
       if (economy.totalExp < requiredTotalExp) {
         await adapter.reply(
           ctx,
-          `⭐ \`${name}\` requires **${requiredTotalExp} EXP**, but you only have **${economy.totalExp}**.\nKeep grinding!`,
+          `⭐ \`${name}\` requires ${requiredTotalExp} EXP, but you only have ${economy.totalExp}.\nKeep grinding!`,
         );
         return;
       }
@@ -126,16 +173,21 @@ async function buyCommand(
       if (itemDependency.length > 0) {
         const unmetCommands = itemDependency
           .filter(
-            (dep) =>
-              "commandName" in dep && !inventory.hasCommand(dep.commandName),
+            (dep): dep is { commandName: string } =>
+              "commandName" in dep &&
+              !inventory.hasCommand(
+                (dep as { commandName: string }).commandName,
+              ),
           )
-          .map((dep) => ("commandName" in dep ? dep.commandName : ""));
+          .map((dep) => dep.commandName);
 
         const unmetItems = itemDependency
           .filter(
-            (dep) => "itemName" in dep && !inventory.hasItem(dep.itemName),
+            (dep): dep is { itemName: string } =>
+              "itemName" in dep &&
+              !inventory.hasItem((dep as { itemName: string }).itemName),
           )
-          .map((dep) => ("itemName" in dep ? dep.itemName : ""));
+          .map((dep) => dep.itemName);
 
         if (unmetCommands.length > 0 || unmetItems.length > 0) {
           await adapter.reply(
@@ -148,27 +200,33 @@ async function buyCommand(
 
       const confirmation = await adapter.reply(
         ctx,
-        formatBuyConfirmation(name, price),
+        formatPurchaseConfirmation(name, price, kind),
       );
       const response = await confirmation.waitReply({
         filter: (msg) => msg.author.id === ctx.author.id,
         timeout: 60_000,
       });
 
-      if (!response) return;
-
-      if (response.context.content.toLowerCase() !== "yes") {
-        await adapter.reply(ctx, "🚫 Purchase cancelled. No coins were spent.");
+      if (!response || response.context.content.toLowerCase() !== "yes") {
+        if (response) {
+          await adapter.reply(
+            ctx,
+            "🚫 Purchase cancelled. No coins were spent.",
+          );
+        }
         return;
       }
 
       economy.coins -= price;
-      inventory.addCommand(name);
+      kind === "item" ? inventory.addItem(name) : inventory.addCommand(name);
       await userData.save({ session });
 
+      const successLabel = kind === "item" ? "item" : "command";
+      const successSuffix =
+        kind === "item" ? "Enjoy your new item." : "Enjoy your new power.";
       await adapter.reply(
         ctx,
-        `🎉 You unlocked the \`${name}\` command! Enjoy your new power.`,
+        `🎉 You unlocked the \`${name}\` ${successLabel}! ${successSuffix}`,
       );
     });
   } finally {
@@ -176,42 +234,50 @@ async function buyCommand(
   }
 }
 
-function generateShopMenu(page: number): string {
-  const { pages, totalPages } = paginateShopCommands();
+function generateShopMenu(
+  category: "commands" | "items",
+  page: number,
+): string {
+  const { pages, totalPages } =
+    category === "commands" ? paginateShopCommands() : paginateShopItems();
 
+  const label = category === "commands" ? "Commands" : "Items";
   const clampedPage = Math.min(Math.max(page, 1), totalPages);
   const pageContent =
-    pages[clampedPage - 1] ?? "No commands are available for sale right now.";
-  const pageIndicator = formatPageIndicator(clampedPage, totalPages);
+    pages[clampedPage - 1] ??
+    `No ${category} are available for sale right now.`;
 
   return [
-    "‗   ↳ ❝ [ Shop: Commands ] ¡! ❞",
-    "ೃ⁀➷ Browse and unlock new commands below",
+    `‗   ↳ ❝ [ Shop: ${label} ] ¡! ❞`,
+    `ೃ⁀➷ Browse and unlock new ${category} below`,
     "         ◇─◇───◇─◇",
     "",
     pageContent,
     "",
-    pageIndicator,
+    formatPageIndicator(clampedPage, totalPages),
     "",
-    "𓆩⟡𓆪 `/shop commands <name>` to buy",
-    "𓆩⟡𓆪 `/shop commands --page=<number>` to browse",
+    `𓆩⟡𓆪 \`/shop ${category} <name>\` to buy`,
+    `𓆩⟡𓆪 \`/shop ${category} --page=<number>\` to browse`,
   ].join("\n");
 }
 
-function paginateShopCommands(): { pages: string[]; totalPages: number } {
-  const forSale = instance.getItemManager().getAllSellableCommands();
+function paginateEntries(
+  entries: ShopEntry[],
+  perPage: number,
+  listLabel: string,
+): { pages: string[]; totalPages: number } {
   const pages: string[] = [];
   let current: string[] = [];
 
-  forSale.forEach((cmd, i) => {
+  entries.forEach((entry, i) => {
     const {
       price = 0,
       requiredLevel = 0,
       requiredTotalExp = 0,
       itemDependency = [],
-    } = cmd.shopInfo!;
+    } = entry;
 
-    if (current.length === 0) current.push("╭┈ available commands : ̗̀➛");
+    if (current.length === 0) current.push(`╭┈ ${listLabel} : ̗̀➛`);
 
     const meta = [
       `🪙 ${price}`,
@@ -221,8 +287,8 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
       .filter(Boolean)
       .join(" · ");
 
-    current.push(`┊ ${i + 1}. ${cmd.name} — ${meta}`);
-    current.push(`┊    ↳ ${cmd.description}`);
+    current.push(`┊ ${i + 1}. ${entry.name} — ${meta}`);
+    current.push(`┊    ↳ ${entry.description}`);
 
     if (itemDependency.length > 0) {
       const deps = itemDependency
@@ -235,8 +301,8 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
       current.push(`┊    needs: ${deps}`);
     }
 
-    const isPageFull = (i + 1) % COMMANDS_PER_PAGE === 0;
-    const isLast = i === forSale.length - 1;
+    const isPageFull = (i + 1) % perPage === 0;
+    const isLast = i === entries.length - 1;
 
     if ((isPageFull && !isLast) || isLast) {
       current.push("╰─────────┈➤");
@@ -250,9 +316,23 @@ function paginateShopCommands(): { pages: string[]; totalPages: number } {
   return { pages, totalPages: pages.length };
 }
 
+function paginateShopItems() {
+  const items = instance.getItemManager().getAllSellableItems();
+  return paginateEntries(items, ITEMS_PER_PAGE, "available items");
+}
+
+function paginateShopCommands() {
+  const cmds = instance.getItemManager().getAllSellableCommands();
+  const entries: ShopEntry[] = cmds.map((cmd) => ({
+    name: cmd.name,
+    description: cmd.description,
+    ...cmd.shopInfo,
+  }));
+  return paginateEntries(entries, COMMANDS_PER_PAGE, "available commands");
+}
+
 function formatPageIndicator(current: number, total: number): string {
-  const dots = buildDots(current, total);
-  return `┊ ${dots}  [ ${current} / ${total} ]`;
+  return `┊ ${buildDots(current, total)}  [ ${current} / ${total} ]`;
 }
 
 function buildDots(current: number, total: number): string {
@@ -281,14 +361,19 @@ function buildDots(current: number, total: number): string {
   return `${leftLabel}${dotRow}${rightLabel}`;
 }
 
-function formatBuyConfirmation(itemName: string, price: number): string {
+function formatPurchaseConfirmation(
+  name: string,
+  price: number,
+  kind: "item" | "command",
+): string {
+  const label = kind === "item" ? "Item    " : "Command";
   return [
-    "‗   ↳ ❝ [ Shop: Confirm Purchase ] ¡! ❞",
-    "ೃ⁀➷ You're about to buy the following command",
+    `‗   ↳ ❝ [ Shop: Confirm Purchase ] ¡! ❞`,
+    `ೃ⁀➷ You're about to buy the following ${kind}`,
     "         ◇─◇───◇─◇",
     "",
     "╭┈ purchase details : ̗̀➛",
-    `┊ Command  ›  ${itemName}`,
+    `┊ ${label}  ›  ${name}`,
     `┊ Price    ›  🪙 ${price} coins`,
     "╰─────────┈➤",
     "",
@@ -303,13 +388,11 @@ function formatDependencyError(
 ): string {
   const rows: string[] = ["╭┈ missing dependencies : ̗̀➛"];
 
-  if (unmetCommands.length > 0) {
+  if (unmetCommands.length > 0)
     rows.push(`┊ commands: ${unmetCommands.map((c) => `'${c}'`).join(", ")}`);
-  }
 
-  if (unmetItems.length > 0) {
+  if (unmetItems.length > 0)
     rows.push(`┊ items: ${unmetItems.map((i) => `'${i}'`).join(", ")}`);
-  }
 
   rows.push("╰─────────┈➤");
 
