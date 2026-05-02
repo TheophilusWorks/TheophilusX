@@ -20,7 +20,7 @@ import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./item-manager/TXItemManager.js";
-import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
+import buildFacebookAdapter from "../adapters/facebookAdapter.js";
 import TXTimedEventRegistry from "./registry/TXTimedEventRegistry.js";
 import fs from "fs";
 import os from "os";
@@ -270,7 +270,7 @@ export default class TheophilusX {
     this.isReloading = true;
     await this.itemManager.reloadModules();
     await this.eventRegistry.reloadModules();
-    await this.timedEventRegistry.reloadModules([adapter])
+    await this.timedEventRegistry.reloadModules([adapter]);
     await this.commandRegistry.reloadModules();
     this.isReloading = false;
     this.logger.log("Reloaded TheophilusX...", DebugLevel.Ok);
@@ -296,7 +296,7 @@ export default class TheophilusX {
       this.adapterRegistry.check();
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);
       this.adapterRegistry.login();
-      this.timedEventRegistry.start(this.adapterRegistry.getAdapters())
+      this.timedEventRegistry.start(this.adapterRegistry.getAdapters());
 
       this.logger.collect(this.itemManager.toSummaryNode());
       this.logger.collect(this.eventRegistry.toSummaryNode());
@@ -372,7 +372,7 @@ export default class TheophilusX {
       }
 
       this.adapterRegistry.add(
-        buildFacebookAdapter.default(this, token.facebookAppstate),
+        buildFacebookAdapter(this, token.facebookAppstate),
         TXPlatform.FacebookMessenger,
       );
     }

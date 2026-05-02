@@ -2,7 +2,7 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 import { PassThrough, Readable } from "stream";
-import login from "@dongdev/fca-unofficial";
+import login from "stfca";
 import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder.js";
 import { TXIContext, TXPlatform } from "../core/context/TXContext.js";
 import TheophilusX from "../core/TheophilusX.js";
