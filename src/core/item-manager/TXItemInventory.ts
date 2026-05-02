@@ -27,6 +27,7 @@ export default class TXItemInventory implements TXIItemInventory {
     const inv = new TXItemInventory();
     inv.commands = raw.commands;
     for (const item of raw.items) {
+      if (item.amount <= 0) continue
       inv.items.set(item.itemName, item);
     }
     return inv;
@@ -59,5 +60,13 @@ export default class TXItemInventory implements TXIItemInventory {
 
   public getItems(): TXIItemType[] {
     return Array.from(this.items.values());
+  }
+
+  public useItem(itemName: string): void {
+    let item = this.items.get(itemName);
+    if (!item) return;
+    item.amount--;
+
+    if (item.amount <= 0) this.items.delete(itemName);
   }
 }

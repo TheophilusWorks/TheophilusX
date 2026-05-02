@@ -64,9 +64,7 @@ export default new TXCommand({
           .lean();
         const victimData = await Users.findOne(
           queryUser(ctx.platform, victim.id),
-        )
-          .session(session)
-          .lean();
+        ).session(session);
 
         if (!authorData?.economy || !victimData?.economy) {
           throw new Error("Could not load user data.");
@@ -124,10 +122,13 @@ export default new TXCommand({
                 "economy.stealCount": newStealCount,
                 "economy.lastStealAt": now,
               },
-              $inc: { "economy.coins": amount },
             },
             { session },
           );
+
+          inventory.useItem("steal-protection");
+          victimData.inventory.items = inventory.getItems() as any;
+          await victimData.save({ session });
 
           await adapter.reply(
             ctx,

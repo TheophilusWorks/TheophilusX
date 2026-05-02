@@ -213,6 +213,11 @@ async function runPurchase(
 
       economy.coins -= price;
       kind === "item" ? inventory.addItem(name) : inventory.addCommand(name);
+
+      if (kind === "item") {
+        userData.inventory.items = inventory.getItems() as any;
+      }
+
       await userData.save({ session });
 
       const successSuffix =
