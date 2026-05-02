@@ -1,4 +1,7 @@
 import fs from "fs";
+import http from "http";
+import https from "https";
+import { PassThrough, Readable } from "stream";
 import login from "@dongdev/fca-unofficial";
 import TXAdapterBuilder from "../core/adapter/TXAdapterBuilder.js";
 import { TXIContext, TXPlatform } from "../core/context/TXContext.js";
@@ -144,6 +147,22 @@ function resolveMessage(message: TXMessageOptions | string): {
 }
 
 // ---------------------------------------------------------------------------
+// Attachment stream resolver — handles both local paths and remote URLs
+// ---------------------------------------------------------------------------
+
+function resolveAttachmentStream(pathOrUrl: string): fs.ReadStream | Readable {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    const passthrough = new PassThrough();
+    const protocol = pathOrUrl.startsWith("https://") ? https : http;
+    protocol
+      .get(pathOrUrl, (res) => res.pipe(passthrough))
+      .on("error", (e) => passthrough.destroy(e));
+    return passthrough;
+  }
+  return fs.createReadStream(pathOrUrl);
+}
+
+// ---------------------------------------------------------------------------
 // fca sendMessage — promisified
 // ---------------------------------------------------------------------------
 
@@ -160,7 +179,7 @@ function fcaSend(
     if (body) msg.body = body;
     if (mentions.length > 0) msg.mentions = mentions;
     if (attachmentPaths.length > 0) {
-      msg.attachment = attachmentPaths.map((p) => fs.createReadStream(p));
+      msg.attachment = attachmentPaths.map(resolveAttachmentStream);
     }
 
     api.sendMessage(
@@ -229,6 +248,20 @@ function buildSelfContext(api: any, threadID: string, body: string): FcaEvent {
 }
 
 // ---------------------------------------------------------------------------
+// Avatar URL fallback helper
+// ---------------------------------------------------------------------------
+
+function avatarFallback(
+  avatarURL: string | undefined,
+  displayName: string,
+): string {
+  return (
+    avatarURL ??
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=7c3aed&color=ffffff&size=256`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main adapter builder
 // ---------------------------------------------------------------------------
 
@@ -239,23 +272,15 @@ export default function buildFacebookAdapter(
 ) {
   let api: any = null;
 
-  // stopListening is the function returned by api.listenMqtt() — calling it
-  // shuts down the MQTT connection cleanly before reconnecting.
   let stopListening: (() => void) | null = null;
 
-  // All active waitReply handlers subscribe here.
   const replyListeners = new Set<(event: FcaEvent) => void>();
 
   const rateLimiter = new TXRateLimiter(options.rateLimit);
   const queue = new TXMessageQueue(options.queue);
 
-  // Appstate auto-save interval handle — cleared on shutdown
   let appStateSaveInterval: ReturnType<typeof setInterval> | null = null;
-
-  // Group logger interval handle — cleared on shutdown
   let groupLoggerInterval: ReturnType<typeof setTimeout> | null = null;
-
-  // Tracks the last time any message was sent out (used by the group logger)
   let lastActivityMs = 0;
 
   function queuedSend(
@@ -341,7 +366,7 @@ export default function buildFacebookAdapter(
         username: string;
         isAdmin: boolean;
         isSelf: boolean;
-        avatarURL?: string;
+        avatarURL: string;
         isEveryone: boolean;
       }
     >();
@@ -355,7 +380,7 @@ export default function buildFacebookAdapter(
           bot.getConfig().adminIds?.some((a: any) => a.facebookId === id) ??
           false,
         isSelf: selfID === id,
-        avatarURL,
+        avatarURL: avatarFallback(avatarURL, name),
         isEveryone: false,
       });
     }
@@ -388,7 +413,7 @@ export default function buildFacebookAdapter(
               .adminIds?.some((a: any) => a.facebookId === repliedSenderID) ??
             false,
           isSelf: false,
-          avatarURL: rAvatarURL,
+          avatarURL: avatarFallback(rAvatarURL, rDisplayName),
           isEveryone: false,
         });
       }
@@ -403,7 +428,7 @@ export default function buildFacebookAdapter(
         username,
         isAdmin,
         isSelf: selfID === event.senderID,
-        avatarURL,
+        avatarURL: avatarFallback(avatarURL, displayName),
         isEveryone: event.body?.includes("@everyone") ?? false,
       },
       mentions: [...mentionsMap.values()],
@@ -421,7 +446,6 @@ export default function buildFacebookAdapter(
   // ---------------------------------------------------------------------------
 
   async function onMqttEvent(event: FcaEvent) {
-    // Fan out to any active waitReply listeners first
     for (const listener of replyListeners) {
       listener(event);
     }
@@ -521,31 +545,22 @@ export default function buildFacebookAdapter(
 
   // ---------------------------------------------------------------------------
   // MQTT connection with exponential backoff reconnect
-  //
-  // FIX: stopListening() MUST be called before starting a new listenMqtt()
-  // call. Without this, the old MQTT connection lingers and fights the new
-  // one, causing the "Connection refused: Server unavailable" loop you were
-  // seeing — Facebook rejects a second simultaneous MQTT connection from the
-  // same session.
   // ---------------------------------------------------------------------------
 
   const MQTT_RECONNECT_BASE_MS = 2_000;
   const MQTT_RECONNECT_MAX_MS = 60_000;
   let reconnectAttempt = 0;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let mqttStopped = false; // guard against reconnect after intentional shutdown
+  let mqttStopped = false;
 
   function startMqtt() {
     if (mqttStopped) return;
 
-    // Always tear down the previous listener before starting a new one.
-    // Per fca-unofficial docs: calling stopListening() when an error occurs
-    // prevents the old listen loop from continuing.
     if (stopListening) {
       try {
         stopListening();
       } catch {
-        // ignore — old connection may already be dead
+        // ignore
       }
       stopListening = null;
     }
@@ -554,8 +569,6 @@ export default function buildFacebookAdapter(
       stopListening = api.listenMqtt(async (err: any, event: FcaEvent) => {
         if (err) {
           console.error("[FB] MQTT error:", err?.message ?? err);
-          // Call stopListening immediately on error per fca docs — this
-          // prevents the old listener from firing again.
           if (stopListening) {
             try {
               stopListening();
@@ -568,7 +581,7 @@ export default function buildFacebookAdapter(
           return;
         }
 
-        reconnectAttempt = 0; // reset backoff on successful event
+        reconnectAttempt = 0;
         await onMqttEvent(event);
       });
 
@@ -581,7 +594,7 @@ export default function buildFacebookAdapter(
 
   function scheduleReconnect() {
     if (mqttStopped) return;
-    if (reconnectTimer) return; // already scheduled
+    if (reconnectTimer) return;
 
     const delay = Math.min(
       MQTT_RECONNECT_BASE_MS * 2 ** reconnectAttempt,
@@ -600,7 +613,7 @@ export default function buildFacebookAdapter(
   }
 
   // ---------------------------------------------------------------------------
-  // waitReply — uses replyListeners set instead of EventEmitter
+  // waitReply
   // ---------------------------------------------------------------------------
 
   function makeFacebookReplyFn(incoming: TXIContext, rawMessageID: string) {
@@ -663,9 +676,7 @@ export default function buildFacebookAdapter(
   }
 
   // ---------------------------------------------------------------------------
-  // Group logger — sends a keepalive ping to a Facebook group every 8–10
-  // minutes when the bot hasn't sent any message in that window, preventing
-  // Facebook from flagging the session as inactive.
+  // Group logger
   // ---------------------------------------------------------------------------
 
   function startGroupLogger(groupId: string) {
@@ -675,13 +686,11 @@ export default function buildFacebookAdapter(
     }
 
     function scheduleNext() {
-      // Random delay between 4 and 6 minutes (in ms)
       const delayMs = randomRange(4000, 6000);
 
       groupLoggerInterval = setTimeout(async () => {
         const idleSinceMs = Date.now() - lastActivityMs;
 
-        // Only ping if we haven't sent anything within this window
         if (lastActivityMs === 0 || idleSinceMs >= 8 * 60 * 1000) {
           try {
             console.log(
@@ -762,8 +771,6 @@ export default function buildFacebookAdapter(
         });
       });
 
-      // Periodically persist fresh appstate so sessions don't go stale.
-      // Stale appstate is the most common cause of "Server unavailable" errors.
       if (appStateSaveInterval) clearInterval(appStateSaveInterval);
       if (groupLoggerInterval) {
         clearTimeout(groupLoggerInterval);
@@ -779,12 +786,11 @@ export default function buildFacebookAdapter(
           }
         },
         30 * 60 * 1000,
-      ); // every 30 minutes
+      );
 
       mqttStopped = false;
       startMqtt();
 
-      // Start group logger if configured
       const groupLogger = bot.getConfig().groupLogger;
       if (groupLogger?.enabled && groupLogger?.facebookGroupId) {
         startGroupLogger(groupLogger.facebookGroupId);
@@ -877,7 +883,7 @@ export default function buildFacebookAdapter(
           id: userId,
           displayName,
           username,
-          avatarURL,
+          avatarURL: avatarFallback(avatarURL, displayName),
           isAdmin:
             bot
               .getConfig()
@@ -897,6 +903,38 @@ export default function buildFacebookAdapter(
         return;
       }
       await fcaReact(api, emoji, raw.messageID, ctx.serverId);
+    })
+
+    .setUserGetter(async (ctx) => {
+      return new Promise((resolve, reject) => {
+        api.getThreadInfo(ctx.serverId, async (err: any, thread: any) => {
+          if (err) return reject(err);
+
+          const participantIDs: string[] = thread.participantIDs ?? [];
+          const selfID: string = api?.getCurrentUserID?.() ?? "";
+
+          const users = await Promise.all(
+            participantIDs.map(async (id) => {
+              const { displayName, username, avatarURL } =
+                await resolveUserInfo(id);
+              return {
+                id,
+                displayName,
+                username,
+                avatarURL: avatarFallback(avatarURL, displayName),
+                isAdmin:
+                  bot
+                    .getConfig()
+                    .adminIds?.some((a: any) => a.facebookId === id) ?? false,
+                isSelf: selfID === id,
+                isEveryone: false,
+              };
+            }),
+          );
+
+          resolve(users.filter((u) => !u.isSelf));
+        });
+      });
     });
 
   return adapter;

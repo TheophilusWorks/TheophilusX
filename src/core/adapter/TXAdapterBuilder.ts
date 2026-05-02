@@ -17,6 +17,7 @@ export default class TXAdapterBuilder {
   ) => Promise<TXSentMessage | null>;
   public userResolver: (userId: string) => Promise<TXIAuthor | null>;
   public emojiReactor: (ctx: TXIContext, emoji: string) => Promise<void>;
+  public userGetter: (ctx: TXIContext) => Promise<TXIAuthor[]>;
 
   constructor() {
     this.loginManager = async () => {
@@ -36,6 +37,9 @@ export default class TXAdapterBuilder {
     };
     this.emojiReactor = async () => {
       throw new Error("emojiReactor not set");
+    };
+    this.userGetter = async () => {
+      throw new Error("userGetter not set");
     };
   }
 
@@ -87,6 +91,11 @@ export default class TXAdapterBuilder {
     return this;
   }
 
+  public setUserGetter(callback: (ctx: TXIContext) => Promise<TXIAuthor[]>) {
+    this.userGetter = callback;
+    return this;
+  }
+
   public async login() {
     await this.loginManager();
   }
@@ -123,5 +132,9 @@ export default class TXAdapterBuilder {
 
   public async reactEmoji(ctx: TXIContext, emoji: string): Promise<void> {
     return this.emojiReactor(ctx, emoji);
+  }
+
+  public async getAllUsers(ctx: TXIContext) {
+    return this.userGetter(ctx);
   }
 }

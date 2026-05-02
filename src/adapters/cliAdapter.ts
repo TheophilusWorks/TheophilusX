@@ -202,7 +202,7 @@ function buildCLIContext(raw: string): TXIContext {
       displayName: "CLI User",
       username: "cli",
       isSelf: false,
-      avatarURL: undefined,
+      avatarURL: "",
       isAdmin: true,
       isEveryone: false,
     },

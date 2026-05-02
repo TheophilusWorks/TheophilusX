@@ -8,7 +8,7 @@ export interface TXIAuthor {
   id: string;
   displayName: string;
   username: string;
-  avatarURL?: string;
+  avatarURL: string;
   isSelf: boolean;
   isAdmin: boolean;
   isEveryone: boolean;

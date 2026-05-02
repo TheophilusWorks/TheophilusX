@@ -28,7 +28,6 @@ export default new TXCommand({
   cooldown: 5_000,
   aliases: ["tts", "talk"],
   minimumGroupedArguments: 0,
-  usedStringFlags: ["category"],
   minimumMentions: 0,
   execute: async (ctx, { adapter, stringFlags, args }) => {
     let msg = args.join(" ");

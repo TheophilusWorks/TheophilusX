@@ -2,6 +2,7 @@ import {
   Client,
   EmbedBuilder,
   GatewayIntentBits,
+  AttachmentBuilder,
   GuildMember,
   Message,
   Options,
@@ -193,7 +194,9 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
           id: user.id,
           displayName: member?.displayName ?? user.username,
           username: user.username,
-          avatarURL: user.avatarURL() ?? undefined,
+          avatarURL:
+            user.avatarURL() ??
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=7c3aed&color=ffffff&size=256`,
           isAdmin:
             instance
               .getConfig()
@@ -205,10 +208,32 @@ export default function buildDiscordAdapter(bot: TheophilusX, token: string) {
         return null;
       }
     })
-  
+
     .setEmojiReactor(async (ctx, emoji) => {
       const raw = ctx.raw as Message;
       await raw.react(emoji);
+    })
+
+    .setUserGetter(async (ctx) => {
+      const guild = await client.guilds.fetch(ctx.serverId);
+      const members = await guild.members.fetch();
+
+      return members
+        .filter((m) => !m.user.bot)
+        .map((m) => ({
+          id: m.user.id,
+          displayName: m.displayName,
+          username: m.user.username,
+          isAdmin:
+            instance
+              .getConfig()
+              .adminIds?.some((a) => a.discordId === m.user.id) ?? false,
+          isSelf: client.user?.id === m.user.id,
+          avatarURL:
+            m.user.avatarURL() ??
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(m.displayName)}&background=7c3aed&color=ffffff&size=256`,
+          isEveryone: false,
+        }));
     });
 
   return adapter;
@@ -282,7 +307,9 @@ function buildDiscordContext(
         username: msg.author.username,
         isAdmin,
         isSelf: client.user?.id === msg.author.id,
-        avatarURL: msg.author.avatarURL() ?? undefined,
+        avatarURL:
+          msg.author.avatarURL() ??
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.author.displayName)}&background=7c3aed&color=ffffff&size=256`,
         isEveryone: msg.mentions.everyone,
       },
       mentions: msg.mentions.users.map((user) => {
@@ -296,7 +323,9 @@ function buildDiscordContext(
               .getConfig()
               .adminIds?.some((a) => a.discordId === user.id) ?? false,
           isSelf: client.user?.id === user.id,
-          avatarURL: user.avatarURL() ?? undefined,
+          avatarURL:
+            user.avatarURL() ??
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=7c3aed&color=ffffff&size=256`,
           isEveryone: false,
         };
       }),
@@ -324,7 +353,9 @@ function buildDiscordContext(
       username: member.user.username,
       isAdmin,
       isSelf: client.user?.id === member.id,
-      avatarURL: member.user.avatarURL() ?? undefined,
+      avatarURL:
+        member.avatarURL() ??
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(member.displayName)}&background=7c3aed&color=ffffff&size=256`,
       isEveryone: false,
     },
     mentions: [],
@@ -343,7 +374,12 @@ async function safeReply(
   content: string,
   files: string[],
 ): Promise<Message | null> {
-  const payload: any = { files };
+  const localFiles = files.filter((f) => !f.startsWith("http"));
+  const urlFiles = files
+    .filter((f) => f.startsWith("http"))
+    .map((url) => new AttachmentBuilder(url));
+
+  const payload: any = { files: [...localFiles, ...urlFiles] };
 
   if (content) {
     payload.embeds = [

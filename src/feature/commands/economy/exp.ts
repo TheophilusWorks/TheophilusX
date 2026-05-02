@@ -46,8 +46,7 @@ export default new TXCommand({
     const currentLevelReq = requiredXP(level + 1);
 
     const avatarURL =
-      targetUser.avatarURL ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUser.displayName)}&background=7c3aed&color=ffffff&size=256`;
+      targetUser.avatarURL
 
     const card = new RankCardBuilder()
       .setUsername(targetUser.displayName)
