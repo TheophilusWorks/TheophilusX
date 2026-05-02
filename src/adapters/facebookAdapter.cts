@@ -166,7 +166,7 @@ function resolveAttachmentStream(pathOrUrl: string): fs.ReadStream | Readable {
 // fca sendMessage — promisified
 // ---------------------------------------------------------------------------
 
-function fcaSend(
+async function fcaSend(
   api: any,
   threadID: string,
   body: string,
@@ -174,14 +174,14 @@ function fcaSend(
   attachmentPaths: string[],
   replyToMessageID?: string,
 ): Promise<FcaMessageInfo> {
-  return new Promise((resolve, reject) => {
-    const msg: Record<string, any> = {};
-    if (body) msg.body = body;
-    if (mentions.length > 0) msg.mentions = mentions;
-    if (attachmentPaths.length > 0) {
-      msg.attachment = attachmentPaths.map(resolveAttachmentStream);
-    }
+  const msg: Record<string, any> = {};
+  if (body) msg.body = body;
+  if (mentions.length > 0) msg.mentions = mentions;
+  if (attachmentPaths.length > 0) {
+    msg.attachment = attachmentPaths.map(resolveAttachmentStream);
+  }
 
+  return new Promise((resolve, reject) => {
     api.sendMessage(
       msg,
       threadID,
