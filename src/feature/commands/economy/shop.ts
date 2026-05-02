@@ -50,16 +50,10 @@ export default new TXCommand({
         break;
 
       case "items":
-        // TODO: add a better way to store items
-        await adapter.reply(
-          ctx,
-          "⚒️ Item shop is under construction — Wait for the next update 🚧",
-        );
-        return;
-      // await (name
-      //   ? buyItem(ctx, adapter, name)
-      //   : adapter.reply(ctx, generateShopMenu("items", parsePage())));
-      // break;
+        await (name
+          ? buyItem(ctx, adapter, name)
+          : adapter.reply(ctx, generateShopMenu("items", parsePage())));
+        break;
 
       default:
         await adapter.reply(
@@ -221,12 +215,11 @@ async function runPurchase(
       kind === "item" ? inventory.addItem(name) : inventory.addCommand(name);
       await userData.save({ session });
 
-      const successLabel = kind === "item" ? "item" : "command";
       const successSuffix =
         kind === "item" ? "Enjoy your new item." : "Enjoy your new power.";
       await adapter.reply(
         ctx,
-        `🎉 You unlocked the \`${name}\` ${successLabel}! ${successSuffix}`,
+        `🎉 You unlocked the \`${name}\` ${kind}! ${successSuffix}`,
       );
     });
   } finally {
@@ -257,6 +250,7 @@ function generateShopMenu(
     formatPageIndicator(clampedPage, totalPages),
     "",
     `𓆩⟡𓆪 \`/shop ${category} <name>\` to buy`,
+    "",
     `𓆩⟡𓆪 \`/shop ${category} --page=<number>\` to browse`,
   ].join("\n");
 }

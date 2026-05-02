@@ -1,21 +1,34 @@
+interface TXIItemType {
+  itemName: string;
+  amount: number;
+}
+
 export interface TXIItemInventory {
   getCommands(): string[];
   addCommand(commandName: string): void;
   hasCommand(commandName: string): boolean;
 }
 
+export interface TXIInventory {
+  commands: string[];
+  items: TXIItemType[];
+}
+
 export default class TXItemInventory implements TXIItemInventory {
   private commands: string[];
-  private items: string[];
+  private items: Map<string, TXIItemType>;
 
   constructor() {
     this.commands = [];
-    this.items = [];
+    this.items = new Map();
   }
 
-  public static hydrateInventory(raw: { commands: string[] }): TXItemInventory {
+  public static hydrateInventory(raw: TXIInventory): TXItemInventory {
     const inv = new TXItemInventory();
     inv.commands = raw.commands;
+    for (const item of raw.items) {
+      inv.items.set(item.itemName, item);
+    }
     return inv;
   }
 
@@ -24,7 +37,12 @@ export default class TXItemInventory implements TXIItemInventory {
   }
 
   public addItem(itemName: string): void {
-    this.items.push(itemName);
+    if (!this.hasItem(itemName)) {
+      this.items.set(itemName, { itemName, amount: 1 });
+      return;
+    }
+
+    this.items.get(itemName)!.amount++;
   }
 
   public hasCommand(commandName: string): boolean {
@@ -32,14 +50,14 @@ export default class TXItemInventory implements TXIItemInventory {
   }
 
   public hasItem(itemName: string): boolean {
-    return this.items.includes(itemName);
+    return this.items.has(itemName);
   }
 
   public getCommands(): string[] {
     return this.commands;
   }
 
-  public getItems(): string[] {
-    return this.items;
+  public getItems(): TXIItemType[] {
+    return Array.from(this.items.values());
   }
 }

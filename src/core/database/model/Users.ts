@@ -1,10 +1,25 @@
 import { Schema, model, InferSchemaType } from "mongoose";
 import { TXPlatform } from "../../context/TXContext.js";
+import { TXIInventory } from "../../item-manager/TXItemInventory.js";
+
+const itemSchema = new Schema(
+  {
+    itemName: {
+      type: String,
+      default: "Unknown",
+    },
+    amount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false },
+);
 
 const inventorySchema = new Schema(
   {
     commands: { type: [String], default: [] },
-    items: { type: [String], default: [] },
+    items: { type: [itemSchema], default: [] },
   },
   { _id: false },
 );
@@ -82,7 +97,7 @@ export function initializeUserEconomy(): UserEconomy {
   };
 }
 
-export function initializeUserInventory(): UserInventory {
+export function initializeUserInventory(): TXIInventory {
   return {
     commands: [],
     items: [],
