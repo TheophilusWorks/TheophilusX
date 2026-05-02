@@ -188,7 +188,7 @@ async function fcaReact(
   const STANDARD = new Set(["👍", "❤️", "😮", "😢", "😆", "😠"]);
   const force = !STANDARD.has(emoji);
 
-  await sleep(1000, 2000);
+  await sleep(300, 1000);
   return api.setMessageReaction(emoji, messageID, threadID, force);
 }
 
