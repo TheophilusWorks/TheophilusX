@@ -23,15 +23,15 @@ import TXMessageQueue from "../core/utils/TXMessageQueue";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
-  maxRequests: 7,
+  maxRequests: 10,
   cleanupIntervalMs: 5 * 60_000,
 });
 
 const queue = new TXMessageQueue({
-  minDelayMs: 1500,
-  maxDelayMs: 2500,
+  minDelayMs: 1000,
+  maxDelayMs: 1500,
   switchDelayMinMs: 500,
-  switchDelayMaxMs: 3500,
+  switchDelayMaxMs: 700,
 });
 
 interface CachedUserInfo {
