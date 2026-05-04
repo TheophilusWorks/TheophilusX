@@ -18,6 +18,9 @@ export default class TXAdapterBuilder {
   public userResolver: (userId: string) => Promise<TXIAuthor | null>;
   public emojiReactor: (ctx: TXIContext, emoji: string) => Promise<void>;
   public userGetter: (ctx: TXIContext) => Promise<TXIAuthor[]>;
+  public serversUIDGetter: () => Promise<string[]>;
+  public selfUIDResolver: () => Promise<string>;
+  public userKicker: (targetUserID: string, serverID: string) => Promise<void>;
 
   constructor() {
     this.loginManager = async () => {
@@ -40,6 +43,15 @@ export default class TXAdapterBuilder {
     };
     this.userGetter = async () => {
       throw new Error("userGetter not set");
+    };
+    this.serversUIDGetter = async () => {
+      throw new Error("serversUIDGetter not set");
+    };
+    this.selfUIDResolver = async () => {
+      throw new Error("selfUIDResolver not set");
+    };
+    this.userKicker = async () => {
+      throw new Error("userKicker not set");
     };
   }
 
@@ -84,6 +96,16 @@ export default class TXAdapterBuilder {
     return this;
   }
 
+  public setSelfUIDResolver(callback: () => Promise<string>) {
+    this.selfUIDResolver = callback;
+    return this;
+  }
+
+  public setServersUIDGetter(callback: () => Promise<string[]>) {
+    this.serversUIDGetter = callback;
+    return this;
+  }
+
   public setEmojiReactor(
     callback: (ctx: TXIContext, emoji: string) => Promise<void>,
   ) {
@@ -93,6 +115,13 @@ export default class TXAdapterBuilder {
 
   public setUserGetter(callback: (ctx: TXIContext) => Promise<TXIAuthor[]>) {
     this.userGetter = callback;
+    return this;
+  }
+
+  public setUserKicker(
+    callback: (targetUserID: string, serverID: string) => Promise<void>,
+  ) {
+    this.userKicker = callback;
     return this;
   }
 
@@ -136,5 +165,17 @@ export default class TXAdapterBuilder {
 
   public async getAllUsers(ctx: TXIContext) {
     return this.userGetter(ctx);
+  }
+
+  public async resolveSelfUID() {
+    return this.selfUIDResolver();
+  }
+
+  public async kickUser(targetUserID: string, serverID: string) {
+    return this.userKicker(targetUserID, serverID);
+  }
+
+  public async getAllServersUID() {
+    return this.serversUIDGetter();
   }
 }

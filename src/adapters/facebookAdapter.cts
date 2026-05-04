@@ -20,6 +20,7 @@ import { downloadFile } from "../utils/downloadFile";
 import os from "os";
 import TXRateLimiter from "../core/utils/TXRateLimiter";
 import TXMessageQueue from "../core/utils/TXMessageQueue";
+import { server } from "typescript";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
@@ -296,6 +297,25 @@ export default async function buildFacebookAdapter(
       } catch {
         return null;
       }
+    })
+
+    .setSelfUIDResolver(() => {
+      return bot.ctx.api.getCurrentUserID();
+    })
+
+    .setUserKicker(async (targetUserID, serverID) => {
+      try {
+        await sleep(500, 1000);
+        await bot.ctx.api.removeUserFromGroup(targetUserID, serverID);
+      } catch (e) {
+        log(`Failed to leave ${serverID}: ${e}`);
+      }
+    })
+
+    .setServersUIDGetter(async () => {
+      const threadList = await bot.client.threads.getList(500, null, ["INBOX"]);
+      const groups = threadList.filter((t: any) => t.isGroup);
+      return groups.map((t: any) => t.threadID);
     });
 
   return adapter;
