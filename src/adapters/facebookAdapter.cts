@@ -23,7 +23,7 @@ import TXMessageQueue from "../core/utils/TXMessageQueue";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
-  maxRequests: 10,
+  maxRequests: 7,
   cleanupIntervalMs: 5 * 60_000,
 });
 
@@ -72,7 +72,6 @@ export default async function buildFacebookAdapter(
       bot.on("error", (e) => log(e));
 
       bot.on("messageCreate", async (event: MessengerMessageEvent) => {
-        if (!rateLimiter.isAllowed(event.threadID)) return;
         const isAdmin =
           instance
             .getConfig()
@@ -88,6 +87,7 @@ export default async function buildFacebookAdapter(
         const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
 
         if (usedPrefix) {
+          if (!rateLimiter.isAllowed(event.threadID)) return;
           const args = new TXCommandArgumentParser(
             usedPrefix,
             event.body,
@@ -96,6 +96,7 @@ export default async function buildFacebookAdapter(
           ).parse();
           instance.emit("commandCreate", ctx, args);
         } else if (usedAdminPrefix) {
+          if (!rateLimiter.isAllowed(event.threadID)) return;
           const args = new TXCommandArgumentParser(
             usedAdminPrefix,
             event.body,
@@ -113,11 +114,19 @@ export default async function buildFacebookAdapter(
             .getConfig()
             .adminIds?.some((id) => id.facebookId === event.author) ?? false;
 
-        const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
-
         if (event.logMessageType === "log:subscribe") {
+          const ids =
+            event.logMessageData?.addedParticipants?.map((p) => p.userFbId) ??
+            [];
+          if (ids.length > 0) await getCachedUserInfo(bot, ...ids);
+          const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
           instance.emit("userJoin", ctx, adapter);
         } else if (event.logMessageType === "log:unsubscribe") {
+          const ids =
+            event.logMessageData?.addedParticipants?.map((p) => p.userFbId) ??
+            [];
+          if (ids.length > 0) await getCachedUserInfo(bot, ...ids);
+          const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
           instance.emit("userLeave", ctx, adapter);
         }
       });
@@ -128,7 +137,10 @@ export default async function buildFacebookAdapter(
     })
 
     .setMessageSender(async (target, message) => {
-      const { body, mentions, attachmentPaths } = resolveMessage(message);
+      const { body, mentions, attachmentPaths } = await resolveMessage(
+        bot,
+        message,
+      );
       const result = await typeMessage(
         bot,
         target,
@@ -169,7 +181,10 @@ export default async function buildFacebookAdapter(
 
     .setReplySender(async (ctx, message) => {
       const raw = ctx.raw as MessengerMessageEvent;
-      const { body, mentions, attachmentPaths } = resolveMessage(message);
+      const { body, mentions, attachmentPaths } = await resolveMessage(
+        bot,
+        message,
+      );
 
       const result = await typeMessage(
         bot,
@@ -232,7 +247,10 @@ export default async function buildFacebookAdapter(
     })
 
     .setAnnouncementSender(async (message) => {
-      const { body, mentions, attachmentPaths } = resolveMessage(message);
+      const { body, mentions, attachmentPaths } = await resolveMessage(
+        bot,
+        message,
+      );
 
       const threadList = await bot.client.threads.getList(500, null, ["INBOX"]);
       const groups = threadList.filter((t: any) => t.isGroup);
@@ -376,15 +394,18 @@ async function resolveAttachment(p: string): Promise<fs.ReadStream> {
   return fs.createReadStream(p);
 }
 
-function resolveMessage(message: TXMessageOptions | string): {
+async function resolveMessage(
+  bot: MessengerBot,
+  message: TXMessageOptions | string,
+): Promise<{
   body: string;
   mentions: { tag: string; id: string; fromIndex: number }[];
   attachmentPaths: string[];
-} {
+}> {
   if (typeof message === "string") {
     return { body: message, mentions: [], attachmentPaths: [] };
   }
-  const { body, mentions } = resolvePartsToFca(message.parts);
+  const { body, mentions } = await resolvePartsToFca(bot, message.parts);
   return {
     body,
     mentions,
@@ -392,18 +413,28 @@ function resolveMessage(message: TXMessageOptions | string): {
   };
 }
 
-function resolvePartsToFca(parts: TXMessagePart[] | undefined): {
+async function resolvePartsToFca(
+  bot: MessengerBot,
+  parts: TXMessagePart[] | undefined,
+): Promise<{
   body: string;
   mentions: { tag: string; id: string; fromIndex: number }[];
-} {
+}> {
   let body = "";
   const mentions: { tag: string; id: string; fromIndex: number }[] = [];
+
+  const mentionParts = (parts ?? []).filter((p) => p.type === "mention");
+  const infoMap =
+    mentionParts.length > 0
+      ? await getCachedUserInfo(bot, ...mentionParts.map((p) => p.userId))
+      : {};
 
   for (const part of parts ?? []) {
     if (part.type === "text") {
       body += part.value;
-    } else if (part.userId) {
-      const tag = `@${part.displayName ?? "Facebook User"}`;
+    } else if (part.type === "mention") {
+      const info = infoMap[part.userId];
+      const tag = `@${info?.name ?? part.displayName}`;
       const fromIndex = body.length;
       body += tag;
       mentions.push({ tag, id: part.userId, fromIndex });
@@ -609,7 +640,7 @@ function makeReplyFn(
     msg: TXMessageOptions | string,
   ): Promise<TXSentMessage | null> => {
     const raw = ctx.raw as MessengerMessageEvent;
-    const { body, mentions, attachmentPaths } = resolveMessage(msg);
+    const { body, mentions, attachmentPaths } = await resolveMessage(bot, msg);
 
     const result = await bot.ctx.api.sendMessage(
       {
