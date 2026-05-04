@@ -20,7 +20,7 @@ export default new TXEventBuilder(
       ctx,
       `
 ‗   ↳ ❝ [ Prefix ] ¡! ❞
-ೃ⁀➷ Here  re my prefixes:
+ೃ⁀➷ Here are my prefixes:
          ◇─◇───◇─◇
 
 ╭┈ info : ̗̀➛

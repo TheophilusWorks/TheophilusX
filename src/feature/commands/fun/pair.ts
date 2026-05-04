@@ -21,7 +21,7 @@ export default new TXCommand({
   description: "Pairs you to someone or to a random user in the server",
   usage: "pair (user)",
   minimumArguments: 0,
-  cooldown: 5_000,
+  cooldown: 10_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
@@ -49,7 +49,7 @@ export default new TXCommand({
       await adapter.reply(ctx, {
         parts: [
           text(
-            "T-that was just a ship okay? I-it's not like i REALLY have a crush on you, dummy! *blushes*"
+            "T-that was just a ship okay? I-it's not like i REALLY have a crush on you, dummy! *blushes*",
           ),
         ],
         attachments: [TSUNDERE_GIF_PATH],
