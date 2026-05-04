@@ -34,12 +34,8 @@ const queue = new TXMessageQueue({
   switchDelayMaxMs: 700,
 });
 
-interface CachedUserInfo {
-  name: string;
-  vanity?: string;
-  thumbSrc?: string;
-  cachedAt: number;
-}
+const USER_CACHE_TTL_MS = 10 * 60 * 1000;
+const userCache = new Map<string, { data: TXIAuthor; cachedAt: number }>();
 
 export default async function buildFacebookAdapter(
   instance: TheophilusX,
@@ -65,10 +61,7 @@ export default async function buildFacebookAdapter(
 
       if (!bot) return;
 
-      bot.on("ready", () => {
-        log("MQTT connected and ready");
-      });
-
+      bot.on("ready", () => log("MQTT connected and ready"));
       bot.on("error", (e) => log(e));
 
       bot.on("messageCreate", async (event: MessengerMessageEvent) => {
@@ -87,7 +80,7 @@ export default async function buildFacebookAdapter(
         const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
 
         if (usedPrefix) {
-          if (!rateLimiter.isAllowed(event.threadID)) return;
+          if (!rateLimiter.isAllowed(event.senderID)) return;
           const args = new TXCommandArgumentParser(
             usedPrefix,
             event.body,
@@ -96,7 +89,7 @@ export default async function buildFacebookAdapter(
           ).parse();
           instance.emit("commandCreate", ctx, args);
         } else if (usedAdminPrefix) {
-          if (!rateLimiter.isAllowed(event.threadID)) return;
+          if (!rateLimiter.isAllowed(event.senderID)) return;
           const args = new TXCommandArgumentParser(
             usedAdminPrefix,
             event.body,
@@ -118,14 +111,12 @@ export default async function buildFacebookAdapter(
           const ids =
             event.logMessageData?.addedParticipants?.map((p) => p.userFbId) ??
             [];
-          if (ids.length > 0) await getCachedUserInfo(bot, ...ids);
+          if (ids.length > 0) await getCachedUser(bot, instance, ...ids);
           const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
           instance.emit("userJoin", ctx, adapter);
         } else if (event.logMessageType === "log:unsubscribe") {
-          const ids =
-            event.logMessageData?.addedParticipants?.map((p) => p.userFbId) ??
-            [];
-          if (ids.length > 0) await getCachedUserInfo(bot, ...ids);
+          const leftId = event.logMessageData?.leftParticipantFbId;
+          if (leftId) await getCachedUser(bot, instance, leftId);
           const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
           instance.emit("userLeave", ctx, adapter);
         }
@@ -139,6 +130,7 @@ export default async function buildFacebookAdapter(
     .setMessageSender(async (target, message) => {
       const { body, mentions, attachmentPaths } = await resolveMessage(
         bot,
+        instance,
         message,
       );
       const result = await typeMessage(
@@ -183,6 +175,7 @@ export default async function buildFacebookAdapter(
       const raw = ctx.raw as MessengerMessageEvent;
       const { body, mentions, attachmentPaths } = await resolveMessage(
         bot,
+        instance,
         message,
       );
 
@@ -223,35 +216,30 @@ export default async function buildFacebookAdapter(
       const raw = ctx.raw as MessengerMessageEvent;
       const participantIDs = raw.participantIDs ?? [];
       const selfID = bot.ctx.api.getCurrentUserID();
-
-      const infoMap = await getCachedUserInfo(bot, ...participantIDs);
+      const infoMap = await getCachedUser(bot, instance, ...participantIDs);
 
       return participantIDs
         .filter((id) => id !== selfID)
-        .map((id) => {
-          const info = infoMap[id];
-          const displayName = info?.name ?? id;
-          return {
-            id,
-            displayName,
-            username: info?.vanity ?? id,
-            isAdmin:
-              instance
-                .getConfig()
-                .adminIds?.some((a: any) => a.facebookId === id) ?? false,
-            isSelf: false,
-            avatarURL: avatarFallback(displayName, info?.thumbSrc),
-            isEveryone: false,
-          };
-        });
+        .map(
+          (id) =>
+            infoMap[id] ?? {
+              id,
+              displayName: id,
+              username: id,
+              isAdmin: false,
+              isSelf: false,
+              avatarURL: avatarFallback(id),
+              isEveryone: false,
+            },
+        );
     })
 
     .setAnnouncementSender(async (message) => {
       const { body, mentions, attachmentPaths } = await resolveMessage(
         bot,
+        instance,
         message,
       );
-
       const threadList = await bot.client.threads.getList(500, null, ["INBOX"]);
       const groups = threadList.filter((t: any) => t.isGroup);
 
@@ -302,61 +290,68 @@ export default async function buildFacebookAdapter(
     })
 
     .setUserResolver(async (userId) => {
-      const infoMap = await getCachedUserInfo(bot, userId);
-      const info = infoMap[userId];
-      const selfID = bot.ctx.api.getCurrentUserID();
-      const displayName = info?.name ?? userId;
-
-      return {
-        id: userId,
-        displayName,
-        username: info?.vanity ?? userId,
-        isAdmin:
-          instance
-            .getConfig()
-            .adminIds?.some((a: any) => a.facebookId === userId) ?? false,
-        isSelf: selfID === userId,
-        avatarURL: avatarFallback(displayName, info?.thumbSrc),
-        isEveryone: false,
-      };
+      try {
+        const infoMap = await getCachedUser(bot, instance, userId);
+        return infoMap[userId] ?? null;
+      } catch {
+        return null;
+      }
     });
 
   return adapter;
 }
-const USER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const userInfoCache = new Map<string, CachedUserInfo>();
 
-async function getCachedUserInfo(
+// ---------------------------------------------------------------------------
+// User cache — stores TXIAuthor, fetches via flat API
+// ---------------------------------------------------------------------------
+
+async function getCachedUser(
   bot: MessengerBot,
+  instance: TheophilusX,
   ...ids: string[]
-): Promise<Record<string, CachedUserInfo>> {
+): Promise<Record<string, TXIAuthor>> {
   const now = Date.now();
-  const result: Record<string, CachedUserInfo> = {};
+  const result: Record<string, TXIAuthor> = {};
   const toFetch: string[] = [];
+  const selfID = bot.ctx.api.getCurrentUserID();
 
   for (const id of ids) {
-    const cached = userInfoCache.get(id);
+    const cached = userCache.get(id);
     if (cached && now - cached.cachedAt < USER_CACHE_TTL_MS) {
-      result[id] = cached;
+      result[id] = cached.data;
     } else {
       toFetch.push(id);
     }
   }
 
   if (toFetch.length > 0) {
-    const fetched = await bot.client.users.getInfo(...toFetch);
+    const fetched = await new Promise<Record<string, any>>(
+      (resolve, reject) => {
+        bot.ctx.api.getUserInfo(toFetch, (err: any, data: any) => {
+          if (err) reject(err);
+          else resolve(data ?? {});
+        });
+      },
+    );
+
     for (const id of toFetch) {
       const info = fetched[id];
-      if (info) {
-        const entry: CachedUserInfo = {
-          name: info.name ?? id,
-          vanity: info.vanity,
-          thumbSrc: info.thumbSrc,
-          cachedAt: now,
-        };
-        userInfoCache.set(id, entry);
-        result[id] = entry;
-      }
+      const displayName = info?.name ?? info?.vanity ?? id;
+      const username = info?.vanity ?? id;
+      const author: TXIAuthor = {
+        id,
+        displayName,
+        username,
+        isAdmin:
+          instance
+            .getConfig()
+            .adminIds?.some((a: any) => a.facebookId === id) ?? false,
+        isSelf: selfID === id,
+        avatarURL: avatarFallback(displayName, info?.thumbSrc),
+        isEveryone: false,
+      };
+      userCache.set(id, { data: author, cachedAt: now });
+      result[id] = author;
     }
   }
 
@@ -367,10 +362,10 @@ async function getCachedUserInfo(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function avatarFallback(name: string, thumbSrc?: string) {
+function avatarFallback(name: string | undefined, thumbSrc?: string) {
   return (
     thumbSrc ??
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=7c3aed&color=ffffff&size=256`
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(name ?? "User")}&background=7c3aed&color=ffffff&size=256`
   );
 }
 
@@ -396,6 +391,7 @@ async function resolveAttachment(p: string): Promise<fs.ReadStream> {
 
 async function resolveMessage(
   bot: MessengerBot,
+  instance: TheophilusX,
   message: TXMessageOptions | string,
 ): Promise<{
   body: string;
@@ -405,16 +401,17 @@ async function resolveMessage(
   if (typeof message === "string") {
     return { body: message, mentions: [], attachmentPaths: [] };
   }
-  const { body, mentions } = await resolvePartsToFca(bot, message.parts);
-  return {
-    body,
-    mentions,
-    attachmentPaths: message.attachments ?? [],
-  };
+  const { body, mentions } = await resolvePartsToFca(
+    bot,
+    instance,
+    message.parts,
+  );
+  return { body, mentions, attachmentPaths: message.attachments ?? [] };
 }
 
 async function resolvePartsToFca(
   bot: MessengerBot,
+  instance: TheophilusX,
   parts: TXMessagePart[] | undefined,
 ): Promise<{
   body: string;
@@ -423,10 +420,13 @@ async function resolvePartsToFca(
   let body = "";
   const mentions: { tag: string; id: string; fromIndex: number }[] = [];
 
-  const mentionParts = (parts ?? []).filter((p) => p.type === "mention");
-  const infoMap =
+  const mentionParts = (parts ?? []).filter(
+    (p): p is Extract<TXMessagePart, { type: "mention" }> =>
+      p.type === "mention",
+  );
+  const infoMap: Record<string, TXIAuthor> =
     mentionParts.length > 0
-      ? await getCachedUserInfo(bot, ...mentionParts.map((p) => p.userId))
+      ? await getCachedUser(bot, instance, ...mentionParts.map((p) => p.userId))
       : {};
 
   for (const part of parts ?? []) {
@@ -434,7 +434,7 @@ async function resolvePartsToFca(
       body += part.value;
     } else if (part.type === "mention") {
       const info = infoMap[part.userId];
-      const tag = `@${info?.name ?? part.displayName}`;
+      const tag = `@${info?.displayName ?? info?.username ?? part.displayName}`;
       const fromIndex = body.length;
       body += tag;
       mentions.push({ tag, id: part.userId, fromIndex });
@@ -491,58 +491,49 @@ async function buildFacebookContext(
       ? [senderID, ...mentionIDs, replyTargetID]
       : [senderID, ...mentionIDs];
 
-    const infoMap = await getCachedUserInfo(bot, ...allIDsToFetch);
-
+    const infoMap = await getCachedUser(bot, instance, ...allIDsToFetch);
     const sender = infoMap[senderID];
-    const displayName = sender?.name ?? senderID;
 
-    const mentions: TXIAuthor[] = mentionIDs.map((id) => {
-      const info = infoMap[id];
-      const mDisplayName = info?.name ?? id;
-      return {
-        id,
-        displayName: mDisplayName,
-        username: info?.vanity ?? id,
-        isAdmin:
-          instance
-            .getConfig()
-            .adminIds?.some((a: any) => a.facebookId === id) ?? false,
-        isSelf: selfID === id,
-        avatarURL: avatarFallback(mDisplayName, info?.thumbSrc),
-        isEveryone: false,
-      };
-    });
+    const mentions: TXIAuthor[] = mentionIDs.map(
+      (id) =>
+        infoMap[id] ?? {
+          id,
+          displayName: id,
+          username: id,
+          isAdmin: false,
+          isSelf: selfID === id,
+          avatarURL: avatarFallback(id),
+          isEveryone: false,
+        },
+    );
 
     if (shouldAddReplyTarget) {
       const info = infoMap[replyTargetID];
-      const mDisplayName = info?.name ?? replyTargetID;
-      mentions.unshift({
-        id: replyTargetID,
-        displayName: mDisplayName,
-        username: info?.vanity ?? replyTargetID,
-        isAdmin:
-          instance
-            .getConfig()
-            .adminIds?.some((a: any) => a.facebookId === replyTargetID) ??
-          false,
-        isSelf: selfID === replyTargetID,
-        avatarURL: avatarFallback(mDisplayName, info?.thumbSrc),
-        isEveryone: false,
-      });
+      mentions.unshift(
+        info ?? {
+          id: replyTargetID,
+          displayName: replyTargetID,
+          username: replyTargetID,
+          isAdmin: false,
+          isSelf: selfID === replyTargetID,
+          avatarURL: avatarFallback(replyTargetID),
+          isEveryone: false,
+        },
+      );
     }
 
     return {
       platform: TXPlatform.FacebookMessenger,
       content: event.body ?? "",
       isDM: !event.isGroup,
-      author: {
+      author: sender ?? {
         id: senderID,
-        displayName,
-        username: sender?.vanity ?? senderID,
+        displayName: senderID,
+        username: senderID,
         isAdmin,
         isSelf: selfID === senderID,
-        avatarURL: avatarFallback(displayName, sender?.thumbSrc),
-        isEveryone: (event.body ?? "").includes("@everyone"),
+        avatarURL: avatarFallback(senderID),
+        isEveryone: false,
       },
       mentions,
       channelId: threadID,
@@ -560,17 +551,21 @@ async function buildFacebookContext(
   if ("logMessageType" in obj && typeof obj.threadID === "string") {
     const event = raw as ThreadEvent;
     const threadID = event.threadID;
+    const selfID = bot.ctx.api.getCurrentUserID();
+
+    const infoMap = await getCachedUser(bot, instance, event.author);
+    const author = infoMap[event.author];
 
     return {
       platform: TXPlatform.FacebookMessenger,
       content: event.logMessageBody ?? "",
       isDM: false,
-      author: {
+      author: author ?? {
         id: event.author,
         displayName: event.author,
         username: event.author,
         isAdmin,
-        isSelf: false,
+        isSelf: selfID === event.author,
         avatarURL: avatarFallback(event.author),
         isEveryone: false,
       },
@@ -617,12 +612,10 @@ function facebookWaitReply(
           ctx.author.isAdmin,
           event,
         );
-
         if (options.filter && !options.filter(incoming)) return;
 
         clearTimeout(timer);
         bot.off("messageCreate", handler as any);
-
         resolve(new TXMessage(incoming, makeReplyFn(bot, instance, incoming)));
       }
 
@@ -640,7 +633,11 @@ function makeReplyFn(
     msg: TXMessageOptions | string,
   ): Promise<TXSentMessage | null> => {
     const raw = ctx.raw as MessengerMessageEvent;
-    const { body, mentions, attachmentPaths } = await resolveMessage(bot, msg);
+    const { body, mentions, attachmentPaths } = await resolveMessage(
+      bot,
+      instance,
+      msg,
+    );
 
     const result = await bot.ctx.api.sendMessage(
       {
