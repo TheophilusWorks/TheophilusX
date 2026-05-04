@@ -11,6 +11,11 @@ export interface MessengerMessageEvent {
   isGroup: boolean;
   participantIDs: string[];
   isUnread: boolean;
+  messageReply?: {
+    messageID: string;
+    senderID: string;
+    body: string;
+  };
 }
 
 export interface ThreadEvent {

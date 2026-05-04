@@ -450,7 +450,17 @@ async function buildFacebookContext(
     const threadID = event.threadID;
 
     const mentionIDs = Object.keys(event.mentions ?? {});
-    const infoMap = await getCachedUserInfo(bot, senderID, ...mentionIDs);
+    const replyTargetID = event.messageReply?.senderID;
+    const shouldAddReplyTarget =
+      replyTargetID &&
+      replyTargetID !== senderID &&
+      !mentionIDs.includes(replyTargetID);
+
+    const allIDsToFetch = shouldAddReplyTarget
+      ? [senderID, ...mentionIDs, replyTargetID]
+      : [senderID, ...mentionIDs];
+
+    const infoMap = await getCachedUserInfo(bot, ...allIDsToFetch);
 
     const sender = infoMap[senderID];
     const displayName = sender?.name ?? senderID;
@@ -471,6 +481,24 @@ async function buildFacebookContext(
         isEveryone: false,
       };
     });
+
+    if (shouldAddReplyTarget) {
+      const info = infoMap[replyTargetID];
+      const mDisplayName = info?.name ?? replyTargetID;
+      mentions.unshift({
+        id: replyTargetID,
+        displayName: mDisplayName,
+        username: info?.vanity ?? replyTargetID,
+        isAdmin:
+          instance
+            .getConfig()
+            .adminIds?.some((a: any) => a.facebookId === replyTargetID) ??
+          false,
+        isSelf: selfID === replyTargetID,
+        avatarURL: avatarFallback(mDisplayName, info?.thumbSrc),
+        isEveryone: false,
+      });
+    }
 
     return {
       platform: TXPlatform.FacebookMessenger,
