@@ -301,6 +301,7 @@ function buildDiscordContext(
     return {
       platform: TXPlatform.Discord,
       content: msg.content,
+      isDM: false,
       author: {
         id: msg.author.id,
         displayName: msg.member?.displayName ?? msg.author.username,
@@ -363,6 +364,7 @@ function buildDiscordContext(
     serverId: member.guild.id,
     timestamp: new Date(),
     metadata: {},
+    isDM: false,
     replied: false,
     raw,
   };

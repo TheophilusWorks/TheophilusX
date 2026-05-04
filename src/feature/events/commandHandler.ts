@@ -27,11 +27,9 @@ export default new TXEventBuilder(
 
     try {
       let cmd = ctx.metadata["cmd"] as TXCommand;
-      let cooldownKey = ctx.metadata["cooldownKey"] as string;
       await adapter.reactEmoji(ctx, Emoji.Running);
       await cmd.execute(ctx, cmdQuery);
       await adapter.reactEmoji(ctx, Emoji.Check);
-      COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
     } catch (err) {
       let e = err as Error;
       await adapter.reactEmoji(ctx, Emoji.Error);

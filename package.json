@@ -5,6 +5,7 @@
   "main": "./dist/main.js",
   "type": "module",
   "dependencies": {
+    "@dongdev/fca-unofficial": "^4.0.3",
     "@napi-rs/canvas": "^0.1.97",
     "@types/ms": "^2.1.0",
     "@types/node": "^25.5.2",
@@ -17,7 +18,6 @@
     "gradient-string": "^3.0.0",
     "mongoose": "^9.4.1",
     "ms": "^2.1.3",
-    "stfca": "^1.1.27",
     "typescript": "^6.0.2"
   },
   "scripts": {

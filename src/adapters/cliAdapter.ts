@@ -195,6 +195,7 @@ function buildCLIContext(raw: string): TXIContext {
     timestamp: new Date(),
     raw,
     mentions: [],
+    isDM: false,
     replied: false,
     metadata: {},
     author: {

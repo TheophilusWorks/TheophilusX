@@ -3,7 +3,6 @@ import TXCooldownManager from "../../core/command/TXCooldownHandler.js";
 import { TXIContext } from "../../core/context/TXContext.js";
 import { TXNext } from "../../core/event/TXEventBuilder.js";
 import TXMiddleware from "../../core/middleware/TXMiddleware.js";
-import instance from "../../instance.js";
 import TXICommandArgument from "../../types/TXICommandArgument.js";
 import ms from "ms";
 
@@ -11,6 +10,7 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
   "commandCreate" | "adminCommandCreate"
 > {
   private NOTIFIED_USERS: Set<string>;
+  private IN_FLIGHT: Set<string>;
   private COOLDOWN_USERS: TXCooldownManager;
   private commandList: Map<string, TXCommand>;
   private aliasCommandList: Map<string, TXCommand>;
@@ -22,6 +22,7 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
   ) {
     super();
     this.NOTIFIED_USERS = new Set();
+    this.IN_FLIGHT = new Set();
     this.COOLDOWN_USERS = cooldownUsers;
     this.commandList = commandList;
     this.aliasCommandList = aliasCommandList;
@@ -51,7 +52,6 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
         return;
 
       let cooldownKey = TXCooldownManager.getCooldownKey(cmdQuery.command, ctx);
-
       ctx.metadata["cooldownKey"] = cooldownKey;
 
       let cd = this.COOLDOWN_USERS.getRemainingCooldown(cooldownKey);
@@ -71,7 +71,13 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
         return;
       }
 
+      if (this.IN_FLIGHT.has(cooldownKey)) return;
+      this.IN_FLIGHT.add(cooldownKey);
+
       await next();
+
+      this.IN_FLIGHT.delete(cooldownKey);
+      this.COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
     } catch {}
   };
 
@@ -82,6 +88,7 @@ export default class TXCommandCooldownHandlerMW extends TXMiddleware<
   private getCommand(cmdName: string) {
     return this.commandList.get(cmdName);
   }
+
   private getCommandAlias(cmdName: string) {
     return this.aliasCommandList.get(cmdName);
   }

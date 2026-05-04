@@ -20,7 +20,7 @@ import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./item-manager/TXItemManager.js";
-import buildFacebookAdapter from "../adapters/facebookAdapter.js";
+import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
 import TXTimedEventRegistry from "./registry/TXTimedEventRegistry.js";
 import fs from "fs";
 import os from "os";
@@ -292,7 +292,7 @@ export default class TheophilusX {
       await this.commandRegistry.load();
       await this.commandRegistry.loadAdmin();
       await this.itemManager.load(this.commandRegistry.getAll());
-      this.registerPlatforms();
+      await this.registerPlatforms();
       this.adapterRegistry.check();
       this.logger.log("TheophilusX logging in", DebugLevel.Ok);
       this.adapterRegistry.login();
@@ -345,7 +345,7 @@ export default class TheophilusX {
     }
   }
 
-  private registerPlatforms() {
+  private async registerPlatforms() {
     const { platforms, token } = this.config;
     if (!platforms) return;
 
@@ -372,7 +372,7 @@ export default class TheophilusX {
       }
 
       this.adapterRegistry.add(
-        buildFacebookAdapter(this, token.facebookAppstate),
+        await buildFacebookAdapter.default(this, token.facebookAppstate),
         TXPlatform.FacebookMessenger,
       );
     }

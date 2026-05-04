@@ -1,11 +1,9 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import { getDirname } from "../../../utils/path.js";
 import path from "node:path";
 import { downloadFile } from "../../../utils/downloadFile.js";
 import fs from "fs/promises";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 
-const __dirname = getDirname(import.meta.url);
 const headers: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +

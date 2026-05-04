@@ -24,7 +24,7 @@ export interface TXIContext {
   raw: unknown;
   replied: boolean;
   mentions: TXIAuthor[];
-
+  isDM: boolean,
   // used by the middlewares
   metadata: Record<string, unknown>;
 }

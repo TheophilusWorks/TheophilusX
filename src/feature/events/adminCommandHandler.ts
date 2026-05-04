@@ -25,9 +25,7 @@ export default new TXEventBuilder(
 
     try {
       let cmd = ctx.metadata["cmd"] as TXCommand;
-      let cooldownKey = ctx.metadata["cooldownKey"] as string;
       await cmd.execute(ctx, cmdQuery);
-      COOLDOWN_USERS.setCooldown(cooldownKey, cmd.cooldown);
     } catch (err) {
       let e = err as Error;
       await adapter.reply(
