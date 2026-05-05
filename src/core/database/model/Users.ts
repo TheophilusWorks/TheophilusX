@@ -69,7 +69,6 @@ userSchema.index({ platform: 1, userId: 1 }, { unique: true });
 
 type UserDoc = InferSchemaType<typeof userSchema>;
 type UserEconomy = NonNullable<UserDoc["economy"]>;
-type UserInventory = NonNullable<UserDoc["inventory"]>;
 type UserQuery = Pick<UserDoc, "platform" | "userId">;
 
 export default model("users", userSchema);
