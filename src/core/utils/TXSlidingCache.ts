@@ -16,10 +16,7 @@ export default class SlidingCache<V> {
   /**
    * Core: get existing OR initialize once (per key)
    */
-  public async getOrInit(
-    key: string,
-    initFn: () => Promise<V>
-  ): Promise<V> {
+  public async getOrInit(key: string, initFn: () => Promise<V>): Promise<V> {
     const cached = this.cacheMap.get(key);
 
     if (cached && !this.isExpired(cached.expiresAt)) {
@@ -32,11 +29,14 @@ export default class SlidingCache<V> {
     const existing = this.inFlight.get(key);
     if (existing) return existing;
 
-    const promise = initFn().then((data) => {
-      this.store(key, data);
-      this.inFlight.delete(key);
-      return data;
-    });
+    const promise = initFn()
+      .then((data) => {
+        this.store(key, data);
+        return data;
+      })
+      .finally(() => {
+        this.inFlight.delete(key);
+      });
 
     this.inFlight.set(key, promise);
     return promise;

@@ -24,7 +24,7 @@ import TXSlidingCache from "../core/utils/TXSlidingCache";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
-  maxRequests: 7,
+  maxRequests: 5,
   cleanupIntervalMs: 5 * 60_000,
 });
 
@@ -394,7 +394,9 @@ async function resolveAttachment(p: string): Promise<fs.ReadStream> {
       `tx_attach_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`,
     );
     await downloadFile(p, tmp);
-    return fs.createReadStream(tmp);
+    const stream = fs.createReadStream(tmp);
+    stream.on("close", () => fs.unlink(tmp, () => {}));
+    return stream;
   }
   return fs.createReadStream(p);
 }

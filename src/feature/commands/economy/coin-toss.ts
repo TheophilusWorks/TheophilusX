@@ -14,7 +14,7 @@ export default new TXCommand({
   usage: "coin-toss <bet> <heads | tails>",
   minimumArguments: 2,
   aliases: ["ct", "coinflip", "cf"],
-  cooldown: 5_000,
+  cooldown: 10_000,
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter, args }) => {
