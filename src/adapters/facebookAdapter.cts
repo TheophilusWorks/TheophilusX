@@ -20,7 +20,7 @@ import { downloadFile } from "../utils/downloadFile";
 import os from "os";
 import TXRateLimiter from "../core/utils/TXRateLimiter";
 import TXMessageQueue from "../core/utils/TXMessageQueue";
-import { server } from "typescript";
+import TXSlidingCache from "../core/utils/TXSlidingCache";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
@@ -35,8 +35,8 @@ const queue = new TXMessageQueue({
   switchDelayMaxMs: 700,
 });
 
-const USER_CACHE_TTL_MS = 10 * 60 * 1000;
-const userCache = new Map<string, { data: TXIAuthor; cachedAt: number }>();
+const USER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 mins
+const userCache = new TXSlidingCache<TXIAuthor>(USER_CACHE_TTL_MS);
 
 export default async function buildFacebookAdapter(
   instance: TheophilusX,
@@ -318,6 +318,7 @@ export default async function buildFacebookAdapter(
       return groups.map((t: any) => t.threadID);
     });
 
+  userCache.scheduleCleanup(60_000);
   return adapter;
 }
 
@@ -330,50 +331,39 @@ async function getCachedUser(
   instance: TheophilusX,
   ...ids: string[]
 ): Promise<Record<string, TXIAuthor>> {
-  const now = Date.now();
   const result: Record<string, TXIAuthor> = {};
-  const toFetch: string[] = [];
   const selfID = bot.ctx.api.getCurrentUserID();
 
-  for (const id of ids) {
-    const cached = userCache.get(id);
-    if (cached && now - cached.cachedAt < USER_CACHE_TTL_MS) {
-      result[id] = cached.data;
-    } else {
-      toFetch.push(id);
-    }
-  }
-
-  if (toFetch.length > 0) {
-    const fetched = await new Promise<Record<string, any>>(
-      (resolve, reject) => {
-        bot.ctx.api.getUserInfo(toFetch, (err: any, data: any) => {
-          if (err) reject(err);
-          else resolve(data ?? {});
+  await Promise.all(
+    ids.map(async (id) => {
+      const author = await userCache.getOrInit(id, async () => {
+        const info = await new Promise<any>((resolve, reject) => {
+          bot.ctx.api.getUserInfo([id], (err: any, data: any) => {
+            if (err) reject(err);
+            else resolve(data?.[id]);
+          });
         });
-      },
-    );
 
-    for (const id of toFetch) {
-      const info = fetched[id];
-      const displayName = info?.name ?? info?.vanity ?? id;
-      const username = info?.vanity ?? id;
-      const author: TXIAuthor = {
-        id,
-        displayName,
-        username,
-        isAdmin:
-          instance
-            .getConfig()
-            .adminIds?.some((a: any) => a.facebookId === id) ?? false,
-        isSelf: selfID === id,
-        avatarURL: avatarFallback(displayName, info?.thumbSrc),
-        isEveryone: false,
-      };
-      userCache.set(id, { data: author, cachedAt: now });
+        const displayName = info?.name ?? info?.vanity ?? id;
+        const username = info?.vanity ?? id;
+
+        return {
+          id,
+          displayName,
+          username,
+          isAdmin:
+            instance
+              .getConfig()
+              .adminIds?.some((a: any) => a.facebookId === id) ?? false,
+          isSelf: selfID === id,
+          avatarURL: avatarFallback(displayName, info?.thumbSrc),
+          isEveryone: false,
+        } as TXIAuthor;
+      });
+
       result[id] = author;
-    }
-  }
+    }),
+  );
 
   return result;
 }
