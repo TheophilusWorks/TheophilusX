@@ -36,7 +36,7 @@ const queue = new TXMessageQueue({
 });
 
 const USER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 mins
-const userCache = new TXSlidingCache<TXIAuthor>(USER_CACHE_TTL_MS);
+export const userCache = new TXSlidingCache<TXIAuthor>(USER_CACHE_TTL_MS);
 
 export default async function buildFacebookAdapter(
   instance: TheophilusX,

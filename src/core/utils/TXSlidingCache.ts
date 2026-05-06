@@ -107,4 +107,8 @@ export default class SlidingCache<V> {
     this.cacheMap.clear();
     this.inFlight.clear();
   }
+
+  get size() {
+    return this.cacheMap.size;
+  }
 }
