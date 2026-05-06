@@ -691,7 +691,7 @@ function makeReplyFn(
         mentions,
         attachment:
           attachmentPaths.length > 0
-            ? attachmentPaths.map(resolveAttachment)
+            ? await Promise.all(attachmentPaths.map(resolveAttachment))
             : undefined,
       },
       ctx.serverId,
