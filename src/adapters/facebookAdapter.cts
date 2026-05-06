@@ -255,20 +255,18 @@ export default async function buildFacebookAdapter(
       const selfID = bot.ctx.api.getCurrentUserID();
       const infoMap = await getCachedUser(bot, instance, ...participantIDs);
 
-      return participantIDs
-        .filter((id) => id !== selfID)
-        .map(
-          (id) =>
-            infoMap[id] ?? {
-              id,
-              displayName: id,
-              username: id,
-              isAdmin: false,
-              isSelf: false,
-              avatarURL: avatarFallback(id),
-              isEveryone: false,
-            },
-        );
+      return participantIDs.map(
+        (id) =>
+          infoMap[id] ?? {
+            id,
+            displayName: id,
+            username: id,
+            isAdmin: false,
+            isSelf: false,
+            avatarURL: avatarFallback(id),
+            isEveryone: false,
+          },
+      );
     })
 
     .setAnnouncementSender(async (message) => {
