@@ -6,12 +6,12 @@ import Users, { queryUser } from "../../../core/database/model/Users.js";
 import mongoose from "mongoose";
 
 const PAYOUT_RATES = {
-  red: .95,
-  blue: .95,
-  green: .95,
-  yellow: .95,
-  orange: .95,
-  violet: 3.5,
+  red: 1.95,
+  blue: 1.95,
+  green: 1.95,
+  yellow: 1.95,
+  orange: 1.95,
+  violet: 4.5,
 };
 
 type Color = keyof typeof PAYOUT_RATES;
