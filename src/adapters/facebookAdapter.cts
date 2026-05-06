@@ -103,22 +103,58 @@ export default async function buildFacebookAdapter(
       });
 
       bot.on("threadUpdate", async (event: ThreadEvent) => {
-        const isAdmin =
-          instance
-            .getConfig()
-            .adminIds?.some((id) => id.facebookId === event.author) ?? false;
-
         if (event.logMessageType === "log:subscribe") {
           const ids =
             event.logMessageData?.addedParticipants?.map((p) => p.userFbId) ??
             [];
           if (ids.length > 0) await getCachedUser(bot, instance, ...ids);
-          const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
+
+          const ctx = await buildFacebookContext(bot, instance, false, event);
+
+          if (ids.length > 0) {
+            const joinedId = ids[0];
+            const infoMap = await getCachedUser(bot, instance, joinedId);
+            const isAdmin =
+              instance
+                .getConfig()
+                .adminIds?.some((id) => id.facebookId === joinedId) ?? false;
+
+            ctx.author = infoMap[joinedId] ?? {
+              id: joinedId,
+              displayName: joinedId,
+              username: joinedId,
+              isAdmin,
+              isSelf: false,
+              avatarURL: avatarFallback(joinedId),
+              isEveryone: false,
+            };
+          }
+
           instance.emit("userJoin", ctx, adapter);
         } else if (event.logMessageType === "log:unsubscribe") {
           const leftId = event.logMessageData?.leftParticipantFbId;
           if (leftId) await getCachedUser(bot, instance, leftId);
-          const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
+
+          const ctx = await buildFacebookContext(bot, instance, false, event);
+
+          if (leftId) {
+            const infoMap = await getCachedUser(bot, instance, leftId);
+            const isAdmin =
+              instance
+                .getConfig()
+                .adminIds?.some((id) => id.facebookId === leftId) ?? false;
+
+            ctx.author = infoMap[leftId] ?? {
+              id: leftId,
+              displayName: leftId,
+              username: leftId,
+              isAdmin,
+              isSelf: false,
+              avatarURL: avatarFallback(leftId),
+              isEveryone: false,
+            };
+          }
+
           instance.emit("userLeave", ctx, adapter);
         }
       });
