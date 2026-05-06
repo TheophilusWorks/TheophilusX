@@ -7,6 +7,7 @@ import fsp from "node:fs/promises";
 import { CACHE_DIR } from "../../../core/TheophilusX.js";
 import path from "node:path";
 import { Emoji } from "../../constants/emojis.js";
+import ytSearch from "yt-search";
 
 type MusicItem = {
   id: string;
@@ -63,37 +64,35 @@ export default new TXCommand({
   minimumMentions: 0,
 
   execute: async (ctx, { adapter, args }) => {
-    await adapter.reactEmoji(ctx, Emoji.Loading)
+    await adapter.reactEmoji(ctx, Emoji.Loading);
+
     const query: string = args.join(" ").trim();
 
-    const { data: raw } = await axios.post(
-      `https://www.holistic-fitness.ca/explore/${encodeURIComponent(query)}/`,
-    );
+    const search = await ytSearch(query);
 
-    const data: MusicItem[] = Array.isArray(raw)
-      ? raw
-      : Array.isArray(raw?.data)
-        ? raw.data
-        : [];
+    const rawVideos = search.videos ?? [];
 
-    if (data.length === 0) {
+    if (rawVideos.length === 0) {
       await adapter.reply(ctx, "No results found.");
       return;
     }
 
-    const filtered = data.filter((item) => {
-      if (!item.duration) return true;
-      return parseDurationSeconds(item.duration) <= 600;
-    });
+    const filtered: MusicItem[] = rawVideos
+      .filter((v: any) => (v.seconds ?? 0) <= 600)
+      .slice(0, 5)
+      .map((v: any) => ({
+        id: v.videoId,
+        title: v.title,
+        artist: v.author?.name ?? "Unknown",
+        duration: v.timestamp,
+      }));
 
     if (filtered.length === 0) {
       await adapter.reply(ctx, "No results found under 10 minutes.");
       return;
     }
 
-    const LIMIT = Math.min(5, filtered.length);
-    const videos = filtered.slice(0, LIMIT);
-    const formatted = formatMusicResult(query, videos);
+    const formatted = formatMusicResult(query, filtered);
     const reply = await adapter.reply(ctx, formatted);
 
     const res = await reply.waitReply({
@@ -106,12 +105,14 @@ export default new TXCommand({
     const content: string = res.context.content;
     const idx = Number(content.trim()) - 1;
 
-    if (!Number.isInteger(idx) || idx < 0 || idx >= videos.length) {
-      await res.reply(`Invalid index. Choose between 1 and ${videos.length}.`);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= filtered.length) {
+      await res.reply(
+        `Invalid index. Choose between 1 and ${filtered.length}.`,
+      );
       return;
     }
 
-    const video = videos[idx];
+    const video = filtered[idx];
 
     if (!video?.id) {
       await res.reply("Selected item is invalid.");
@@ -128,6 +129,7 @@ export default new TXCommand({
     await ensurePath(filepath);
 
     let filepath_created = false;
+
     try {
       const { data: dl }: { data: { download?: string } } = await axios.get(
         `https://ccproject.serv00.net/ytdl2.php?url=${encodeURIComponent(link)}`,
@@ -141,7 +143,7 @@ export default new TXCommand({
       await downloadMp3(dl.download, filepath);
       filepath_created = true;
 
-      await adapter.reactEmoji(ctx, Emoji.Done)
+      await adapter.reactEmoji(ctx, Emoji.Done);
       await res.reply({ attachments: [filepath] });
     } catch (err) {
       await res.reply("Failed to download or send the song. Try again.");
