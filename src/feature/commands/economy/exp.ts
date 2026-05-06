@@ -45,8 +45,7 @@ export default new TXCommand({
     const totalExp = userData.economy?.totalExp ?? 0;
     const currentLevelReq = requiredXP(level + 1);
 
-    const avatarURL =
-      targetUser.avatarURL
+    const avatarURL = targetUser.avatarURL;
 
     const card = new RankCardBuilder()
       .setUsername(targetUser.displayName)
