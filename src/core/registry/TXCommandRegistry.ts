@@ -5,8 +5,9 @@ import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import { DebugLevel } from "../../types/TXDebugLevel.js";
 import { importDefault } from "../../utils/importDefault.js";
+import TXBaseRegistry from "./TXBaseRegistry.js";
 
-export default class TXCommandRegistry {
+export default class TXCommandRegistry extends TXBaseRegistry {
   private adminCommands: Map<string, TXCommand>;
   private commands: Map<string, TXCommand>;
 
@@ -19,13 +20,12 @@ export default class TXCommandRegistry {
   public commandCount = 0;
   public adminCommandCount = 0;
 
-  private logger: TXLogger;
-
   constructor(
     commandsPath: string,
     adminCommandsPath: string,
     logger: TXLogger,
   ) {
+    super(logger);
     this.commandsPath = commandsPath;
     this.adminCommandsPath = adminCommandsPath;
     this.logger = logger.scope("CommandRegistry");

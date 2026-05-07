@@ -3,14 +3,14 @@ import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import { DebugLevel } from "../../types/TXDebugLevel.js";
 import { TXPlatform } from "../context/TXContext.js";
+import TXBaseRegistry from "./TXBaseRegistry.js";
 
-export default class TXAdapterRegistry {
+export default class TXAdapterRegistry extends TXBaseRegistry {
   private adapters: TXAdapterBuilder[];
-  private logger: TXLogger;
-
   public usedPlatforms: TXPlatform[] = [];
 
   constructor(logger: TXLogger) {
+    super(logger);
     this.logger = logger.scope("AdapterRegistry");
     this.adapters = new Array();
   }
@@ -40,7 +40,7 @@ export default class TXAdapterRegistry {
   }
 
   public getAdapters(): TXAdapterBuilder[] {
-    return this.adapters
+    return this.adapters;
   }
 
   public toSummaryNode(): TXLoggerNode {

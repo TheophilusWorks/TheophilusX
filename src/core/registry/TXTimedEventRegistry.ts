@@ -6,15 +6,16 @@ import { DebugLevel } from "../../types/TXDebugLevel.js";
 import TXTimedEvent from "../event/TXTimedEvent.js";
 import TXAdapterBuilder from "../adapter/TXAdapterBuilder.js";
 import { importDefault } from "../../utils/importDefault.js";
+import TXBaseRegistry from "./TXBaseRegistry.js";
 
-export default class TXTimedEventRegistry {
-  private logger: TXLogger;
+export default class TXTimedEventRegistry extends TXBaseRegistry {
   private timedEventsPath: string;
   private events: TXTimedEvent[] = [];
 
   public eventCount = 0;
 
   constructor(timedEventsPath: string, logger: TXLogger) {
+    super(logger);
     this.timedEventsPath = timedEventsPath;
     this.logger = logger.scope("TimedEventRegistry");
   }

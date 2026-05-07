@@ -8,15 +8,16 @@ import TXEvents from "../../types/TXEvents.js";
 import TXEventBuilder, { TXEventOptions } from "../event/TXEventBuilder.js";
 import { importDefault } from "../../utils/importDefault.js";
 import { TXIContext } from "../context/TXContext.js";
+import TXBaseRegistry from "./TXBaseRegistry.js";
 
-export default class TXEventRegistry {
+export default class TXEventRegistry extends TXBaseRegistry {
   private eventBus: EventEmitter;
-  private logger: TXLogger;
   private eventsPath: string;
 
   public eventCount = 0;
 
   constructor(eventsPath: string, logger: TXLogger) {
+    super(logger);
     this.eventsPath = eventsPath;
     this.logger = logger.scope("EventRegistry");
     this.eventBus = new EventEmitter();

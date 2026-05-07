@@ -4,18 +4,18 @@ import TXItemBuilder from "../item-manager/TXItemBuilder.js";
 import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
 import fs from "fs/promises";
-import path from "path";
+import TXBaseRegistry from "./TXBaseRegistry.js";
 
-export default class TXItemManager {
+export default class TXItemManager extends TXBaseRegistry {
   private commands: Map<string, TXCommand> = new Map();
   private items: Map<string, TXItemBuilder> = new Map();
-  private logger: TXLogger;
   private loadedItems = 0;
   private loadedCommands = 0;
 
   private itemsPath: string;
 
   constructor(itemsPath: string, logger: TXLogger) {
+    super(logger);
     this.logger = logger;
     this.itemsPath = itemsPath;
   }
@@ -55,7 +55,7 @@ export default class TXItemManager {
   public async reloadModules() {}
 
   private async loadItems() {
-    const itemsFile = await fs.readFile(this.itemsPath, "utf-8")
+    const itemsFile = await fs.readFile(this.itemsPath, "utf-8");
     const itemsArray = JSON.parse(itemsFile);
 
     for (const item of itemsArray) {
