@@ -1,9 +1,0 @@
-{
-  "name": "steal-protection",
-  "description": "Fails the stealer's chance to steal and increments their steal counter by 2",
-  "duration": null,
-  "expiresAt": null,
-  "requiredLevel": 0,
-  "requiredTotalExp": 0,
-  "price": 10000
-}

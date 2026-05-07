@@ -19,7 +19,7 @@ import { promisify } from "node:util";
 import TXAdapterBuilder from "./adapter/TXAdapterBuilder.js";
 import TXCacheManager from "./cache-manager/TXCacheManager.js";
 import TXICommandArgument from "../types/TXICommandArgument.js";
-import TXItemManager from "./item-manager/TXItemManager.js";
+import TXItemManager from "./registry/TXItemRegistry.js";
 import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
 import TXTimedEventRegistry from "./registry/TXTimedEventRegistry.js";
 import fs from "fs";

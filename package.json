@@ -23,7 +23,7 @@
     "yt-search": "^2.13.1"
   },
   "scripts": {
-    "build": "tsc && cpx \"./src/feature/items/**/*\" ./dist/feature/items",
+    "build": "tsc",
     "clean": "rm -rf dist .tsbuildinfo",
     "exec": "npm run clean && npm run build && node ./dist/main.js"
   },

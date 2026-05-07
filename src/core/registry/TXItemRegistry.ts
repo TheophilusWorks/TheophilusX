@@ -1,9 +1,9 @@
 import TXCommand from "../command/TXCommand.js";
-import TXItemBuilder from "./TXItemBuilder.js";
-import { TXIItem } from "./TXIItem.js";
+import { TXIItem } from "../item-manager/TXIItem.js";
+import TXItemBuilder from "../item-manager/TXItemBuilder.js";
 import TXLogger from "../logger/TXLogger.js";
 import { TXLoggerNode } from "../logger/TXLoggerNode.js";
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 
 export default class TXItemManager {
@@ -55,15 +55,12 @@ export default class TXItemManager {
   public async reloadModules() {}
 
   private async loadItems() {
-    const itemFiles = fs
-      .readdirSync(this.itemsPath)
-      .filter((file) => file.endsWith(".json"));
+    const itemsFile = await fs.readFile(this.itemsPath, "utf-8")
+    const itemsArray = JSON.parse(itemsFile);
 
-    for (const file of itemFiles) {
-      const filePath = path.join(this.itemsPath, file);
-      const rawData: TXIItem = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      this.items.set(rawData.name, new TXItemBuilder(rawData));
-      this.logger.log(`Loaded item: '${rawData.name}'`);
+    for (const item of itemsArray) {
+      this.items.set(item.name, new TXItemBuilder(item));
+      this.logger.log(`Loaded item: '${item.name}'`);
       this.loadedItems++;
     }
 
