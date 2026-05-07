@@ -24,7 +24,7 @@ import TXSlidingCache from "../core/utils/TXSlidingCache";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
-  maxRequests: 5,
+  maxRequests: 7,
   cleanupIntervalMs: 5 * 60_000,
 });
 
@@ -35,7 +35,7 @@ const queue = new TXMessageQueue({
   switchDelayMaxMs: 700,
 });
 
-const USER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 mins
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 mins
 export const userCache = new TXSlidingCache<TXIAuthor>(USER_CACHE_TTL_MS);
 
 export default async function buildFacebookAdapter(
@@ -81,7 +81,7 @@ export default async function buildFacebookAdapter(
         const ctx = await buildFacebookContext(bot, instance, isAdmin, event);
 
         if (usedPrefix) {
-          if (!rateLimiter.isAllowed(event.senderID)) return;
+          if (!rateLimiter.isAllowed(event.threadID)) return;
           const args = new TXCommandArgumentParser(
             usedPrefix,
             event.body,
@@ -90,7 +90,7 @@ export default async function buildFacebookAdapter(
           ).parse();
           instance.emit("commandCreate", ctx, args);
         } else if (usedAdminPrefix) {
-          if (!rateLimiter.isAllowed(event.senderID)) return;
+          if (!rateLimiter.isAllowed(event.threadID)) return;
           const args = new TXCommandArgumentParser(
             usedAdminPrefix,
             event.body,
