@@ -12,6 +12,7 @@ const instance = new TheophilusX({
   eventsPath: "./dist/feature/events/",
   timedEventsPath: "./dist/feature/timedEvents/",
   itemsPath: "./json/shop-items.json",
+  crateItemsPath: "./json/crate-items.json",
   cachePath: path.resolve(os.tmpdir(), "tx-state.json"),
   debugLogs: true,
 

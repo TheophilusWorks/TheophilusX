@@ -4,6 +4,7 @@ export default interface TXConfig {
   eventsPath: string;
   timedEventsPath: string;
   itemsPath: string;
+  crateItemsPath: string;
   cachePath: string;
 
   debugLogs: boolean;
@@ -14,9 +15,9 @@ export default interface TXConfig {
   };
 
   groupLogger: {
-    enabled: boolean,
-    facebookGroupId: string,
-  }
+    enabled: boolean;
+    facebookGroupId: string;
+  };
 
   prefix: string | string[];
   adminPrefix: string | string[];
