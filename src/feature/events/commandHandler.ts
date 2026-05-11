@@ -8,7 +8,6 @@ import TXICommandArgument from "../../types/TXICommandArgument.js";
 import TXCooldownManager from "../../core/command/TXCooldownHandler.js";
 import instance from "../../instance.js";
 import TXCommandOwnershipCheckerMW from "../middlewares/TXCommandOwnershipCheckerMW.js";
-import { Emoji } from "../constants/emojis.js";
 
 export const COOLDOWN_USERS = new TXCooldownManager();
 
@@ -27,12 +26,9 @@ export default new TXEventBuilder(
 
     try {
       let cmd = ctx.metadata["cmd"] as TXCommand;
-      await adapter.reactEmoji(ctx, Emoji.Running);
       await cmd.execute(ctx, cmdQuery);
-      await adapter.reactEmoji(ctx, Emoji.Check);
     } catch (err) {
       let e = err as Error;
-      await adapter.reactEmoji(ctx, Emoji.Error);
       await adapter.reply(
         ctx,
         [
