@@ -20,7 +20,6 @@ import { downloadFile } from "../utils/downloadFile";
 import os from "os";
 import TXRateLimiter from "../core/utils/TXRateLimiter";
 import TXMessageQueue from "../core/utils/TXMessageQueue";
-import TXSlidingCache from "../core/utils/TXSlidingCache";
 
 const rateLimiter = new TXRateLimiter({
   windowMs: 60_000,
@@ -34,9 +33,6 @@ const queue = new TXMessageQueue({
   switchDelayMinMs: 500,
   switchDelayMaxMs: 700,
 });
-
-const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 mins
-export const userCache = new TXSlidingCache<TXIAuthor>(USER_CACHE_TTL_MS);
 
 export default async function buildFacebookAdapter(
   instance: TheophilusX,
@@ -252,7 +248,6 @@ export default async function buildFacebookAdapter(
     .setUserGetter(async (ctx) => {
       const raw = ctx.raw as MessengerMessageEvent;
       const participantIDs = raw.participantIDs ?? [];
-      const selfID = bot.ctx.api.getCurrentUserID();
       const infoMap = await getCachedUser(bot, instance, ...participantIDs);
 
       return participantIDs.map(
@@ -352,7 +347,7 @@ export default async function buildFacebookAdapter(
       return groups.map((t: any) => t.threadID);
     });
 
-  userCache.scheduleCleanup(60_000);
+  instance.userCache.scheduleCleanup(60_000);
   return adapter;
 }
 
@@ -370,7 +365,8 @@ async function getCachedUser(
 
   await Promise.all(
     ids.map(async (id) => {
-      const author = await userCache.getOrInit(id, async () => {
+      let key = `${TXPlatform.FacebookMessenger}-${id}`;
+      const author = await instance.userCache.getOrInit(key, async () => {
         const info = await new Promise<any>((resolve, reject) => {
           bot.ctx.api.getUserInfo([id], (err: any, data: any) => {
             if (err) reject(err);

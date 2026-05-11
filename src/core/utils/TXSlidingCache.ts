@@ -1,3 +1,5 @@
+import { overwriteMiddlewareResult } from "mongoose";
+
 interface TXCache<V> {
   data: V;
   expiresAt: number;
@@ -43,6 +45,13 @@ export default class SlidingCache<V> {
   }
 
   /**
+   * Directly set cacheMap to this
+   */
+  public from(newCacheMap: Map<string, TXCache<V>>) {
+    this.cacheMap = newCacheMap;
+  }
+
+  /**
    * Direct get (no fetch)
    */
   public get(key: string): V | null {
@@ -57,6 +66,13 @@ export default class SlidingCache<V> {
     // sliding refresh on access
     cached.expiresAt = Date.now() + this.ttlMs;
     return cached.data;
+  }
+
+  /**
+   * Returns the cacheMap instance
+   */
+  public getAll() {
+    return this.cacheMap;
   }
 
   /**

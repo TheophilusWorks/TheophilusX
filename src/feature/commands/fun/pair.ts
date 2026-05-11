@@ -5,6 +5,8 @@ import { randomRange } from "../../../utils/randomRange.js";
 import { TXIAuthor } from "../../../core/context/TXContext.js";
 import { mention, text } from "../../../core/message/TXMessageBuilder.js";
 import { TXMessagePart } from "../../../core/message/TXMessagePart.js";
+import instance from "../../../instance.js";
+import TheophilusX from "../../../core/TheophilusX.js";
 
 const __dirname = getDirname(import.meta.url);
 const PAIR_IMAGE_PATH = path.resolve(
@@ -25,12 +27,24 @@ export default new TXCommand({
   minimumGroupedArguments: 0,
   minimumMentions: 0,
   execute: async (ctx, { adapter }) => {
+    let previousCache = new Map(instance.userCache.getAll());
     let serverUsers = (await adapter.getAllUsers(ctx)).filter(
       (u) => u.id !== ctx.author.id && u.avatarURL,
     );
+
     let targetUser =
       ctx.mentions[0] ||
       serverUsers[Math.floor(randomRange(0, serverUsers.length))];
+
+    previousCache.set(`${ctx.platform}-${targetUser.id}`, {
+      data: targetUser,
+      expiresAt: Date.now() + TheophilusX.USER_CACHE_TTL_MS,
+    });
+
+    // NOTE: Kind of dangerous but IDGAF. This is just
+    // a collection of users anyways... just refetch lol
+    instance.userCache.from(previousCache);
+
     let matchPercent = pairUsers(ctx.author.id, targetUser.id) * 100;
 
     let attachments = [

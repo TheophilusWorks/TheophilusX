@@ -1,6 +1,6 @@
 import TXCommand from "../../../core/command/TXCommand.js";
-import { userCache } from "../../../adapters/facebookAdapter.cjs";
 import v8 from "node:v8";
+import instance from "../../../instance.js";
 
 type MemorySnapshot = {
   rss: number;
@@ -38,7 +38,7 @@ export default new TXCommand({
       rss: mem.rss,
       heapUsed: mem.heapUsed,
       external: mem.external,
-      cache: userCache?.size ?? 0,
+      cache: instance.userCache.size ?? 0,
       time: Date.now(),
     };
 

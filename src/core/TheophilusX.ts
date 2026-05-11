@@ -4,7 +4,7 @@ import toError from "../utils/toError.js";
 import path from "node:path";
 import TXCommand from "./command/TXCommand.js";
 import { DebugLevel } from "../types/TXDebugLevel.js";
-import { TXIContext, TXPlatform } from "./context/TXContext.js";
+import { TXIAuthor, TXIContext, TXPlatform } from "./context/TXContext.js";
 import buildCliAdapter from "../adapters/cliAdapter.js";
 import { GlobalFonts } from "@napi-rs/canvas";
 import TXLogger from "./logger/TXLogger.js";
@@ -22,6 +22,7 @@ import TXICommandArgument from "../types/TXICommandArgument.js";
 import TXItemManager from "./registry/TXItemRegistry.js";
 import buildFacebookAdapter from "../adapters/facebookAdapter.cjs";
 import TXTimedEventRegistry from "./registry/TXTimedEventRegistry.js";
+import TXSlidingCache from "./utils/TXSlidingCache.js";
 import fs from "fs";
 import os from "os";
 
@@ -36,6 +37,8 @@ const execAsync = promisify(exec);
 
 export default class TheophilusX {
   public static version = "1.0.0";
+  public static USER_CACHE_TTL_MS = 5 * 60 * 1000;
+  public userCache: TXSlidingCache<TXIAuthor>;
   public prefixes: string[];
   public adminPrefixes: string[];
 
@@ -57,6 +60,7 @@ export default class TheophilusX {
 
   constructor(config: TXConfig) {
     this.config = config;
+    this.userCache = new TXSlidingCache(TheophilusX.USER_CACHE_TTL_MS);
     this.logger = TXLogger.create(config.debugLogs);
     this.prefixes = Array.isArray(config.prefix)
       ? config.prefix
