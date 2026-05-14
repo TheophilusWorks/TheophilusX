@@ -35,6 +35,10 @@ export default class TXMessageQueue {
     if (!this.running.get(serverID)) this._run(serverID);
   }
 
+  getSize(threadID: string): number {
+    return this.queues.get(threadID)?.length || 0;
+  }
+
   private async _run(serverID: string): Promise<void> {
     this.running.set(serverID, true);
     const queue = this.queues.get(serverID)!;
@@ -52,7 +56,6 @@ export default class TXMessageQueue {
 
       const delay = randomRange(this.minDelayMs, this.maxDelayMs);
       await sleep(delay);
-
       const job = queue.shift()!;
       await job().catch(console.error);
     }

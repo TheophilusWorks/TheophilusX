@@ -27,11 +27,12 @@ const rateLimiter = new TXRateLimiter({
   cleanupIntervalMs: 5 * 60_000,
 });
 
+const QUEUE_MAX_LOAD_SIZE = 10;
 const queue = new TXMessageQueue({
-  minDelayMs: 1000,
-  maxDelayMs: 1500,
-  switchDelayMinMs: 500,
-  switchDelayMaxMs: 700,
+  minDelayMs: 1500,
+  maxDelayMs: 2500,
+  switchDelayMinMs: 700,
+  switchDelayMaxMs: 1000,
 });
 
 export default async function buildFacebookAdapter(
@@ -78,6 +79,7 @@ export default async function buildFacebookAdapter(
 
         if (usedPrefix) {
           if (!rateLimiter.isAllowed(event.threadID)) return;
+          if (queue.getSize(event.threadID) > QUEUE_MAX_LOAD_SIZE) return;
           const args = new TXCommandArgumentParser(
             usedPrefix,
             event.body,
@@ -86,7 +88,6 @@ export default async function buildFacebookAdapter(
           ).parse();
           instance.emit("commandCreate", ctx, args);
         } else if (usedAdminPrefix) {
-          if (!rateLimiter.isAllowed(event.threadID)) return;
           const args = new TXCommandArgumentParser(
             usedAdminPrefix,
             event.body,
