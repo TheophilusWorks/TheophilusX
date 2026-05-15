@@ -50,7 +50,7 @@ export default new TXCommand({
     try {
       let oldBalance = user.economy.coins;
       let newBalance = await updateUserCoins(
-        answerIsCorrect(side, computedSide) ? bet : -bet,
+        answerIsCorrect(side, computedSide) ? bet * 0.5 : -bet,
         ctx,
       );
 
