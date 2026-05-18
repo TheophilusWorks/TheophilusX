@@ -55,6 +55,12 @@ const instance = new TheophilusX({
     {
       facebookId: "61552922702107",
     },
+    {
+      facebookId: "61560599325073",
+    },
+    {
+      facebookId: "61589098537545",
+    }
   ],
 
   // WARN: DO NOT TOUCH THIS PART! dotenv already injects your tokens
