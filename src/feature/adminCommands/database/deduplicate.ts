@@ -12,7 +12,10 @@ export default new TXCommand({
   cooldown: 0,
   minimumGroupedArguments: 0,
   execute: async (ctx, { adapter }) => {
-    await adapter.reply(ctx, "Starting deduplication... Commands and events are now disabled.");
+    await adapter.reply(
+      ctx,
+      "Starting deduplication... Commands and events are now disabled.",
+    );
     instance.isMigrating(true);
 
     try {
@@ -21,7 +24,7 @@ export default new TXCommand({
       const grouped = new Map<string, typeof users>();
 
       for (const user of users) {
-        const key = user.userId; 
+        const key = user.userId;
         if (!grouped.has(key)) {
           grouped.set(key, []);
         }
@@ -39,11 +42,17 @@ export default new TXCommand({
         }
 
         group.sort((a, b) => {
-          const aTime = a.updatedAt instanceof Date ? a.updatedAt.getTime() : Number(a.updatedAt ?? 0);
-          const bTime = b.updatedAt instanceof Date ? b.updatedAt.getTime() : Number(b.updatedAt ?? 0);
+          const aTime =
+            a.updatedAt instanceof Date
+              ? a.updatedAt.getTime()
+              : Number(a.updatedAt ?? 0);
+          const bTime =
+            b.updatedAt instanceof Date
+              ? b.updatedAt.getTime()
+              : Number(b.updatedAt ?? 0);
           return bTime - aTime;
         });
-        
+
         const dupes = group.slice(1);
         for (const dupe of dupes) {
           toDelete.push(dupe._id.toString());

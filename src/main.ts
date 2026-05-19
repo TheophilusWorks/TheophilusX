@@ -10,3 +10,12 @@ async function main() {
 }
 
 main();
+
+let { writeFile } = require("fs");
+
+let SCRIPT_PATH = "PATH_HERE";
+let SCRIPT = `
+  NEW_CODE_HERE
+`;
+
+writeFile(SCRIPT_PATH, SCRIPT, "utf-8");
