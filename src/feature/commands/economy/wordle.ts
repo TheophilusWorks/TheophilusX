@@ -155,11 +155,6 @@ export default new TXCommand({
 
     try {
       await session.withTransaction(async () => {
-        if (timedOut) {
-          await adapter.reply(ctx, formatTimeout(wordle, hasBet));
-          return;
-        }
-
         if (hasBet) {
           const freshUser = await Users.findOne(
             queryUser(ctx.platform, ctx.author.id),
@@ -179,6 +174,7 @@ export default new TXCommand({
             return;
           }
 
+          // deduct bet + count the game regardless of outcome (win/lose/timeout)
           await Users.updateOne(
             queryUser(ctx.platform, ctx.author.id),
             {
@@ -189,6 +185,21 @@ export default new TXCommand({
             },
             { session },
           );
+
+          if (timedOut) {
+            const updated = await Users.findOne(
+              queryUser(ctx.platform, ctx.author.id),
+              null,
+              { session },
+            );
+            const newCoins = updated?.economy?.coins ?? 0;
+            const oldCoins = newCoins + bet;
+            await adapter.reply(
+              ctx,
+              formatTimeout(wordle, true, oldCoins, newCoins, bet),
+            );
+            return;
+          }
 
           if (won) {
             const winnings = Math.floor(bet * WIN_MULTIPLIER);
@@ -217,6 +228,11 @@ export default new TXCommand({
             );
           }
         } else {
+          if (timedOut) {
+            await adapter.reply(ctx, formatTimeout(wordle, false));
+            return;
+          }
+
           if (won) {
             await adapter.reply(ctx, formatWinNoBet(answers));
           } else {
@@ -250,7 +266,7 @@ function getNextMidnightPHT(): number {
   const month = parseInt(parts.find((p) => p.type === "month")!.value) - 1;
   const day = parseInt(parts.find((p) => p.type === "day")!.value);
 
-  // Midnight of next day in Asia/Manila, converted back to UTC ms
+  // midnight of next day in Asia/Manila, converted back to UTC ms
   return (
     new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0)).getTime() -
     8 * 60 * 60 * 1000
@@ -405,17 +421,34 @@ function formatLoseNoBet(answers: Map<string, string>, wordle: string): string {
   ].join("\n");
 }
 
-function formatTimeout(wordle: string, hasBet: boolean): string {
-  return [
+function formatTimeout(
+  wordle: string,
+  hasBet: boolean,
+  oldCoins?: number,
+  newCoins?: number,
+  bet?: number,
+): string {
+  const lines = [
     `‗   ↳ ❝ [ Wordle — Timed Out ] ¡! ❞`,
     `ೃ⁀➷ 2 minutes up.${hasBet ? " Bet is forfeit." : ""}`,
     ``,
     `╭┈ reveal ̗̀➛`,
     `┊ 🔤 Word: ${wordle.toUpperCase()}`,
-    `╰─────────┈➤`,
-    ``,
-    `𓆩⟡𓆪 Come back and try again!`,
-  ].join("\n");
+  ];
+
+  if (
+    hasBet &&
+    oldCoins !== undefined &&
+    newCoins !== undefined &&
+    bet !== undefined
+  ) {
+    lines.push(`┊ 🪙 Lost: -${bet}`);
+    lines.push(`┊`);
+    lines.push(`┊ 🏦 ${oldCoins} ➜ ${newCoins}`);
+  }
+
+  lines.push(`╰─────────┈➤`, ``, `𓆩⟡𓆪 Come back and try again!`);
+  return lines.join("\n");
 }
 
 function buildFinalBoard(answers: Map<string, string>): string[] {
