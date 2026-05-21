@@ -60,6 +60,9 @@ const instance = new TheophilusX({
     },
     {
       facebookId: "61589098537545",
+    },
+    {
+      facebookId: "61589137263233",
     }
   ],
 
