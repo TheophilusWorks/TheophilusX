@@ -14,7 +14,7 @@ const instance = new TheophilusX({
   itemsPath: "./json/shop-items.json",
   crateItemsPath: "./json/crate-items.json",
   cachePath: path.resolve(os.tmpdir(), "tx-state.json"),
-  debugLogs: true,
+  debugLogs: false,
 
   // The prefix(es) that will trigger commands.
   // Can be a string or an array of strings.
@@ -31,7 +31,7 @@ const instance = new TheophilusX({
   // if you enable a platform but do not provide the necessary tokens,
   // the bot will not work on that platform.
   platforms: {
-    cli: true,
+    cli: false,
     discord: true,
     facebookMessenger: true,
   },
