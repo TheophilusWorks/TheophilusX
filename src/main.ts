@@ -1,3 +1,4 @@
+import "./pinger.js"
 import instance from "./instance.js";
 
 async function main() {
